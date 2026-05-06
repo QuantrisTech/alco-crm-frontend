@@ -56,10 +56,11 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
     queryFn: () => getLearningDashboard(enrollment._id),
     enabled: open,
   });
-  
+
 
   const pct = enrollment.progress || 0;
   const isComplete = enrollment.status === "completed" || pct >= 100;
+  const isRestricted = enrollment.accessStatus === "RESTRICTED";
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -101,8 +102,8 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
                       </p>
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${enrollment.batch.status === "active" ? "bg-emerald-100 text-emerald-700" :
-                        enrollment.batch.status === "upcoming" ? "bg-blue-100 text-blue-700" :
-                          "bg-gray-100 text-gray-500"
+                      enrollment.batch.status === "upcoming" ? "bg-blue-100 text-blue-700" :
+                        "bg-gray-100 text-gray-500"
                       }`}>
                       {enrollment.batch.status}
                     </span>
@@ -139,7 +140,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-4">
+        {/* <div className="flex gap-2 mt-4">
           <button
             onClick={() => router.push(`/dashboard/courses/${enrollment._id}`)}
             className="flex-1 flex items-center justify-center gap-2 bg-yellow-400 text-gray-900 font-semibold text-sm py-2.5 rounded-xl hover:bg-yellow-500 transition-colors"
@@ -156,7 +157,48 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
           >
             {open ? "Hide" : "Quick View"}
           </button>
+        </div> */}
+        {/* Action Buttons */}
+        <div className="flex gap-2 mt-4 relative">
+          <button
+            onClick={() => !isRestricted && router.push(`/dashboard/courses/${enrollment._id}`)}
+            disabled={isRestricted}
+            className={`flex-1 flex items-center justify-center gap-2 font-semibold text-sm py-2.5 rounded-xl transition-colors
+      ${isRestricted
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-yellow-400 text-gray-900 hover:bg-yellow-500"
+              }`}
+          >
+            <Play size={14} className={isRestricted ? "fill-gray-400" : "fill-gray-900"} />
+            {isRestricted ? "Access Restricted" : pct === 0 ? "Start Learning" : "Continue Learning"}
+          </button>
+          {!isRestricted && (
+          <button
+            onClick={() => setOpen(!open)}
+            className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
+              ? "border-yellow-300 bg-yellow-50 text-yellow-700"
+              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+          >
+            {open ? "Hide" : "Quick View"}
+          </button>
+        )}
         </div>
+
+        {/* ── Restricted Overlay Banner ── */}
+        {isRestricted && (
+          <div className="mt-3 flex items-start gap-3 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+            <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center shrink-0 mt-0.5">
+              <Lock size={13} className="text-rose-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-rose-700">Access Restricted</p>
+              <p className="text-xs text-rose-400 mt-0.5">
+                Your enrollment is on hold due to pending payment. Please clear your dues to unlock access.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Course List (expandable) ── */}
@@ -236,8 +278,8 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
                                   {/* Complete / Play icon */}
                                   <div
                                     className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${lesson.is_completed
-                                        ? "bg-green-100"
-                                        : "bg-gray-100 group-hover/lesson:bg-yellow-100"
+                                      ? "bg-green-100"
+                                      : "bg-gray-100 group-hover/lesson:bg-yellow-100"
                                       }`}
                                   >
                                     {lesson.is_completed ? (

@@ -12,21 +12,23 @@ import {
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
 import {
-  Users, Pencil, UserCheck, XCircle, Activity,
-  Trash2, UserPlus, LayoutGrid, List, Tag,
+  Users, Pencil, Trash2, LayoutGrid, List,
 } from "lucide-react";
-import { MdOutlineRemoveRedEye } from "react-icons/md";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
 import QuickStats from "@/app/component/dashboard/quick-stats";
 import LeadsModals from "../shared/leads-modals";
 import { addLeadFields, editLeadFields } from "../shared/fields";
-import { statusColor, qualityColor, PIPELINE_STAGES, toStageKey, leadFilterFields, defaultLeadFilters } from "../shared/constants";
+import { statusColor, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { ModalField } from "@/types/ui";
 import KanbanBoard from "./kanban-board";
 import PaymentPlanModal from "./payment-plan-modal";
 import MarkInterestedModal from "./mark-interested-modal";
 import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
+import Select from "@/app/component/ui/select";
+import ViewContractModal from "./view-contract-modal";
+import ViewPaymentPlanModal from "./view-payment-plan-modal";
+import SelectProgramModal from "./select-program-modal";
 
 // ── Main Component ────────────────────────────────────────────
 export default function AdminLeads() {
@@ -42,8 +44,9 @@ export default function AdminLeads() {
   const [interestedLead, setInterestedLead] = useState<any>(null);
   const [filters, setFilters] = useState(defaultLeadFilters);
   const [paymentPlanLead, setPaymentPlanLead] = useState<any>(null);
-  // const [contractLead, setContractLead] = useState<any>(null);
   const [viewContractLead, setViewContractLead] = useState<any>(null);
+  const [selectProgramLead, setSelectProgramLead] = useState<any>(null);
+  const [viewingPaymentPlan, setViewingPaymentPlan] = useState<any>(null);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -198,8 +201,16 @@ export default function AdminLeads() {
     onDelete: setDeletingLead,
     onPaymentPlan: setPaymentPlanLead,
     onInterested: setInterestedLead,
-
+    onQualified: (lead: any) => updateLeadApi({ id: lead._id, data: { status: "qualified" } }),
+    onContacted: (lead: any) => {
+      if (!lead.program_id) {
+        setSelectProgramLead(lead); // modal open
+      } else {
+        updateLeadApi({ id: lead._id, data: { status: "contacted" } });
+      }
+    },
     onViewContract: setViewContractLead,
+    viewPaymentPlan: setViewingPaymentPlan,
   };
 
   return (
@@ -222,7 +233,7 @@ export default function AdminLeads() {
           onClick={() => setActiveView("list")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
         >
-          <List size={14} /> List
+          <List size={14} /> List View
         </button>
       </div>
 
@@ -258,11 +269,12 @@ export default function AdminLeads() {
             ]}
             actions={[
               { icon: <Pencil size={14} />, label: "Edit", onClick: actions.onEdit, className: "hover:bg-yellow-50 hover:text-yellow-600" },
-              { icon: <UserPlus size={14} />, label: "Assign", onClick: actions.onAssign, className: "hover:bg-blue-50 hover:text-blue-600" },
-              { icon: <Activity size={14} />, label: "Add Activity", onClick: actions.onActivity, className: "hover:bg-indigo-50 hover:text-indigo-600" },
-              { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: actions.onViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
-              { icon: <UserCheck size={14} />, label: "Convert", onClick: actions.onConvert, className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
-              { icon: <XCircle size={14} />, label: "Mark Lost", onClick: actions.onMarkLost, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              // { icon: <UserPlus size={14} />, label: "Assign", onClick: actions.onAssign, className: "hover:bg-blue-50 hover:text-blue-600" },
+              // { icon: <Activity size={14} />, label: "Add Activity", onClick: actions.onActivity, className: "hover:bg-indigo-50 hover:text-indigo-600" },
+              // { icon: <ArrowLeftRight  size={14} />, label: "Mark Contacted", onClick: actions.onContacted, className: "hover:bg-blue-50 hover:text-blue-600", hidden: (lead) => lead.status !== "new" },
+              // { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: actions.onViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
+              // { icon: <UserCheck size={14} />, label: "Convert", onClick: actions.onConvert, className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              // { icon: <XCircle size={14} />, label: "Mark Lost", onClick: actions.onMarkLost, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
               { icon: <Trash2 size={14} />, label: "Delete", onClick: actions.onDelete, className: "hover:bg-red-50 hover:text-red-500" },
             ]}
           />
@@ -337,7 +349,22 @@ export default function AdminLeads() {
         />
       )}
 
-      {viewContractLead && (
+      <ViewContractModal lead={viewContractLead} onClose={() => setViewContractLead(null)} />
+
+      <ViewPaymentPlanModal lead={viewingPaymentPlan} onClose={() => setViewingPaymentPlan(null)} />
+
+      <SelectProgramModal
+        lead={selectProgramLead}
+        programs={programs || []}
+        onClose={() => setSelectProgramLead(null)}
+        onConfirm={(leadId, programId) => {
+          updateLeadApi({ id: leadId, data: { program_id: programId, status: "contacted" } });
+          setSelectProgramLead(null);
+        }}
+        isLoading={isUpdating}
+      />
+
+      {/* {viewContractLead && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b">
@@ -367,6 +394,115 @@ export default function AdminLeads() {
           </div>
         </div>
       )}
+
+      {viewingPaymentPlan && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800">Payment Plan</h3>
+              <button onClick={() => setViewingPaymentPlan(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Total Amount</span>
+                <span className="font-semibold text-gray-400">Rs {viewingPaymentPlan.paymentPlan?.totalAmount?.toLocaleString() || "—"}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Advance</span>
+                <span className="font-semibold text-gray-400">Rs {viewingPaymentPlan.paymentPlan?.advanceAmount?.toLocaleString() || "—"}</span>
+              </div>
+              {viewingPaymentPlan.paymentPlan?.advanceDueDate && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Advance Due</span>
+                  <span className="text-gray-500">{new Date(viewingPaymentPlan.paymentPlan.advanceDueDate).toLocaleDateString("en-PK")}</span>
+                </div>
+              )}
+            </div>
+
+           
+            {viewingPaymentPlan.paymentPlan?.installments?.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold  text-gray-500 uppercase">Installments</p>
+                {viewingPaymentPlan.paymentPlan.installments.map((inst: any, i: number) => (
+                  <div key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg ${inst.status === "paid" ? "bg-green-50 border border-green-100" : "bg-gray-50 border border-gray-100"}`}>
+                    <div>
+                      <p className="text-xs font-medium text-gray-700">{inst.label}</p>
+                      {inst.dueDate && (
+                        <p className="text-[10px] text-gray-400">{new Date(inst.dueDate).toLocaleDateString("en-PK")}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold  text-gray-700">Rs {inst.amount?.toLocaleString()}</p>
+                      <p className={`text-[10px] font-medium ${inst.status === "paid" ? "text-green-600" : "text-gray-400"}`}>
+                        {inst.status === "paid" ? "✓ Paid" : "Pending"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {viewingPaymentPlan.paymentPlan?.notes && (
+              <p className="text-xs text-gray-400 mt-3 italic">{viewingPaymentPlan.paymentPlan.notes}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {selectProgramLead && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm">
+            <h3 className="text-sm font-semibold mb-4 text-gray-600">Select Program</h3>
+
+            <Select
+              label="Program"
+              value={selectProgramLead.program_id || ""}
+              onChange={(e) =>
+                setSelectProgramLead({
+                  ...selectProgramLead,
+                  program_id: e.target.value,
+                })
+              }
+              options={[
+                { label: "Select program", value: "", disabled: true },
+                ...(programs || []).map((p: any) => ({
+                  label: p.name,
+                  value: p._id,
+                })),
+              ]}
+            />
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setSelectProgramLead(null)}
+                className="px-3 py-1.5 text-sm text-gray-500"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={!selectProgramLead.program_id}
+                onClick={() => {
+                  updateLeadApi({
+                    id: selectProgramLead._id,
+                    data: {
+                      program_id: selectProgramLead.program_id,
+                      status: "contacted",
+                    },
+                  });
+                  setSelectProgramLead(null);
+                }}
+                className={`px-3 py-1.5 text-sm rounded-md text-white 
+            ${!selectProgramLead.program_id ? "bg-gray-300 cursor-not-allowed" : "bg-yellow-400 hover:bg-yellow-500"}
+          `}
+              >
+                Continue to Contacted
+              </button>
+            </div>
+          </div>
+        </div>
+      )} */}
     </>
   );
 }

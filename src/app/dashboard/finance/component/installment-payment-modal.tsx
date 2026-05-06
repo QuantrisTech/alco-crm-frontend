@@ -1,10 +1,21 @@
-// components/ui/InstallmentPaymentModal.tsx
 "use client";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { markInstallmentPaid } from "@/utils/api";
 import toast from "react-hot-toast";
-import { X, CheckCircle2, Clock, AlertCircle, ChevronRight, Zap } from "lucide-react";
+import {
+  X,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ChevronRight,
+  Zap,
+  Banknote,
+  Building2,
+  FileText,
+  Settings,
+  CreditCard,
+} from "lucide-react";
 
 interface Installment {
   _id: string;
@@ -32,6 +43,14 @@ interface Props {
   onClose: () => void;
 }
 
+type PaymentMethod = "cash" | "bank" | "cheque" | "manual";
+
+interface PaymentFormState {
+  method: PaymentMethod | null;
+  referenceNumber: string;
+  notes: string;
+}
+
 const formatDate = (d: string) =>
   d
     ? new Date(d).toLocaleDateString("en-PK", {
@@ -43,31 +62,98 @@ const formatDate = (d: string) =>
 
 const formatAmt = (n: number) => Number(n || 0).toLocaleString("en-PK");
 
+const PAYMENT_TABS: {
+  key: PaymentMethod;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  activeColor: string;
+}[] = [
+  {
+    key: "cash",
+    label: "Cash",
+    icon: <Banknote size={13} />,
+    color: "text-slate-500",
+    activeColor: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  },
+  {
+    key: "bank",
+    label: "Bank Transfer",
+    icon: <Building2 size={13} />,
+    color: "text-slate-500",
+    activeColor: "text-blue-600 bg-blue-50 border-blue-200",
+  },
+  {
+    key: "cheque",
+    label: "Cheque",
+    icon: <FileText size={13} />,
+    color: "text-slate-500",
+    activeColor: "text-violet-600 bg-violet-50 border-violet-200",
+  },
+  {
+    key: "manual",
+    label: "Manual",
+    icon: <Settings size={13} />,
+    color: "text-slate-500",
+    activeColor: "text-orange-600 bg-orange-50 border-orange-200",
+  },
+];
+
 export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
   const queryClient = useQueryClient();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
+    method: null,
+    referenceNumber: "",
+    notes: "",
+  });
+
+  // Check if form is valid to enable Confirm button
+  const isFormValid = () => {
+    if (!paymentForm.method) return false;
+    if (
+      ["bank", "cheque"].includes(paymentForm.method) &&
+      !paymentForm.referenceNumber.trim()
+    )
+      return false;
+    return true;
+  };
 
   const { mutate: payInstallment, isPending } = useMutation({
     mutationFn: ({ installmentId }: { installmentId: string }) =>
-      markInstallmentPaid(invoice!._id, installmentId),
+      markInstallmentPaid(invoice!._id, installmentId, {
+        method: paymentForm.method!,
+        referenceNumber: paymentForm.referenceNumber || undefined,
+        notes: paymentForm.notes || undefined,
+      }),
     onSuccess: (res) => {
       const msg = res.data?.message || "Installment marked as paid!";
       toast.success(msg);
       setConfirmingId(null);
+      setPaymentForm({ method: null, referenceNumber: "", notes: "" });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
-      // Close if fully paid
       if (res.data?.data?.status === "PAID") onClose();
     },
     onError: (e: any) =>
       toast.error(e?.response?.data?.message || "Failed to mark installment!"),
   });
 
+  const handleConfirmingOpen = (id: string) => {
+    setConfirmingId(id);
+    setPaymentForm({ method: null, referenceNumber: "", notes: "" });
+  };
+
+  const handleConfirmingClose = () => {
+    setConfirmingId(null);
+    setPaymentForm({ method: null, referenceNumber: "", notes: "" });
+  };
+
   if (!invoice) return null;
 
-  const paidCount     = invoice.installments.filter((i) => i.status === "PAID").length;
-  const totalCount    = invoice.installments.length;
-  const progressPct   = Math.round((paidCount / totalCount) * 100);
+  const paidCount = invoice.installments.filter((i) => i.status === "PAID").length;
+  const totalCount = invoice.installments.length;
+  const progressPct = Math.round((paidCount / totalCount) * 100);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -142,10 +228,10 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
         </div>
 
         {/* Installments List */}
-        <div className="px-4 py-3 max-h-[340px] overflow-y-auto">
+        <div className="px-4 py-3 max-h-[420px] overflow-y-auto">
           <div className="space-y-2">
             {invoice.installments.map((inst, idx) => {
-              const isPaid      = inst.status === "PAID";
+              const isPaid = inst.status === "PAID";
               const isConfirming = confirmingId === inst._id;
 
               return (
@@ -155,20 +241,17 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                     isPaid
                       ? "border-emerald-100 bg-emerald-50/60"
                       : isConfirming
-                        ? "border-amber-200 bg-amber-50"
+                        ? "border-slate-200 bg-slate-50"
                         : inst.isAdvance
                           ? "border-amber-100 bg-amber-50/40 hover:border-amber-200"
                           : "border-slate-100 bg-white hover:border-slate-200"
                   }`}
                 >
+                  {/* Top Row */}
                   <div className="flex items-center gap-3 px-4 py-3">
-                    {/* Index / Status Icon */}
+                    {/* Icon */}
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      isPaid
-                        ? "bg-emerald-100"
-                        : inst.isAdvance
-                          ? "bg-amber-100"
-                          : "bg-slate-100"
+                      isPaid ? "bg-emerald-100" : inst.isAdvance ? "bg-amber-100" : "bg-slate-100"
                     }`}>
                       {isPaid ? (
                         <CheckCircle2 size={16} className="text-emerald-600" />
@@ -197,21 +280,19 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs text-slate-400">
-                          Due: {formatDate(inst.dueDate)}
-                        </span>
+                        <span className="text-xs text-slate-400">Due: {formatDate(inst.dueDate)}</span>
                         <span className="text-xs font-semibold text-slate-600">
                           Rs {formatAmt(inst.amount)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Action */}
+                    {/* Action Button */}
                     {!isPaid && (
                       <div className="flex-shrink-0">
                         {!isConfirming ? (
                           <button
-                            onClick={() => setConfirmingId(inst._id)}
+                            onClick={() => handleConfirmingOpen(inst._id)}
                             className={`text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${
                               inst.isAdvance
                                 ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
@@ -224,15 +305,19 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => setConfirmingId(null)}
+                              onClick={handleConfirmingClose}
                               className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => payInstallment({ installmentId: inst._id })}
-                              disabled={isPending}
-                              className="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all disabled:opacity-60 flex items-center gap-1"
+                              disabled={!isFormValid() || isPending}
+                              className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                                isFormValid() && !isPending
+                                  ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+                                  : "bg-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+                              }`}
                             >
                               {isPending ? (
                                 <span className="flex items-center gap-1">
@@ -252,18 +337,176 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                     )}
                   </div>
 
-                  {/* Confirm Warning Strip */}
+                  {/* Payment Method Panel — shown when confirming */}
                   {isConfirming && (
-                    <div className="px-4 pb-3 flex items-start gap-2">
-                      <AlertCircle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-amber-700">
-                        Mark <strong>Rs {formatAmt(inst.amount)}</strong> as paid?
-                        {inst.isAdvance && (
-                          <span className="block text-amber-600 mt-0.5">
-                            This will activate the student enrollment.
-                          </span>
-                        )}
-                      </p>
+                    <div className="px-4 pb-4 space-y-3 border-t border-slate-100 pt-3">
+
+                      {/* Warning */}
+                      <div className="flex items-start gap-2">
+                        <AlertCircle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-amber-700">
+                          Marking <strong>Rs {formatAmt(inst.amount)}</strong> as paid.
+                          {inst.isAdvance && (
+                            <span className="block text-amber-600 mt-0.5">
+                              This will activate the student enrollment.
+                            </span>
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Method Toolbar Header */}
+                      <div className="flex items-center gap-1.5">
+                        <CreditCard size={12} className="text-slate-400" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                          Select Payment Method
+                        </span>
+                      </div>
+
+                      {/* Method Tabs */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {PAYMENT_TABS.map((tab) => (
+                          <button
+                            key={tab.key}
+                            onClick={() =>
+                              setPaymentForm((prev) => ({
+                                ...prev,
+                                method: tab.key,
+                                referenceNumber: "",
+                              }))
+                            }
+                            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all ${
+                              paymentForm.method === tab.key
+                                ? tab.activeColor + " border"
+                                : "border-slate-100 bg-white text-slate-400 hover:bg-slate-50 hover:border-slate-200"
+                            }`}
+                          >
+                            {tab.icon}
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Dynamic Fields based on selected method */}
+                      {paymentForm.method === "cash" && (
+                        <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                            Cash Payment
+                          </p>
+                          <textarea
+                            rows={2}
+                            placeholder="Notes (optional)"
+                            value={paymentForm.notes}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
+                            }
+                            className="w-full text-xs rounded-lg border border-emerald-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 resize-none"
+                          />
+                        </div>
+                      )}
+
+                      {paymentForm.method === "bank" && (
+                        <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
+                            Bank Transfer Details
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="Transaction / Reference Number *"
+                            value={paymentForm.referenceNumber}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({
+                                ...prev,
+                                referenceNumber: e.target.value,
+                              }))
+                            }
+                            className="w-full text-xs rounded-lg border border-blue-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                          <textarea
+                            rows={2}
+                            placeholder="Notes (optional)"
+                            value={paymentForm.notes}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
+                            }
+                            className="w-full text-xs rounded-lg border border-blue-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+                          />
+                          {!paymentForm.referenceNumber.trim() && (
+                            <p className="text-[10px] text-rose-500 font-medium">
+                              Reference number is required for bank transfer.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {paymentForm.method === "cheque" && (
+                        <div className="rounded-lg bg-violet-50 border border-violet-100 px-3 py-2.5 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">
+                            Cheque Details
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="Cheque Number *"
+                            value={paymentForm.referenceNumber}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({
+                                ...prev,
+                                referenceNumber: e.target.value,
+                              }))
+                            }
+                            className="w-full text-xs rounded-lg border border-violet-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                          />
+                          <textarea
+                            rows={2}
+                            placeholder="Notes (optional)"
+                            value={paymentForm.notes}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
+                            }
+                            className="w-full text-xs rounded-lg border border-violet-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none"
+                          />
+                          {!paymentForm.referenceNumber.trim() && (
+                            <p className="text-[10px] text-rose-500 font-medium">
+                              Cheque number is required.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {paymentForm.method === "manual" && (
+                        <div className="rounded-lg bg-orange-50 border border-orange-100 px-3 py-2.5 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600">
+                            Manual Entry
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="Reference Number (optional)"
+                            value={paymentForm.referenceNumber}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({
+                                ...prev,
+                                referenceNumber: e.target.value,
+                              }))
+                            }
+                            className="w-full text-xs rounded-lg border border-orange-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                          />
+                          <textarea
+                            rows={2}
+                            placeholder="Notes (optional)"
+                            value={paymentForm.notes}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
+                            }
+                            className="w-full text-xs rounded-lg border border-orange-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+                          />
+                        </div>
+                      )}
+
+                      {/* Hint when no method selected */}
+                      {!paymentForm.method && (
+                        <p className="text-[10px] text-slate-400 text-center py-1">
+                          Please select a payment method to continue.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

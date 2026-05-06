@@ -25,7 +25,7 @@ function StatCard({ label, value, sub, icon: Icon, color, href }: any) {
 // ── Bar Chart (CSS only) ───────────────────────────────────────
 function MonthlyBar({ data }: { data: any[] }) {
   const max = Math.max(...data.map((d) => d.totalCollected), 1);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
@@ -57,7 +57,7 @@ export default function FinanceOverview() {
 
   const { data: monthly } = useQuery({
     queryKey: ["finance-monthly"],
-    queryFn: () => getMonthlyCollections().then((r) => r.data.data),
+    queryFn: () => getMonthlyCollections().then((r) => r.data.data), // r.data.data = { year, data: [] }
   });
 
   const { data: pending } = useQuery({
@@ -97,7 +97,7 @@ export default function FinanceOverview() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="lg:col-span-2">
-          {monthly && <MonthlyBar data={monthly} />}
+          {monthly && <MonthlyBar data={monthly.data || monthly} />}
         </div>
 
         {/* Status Breakdown */}

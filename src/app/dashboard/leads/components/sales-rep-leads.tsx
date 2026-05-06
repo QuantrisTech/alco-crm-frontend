@@ -39,35 +39,46 @@ export default function SalesRepLeads() {
     queryFn: getNamesPrograms,
   });
 
-  const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
-
-
   const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
     queryKey: ["lead-activities", viewActivities?._id],
     queryFn: () => getActivitiesLead(viewActivities._id).then((r) => r.data),
     enabled: !!viewActivities,
   });
 
+  const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
+
   // ── Mutations ────────────────────────────────────────────────
   const { mutate: addLead, isPending: isAdding } = useMutation({
     mutationFn: createLead,
-    onSuccess: () => { toast.success("Lead created! ✅"); setIsAddOpen(false); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => {
+      toast.success("Lead created! ✅");
+      setIsAddOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
   const { mutate: updateLeadApi, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => updateLead(id, data),
-    onSuccess: () => { toast.success("Lead updated! ✅"); setEditingLead(null); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => {
+      toast.success("Lead updated! ✅");
+      setEditingLead(null);
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
     onError: () => toast.error("Failed to update!"),
   });
 
   const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
-    onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => {
+      toast.success("Activity added! ✅");
+      setActivityLead(null);
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
     onError: () => toast.error("Failed!"),
   });
 
-  // ── Actions — sirf edit + activity + view (no assign/convert/delete) ──
+  // ── Actions — sirf edit + activity + view (no assign/convert/delete/lost) ──
   const actions = {
     onEdit: setEditingLead,
     onActivity: setActivityLead,
@@ -123,28 +134,37 @@ export default function SalesRepLeads() {
             { key: "assigned_to", label: "Assigned To", render: (lead) => <span>{lead.assigned_to?.name || "—"}</span> },
           ]}
           actions={[
-            { icon: <Pencil size={14} />, label: "Edit", onClick: setEditingLead },
-            { icon: <Activity size={14} />, label: "Add Activity", onClick: setActivityLead },
-            { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, hidden: (lead) => !lead.activities?.length },
+            { icon: <Pencil size={14} />, label: "Edit", onClick: setEditingLead, className: "hover:bg-yellow-50 hover:text-yellow-600" },
+            { icon: <Activity size={14} />, label: "Add Activity", onClick: setActivityLead, className: "hover:bg-indigo-50 hover:text-indigo-600" },
+            { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
           ]}
         />
       )}
 
+      {/* ── Modals ── */}
       <LeadsModals
         isAddOpen={isAddOpen} onAddClose={() => setIsAddOpen(false)}
         onAddSubmit={addLead} isAdding={isAdding} addFields={simpleAddLeadFields}
+
         editingLead={editingLead} onEditClose={() => setEditingLead(null)}
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
         isUpdating={isUpdating} editFields={editLeadFieldsReadonly}
         editInitialValues={editingLead ? {
-          first_name: editingLead.first_name || "", last_name: editingLead.last_name || "",
-          email: editingLead.email || "", phone: editingLead.phone || "",
-          quality: editingLead.quality || "", source: editingLead.source || "",
-          status: editingLead.status || "", notes: editingLead.notes || "",
-          utm_source: editingLead.utm_source || "", utm_campaign: editingLead.utm_campaign || "",
+          first_name: editingLead.first_name || "",
+          last_name: editingLead.last_name || "",
+          email: editingLead.email || "",
+          phone: editingLead.phone || "",
+          quality: editingLead.quality || "",
+          source: editingLead.source || "",
+          status: editingLead.status || "",
+          notes: editingLead.notes || "",
+          utm_source: editingLead.utm_source || "",
+          utm_campaign: editingLead.utm_campaign || "",
         } : undefined}
+
         activityLead={activityLead} onActivityClose={() => setActivityLead(null)}
         onActivitySubmit={(data) => addActivity({ id: activityLead._id, data })} isAddingActivity={isAddingActivity}
+
         viewActivities={viewActivities} onViewActivitiesClose={() => setViewActivities(null)}
         activitiesData={activitiesData} isLoadingActivities={isLoadingActivities}
       />

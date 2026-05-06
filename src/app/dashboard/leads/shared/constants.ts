@@ -1,4 +1,5 @@
 import { FilterField } from "@/app/component/dashboard/page-header";
+import {  Sparkles,  ArrowLeftRight ,  ShieldCheck,  Flame,  BadgeCheck,  Ban,  LucideIcon, ClipboardList,} from "lucide-react";
 
 // ── Status & Quality Colors ──────────────────────────────────
 export const statusColor = (s: string) => {
@@ -20,31 +21,95 @@ export const qualityColor = (q: string) => {
     hot: "bg-red-100 text-red-600",
     warm: "bg-orange-100 text-orange-600",
     cold: "bg-blue-100 text-blue-600",
+    converted: "bg-teal-100 text-teal-700",
   };
   return m[q] || "bg-gray-100 text-gray-500";
 };
 
 // ── Pipeline Stages (Kanban) ─────────────────────────────────
-export const PIPELINE_STAGES = [
-  { key: "new", label: "Application Received", color: "border-sky-600", bg: "bg-sky-200/60", dot: "bg-sky-600" },
-  { key: "contacted", label: "Client Contacted", color: "border-yellow-600", bg: "bg-yellow-200/60", dot: "bg-yellow-600" },
-  { key: "qualified", label: "Breakthrough Session", color: "border-indigo-600", bg: "bg-indigo-200/60", dot: "bg-indigo-600" },
-  { key: "interested", label: "Client Interested", color: "border-orange-600", bg: "bg-orange-200/60", dot: "bg-orange-600" },
-  { key: "converted", label: "Payment Received", color: "border-teal-600", bg: "bg-teal-200/60", dot: "bg-teal-600" },
-  { key: "enrolled", label: "Enrolled in Batch", color: "border-green-600", bg: "bg-green-200/60", dot: "bg-green-600" },
+// export const PIPELINE_STAGES = [
+//   { key: "new", label: "Application Received", color: "border-sky-600", bg: "bg-sky-200/60", dot: "bg-sky-600" },
+//   { key: "contacted", label: "Client Contacted", color: "border-yellow-600", bg: "bg-yellow-200/60", dot: "bg-yellow-600" },
+//   { key: "qualified", label: "Breakthrough Session", color: "border-indigo-600", bg: "bg-indigo-200/60", dot: "bg-indigo-600" },
+//   { key: "interested", label: "Client Interested", color: "border-orange-600", bg: "bg-orange-200/60", dot: "bg-orange-600" },
+//   { key: "converted", label: "Payment Received", color: "border-teal-600", bg: "bg-teal-200/60", dot: "bg-teal-600" },
+//   { key: "enrolled", label: "Enrolled in Batch", color: "border-green-600", bg: "bg-green-200/60", dot: "bg-green-600" },
+// ];
+export const PIPELINE_STAGES: {
+  key: string;
+  label: string;
+  color: string;
+  bg: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    key: "new",
+    label: "New",
+    color: "border-violet-400",
+    bg: "bg-violet-100/80",
+    icon: Sparkles,
+  },
+  {
+    key: "contacted",
+    label: "Contacted",
+    color: "border-sky-400",
+    bg: "bg-sky-100/80",
+    icon: ArrowLeftRight ,
+  },
+  {
+    key: "qualified",
+    label: "Qualified - Breakthrough Session",
+    color: "border-amber-400",
+    bg: "bg-amber-100/80",
+    icon: ShieldCheck,
+  },
+  {
+    key: "interested",
+    label: "Interested",
+    color: "border-orange-400",
+    bg: "bg-orange-100/80",
+    icon: Flame,
+  },
+  // {
+  //   key: "converted",
+  //   label: "Converted",
+  //   color: "border-teal-400",
+  //   bg: "bg-teal-100/80",
+  //   icon: BadgeCheck,
+  // },
+  {
+    key: "payment_plan",
+    label: "Payment Plan",
+    color: "border-green-400",
+    bg: "bg-green-100/80",
+    icon: Ban,
+  },
+  { key: "enrolled", 
+    label: "Enrolled in Batch", 
+    color: "border-green-600", 
+    bg: "bg-green-200/60", 
+    icon: ClipboardList },
 ];
 
 // ── Status → Pipeline Stage Key ─────────────────────────────
-export function toStageKey(status: string) {
-  const m: Record<string, string> = {
-    new: "new",
-    contacted: "contacted",
-    qualified: "qualified",
-    interested: "interested",
-    converted: "converted",
-    enrolled: "enrolled",
-  };
-  return m[status] || "new";
+// export function toStageKey(status: string) {
+//   const m: Record<string, string> = {
+//     new: "new",
+//     contacted: "contacted",
+//     qualified: "qualified",
+//     interested: "interested",
+//     converted: "converted",
+//     enrolled: "enrolled",
+//   };
+//   return m[status] || "new";
+// }
+export function toStageKey(lead: any): string {
+  if (lead.status === "converted") {
+    if (lead.user_id && lead.batch_id) return "enrolled";
+    if (lead.paymentPlan?.totalAmount) return "payment_plan";
+    return "converted";
+  }
+  return lead.status || "new";
 }
 
 // ── Shared Filter Fields ─────────────────────────────────────

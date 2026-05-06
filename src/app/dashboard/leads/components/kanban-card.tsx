@@ -1,7 +1,7 @@
 "use client";
 import React from 'react'
 import { qualityColor } from '../shared/constants';
-import { Activity, Pencil, Tag, Trash2, UserCheck, UserPlus, XCircle, CreditCard, Star, FileText, CheckCircle2, Clock, PenLine } from 'lucide-react';
+import { Activity, Pencil, Tag, Trash2, UserCheck, UserPlus, XCircle, CreditCard, Star, FileText, CheckCircle2, Clock, PenLine, ArrowLeftRight, ShieldCheck, Flame } from 'lucide-react';
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 
 const cardStyle = (status: string) => {
@@ -65,21 +65,30 @@ function ContractBadge({ contractDetails, onViewContract, lead }: any) {
 
 export default function KanbanCard({
   lead, programMap,
-  onEdit, onViewContract, onActivity, onPaymentPlan, onInterested, onConvert, onMarkLost, onDelete, onAssign, onViewActivities
+  onEdit, onViewContract, onActivity, onContacted, onQualified, onPaymentPlan, onInterested, onConvert, onMarkLost, onDelete, onAssign, onViewActivities, viewPaymentPlan
 }: any) {
+
   return (
-    <div className={`rounded-xl border shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer group ${cardStyle(lead.status)}`}>
+    <div className={`rounded-xl border shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer group relative ${cardStyle(lead.status)}`}>
 
       {/* ── Top row ── */}
       <div className="flex items-start justify-between gap-2 mb-2">
+        {/* {StageIcon && (<StageIcon size={11} className="text-gray-400 shrink-0 mt-0.5" />)} */}
         <p className="font-semibold text-gray-800 text-sm leading-tight">
           {lead.first_name} {lead.last_name}
         </p>
-        {lead.quality && (
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${qualityColor(lead.quality)}`}>
-            {lead.quality}
-          </span>
-        )}
+        <div className='flex gap-1'>
+          {lead.status === "converted" && (
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${qualityColor(lead.status)}`}>
+              {lead.status}
+            </span>
+          )}
+          {lead.quality && (
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${qualityColor(lead.quality)}`}>
+              {lead.quality}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ── Lost reason ── */}
@@ -111,14 +120,14 @@ export default function KanbanCard({
 
       {/* ── Contract status badge (bottom, always visible) ── */}
       {lead.contractDetails && lead.status === "interested" &&
-          lead.status !== "converted" &&
-          lead.status !== "lost" && (
-        <ContractBadge
-          contractDetails={lead.contractDetails}
-          onViewContract={onViewContract}
-          lead={lead}
-        />
-      )}
+        lead.status !== "converted" &&
+        lead.status !== "lost" && (
+          <ContractBadge
+            contractDetails={lead.contractDetails}
+            onViewContract={onViewContract}
+            lead={lead}
+          />
+        )}
 
       {/* ── Assigned to ── */}
       {lead.assigned_to && (
@@ -132,12 +141,13 @@ export default function KanbanCard({
 
       {/* ── Action buttons (hover) ── */}
       <div className="flex items-center gap-1 pt-2 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onEdit && (
+
+        {/* {onEdit && (
           <button onClick={() => onEdit(lead)} title="Edit"
             className="p-1 rounded hover:bg-yellow-50 hover:text-yellow-600 text-gray-400">
             <Pencil size={11} />
           </button>
-        )}
+        )} */}
         {onAssign && (
           <button onClick={() => onAssign(lead)} title="Assign"
             className="p-1 rounded hover:bg-blue-50 hover:text-blue-600 text-gray-400">
@@ -156,22 +166,59 @@ export default function KanbanCard({
             <MdOutlineRemoveRedEye size={11} />
           </button>
         )}
+        {onContacted &&
+          lead.status === "new" &&
+          lead.status !== "converted" &&
+          lead.status !== "lost" && (
+            <button
+              // onClick={() => {
+              //   if (!lead.program_id) return;
+              //   onContacted(lead);
+              // }}
+              // title={!lead.program_id ? "please click to fill program first then mark contacted" : "Mark Contacted"}
+              // disabled={!lead.program_id}
+              //   className={`p-1 rounded transition-colors
+              //   ${!lead.program_id
+              //       ? "hover:bg-gray-50 hover:text-gray-600 text-gray-400"
+              //       : "hover:bg-sky-50 hover:text-sky-600 text-gray-400"
+              //     }
+              // `}
+              onClick={() => onContacted(lead)}
+              title='Mark Contacted'
+              className='p-1 rounded transition-colors bg-sky-50 hover:text-sky-600 text-gray-400'
+            >
+              <ArrowLeftRight size={11} />
+            </button>
+          )}
+
         {onPaymentPlan &&
           lead.status === "interested" &&
           lead.status !== "converted" &&
           lead.status !== "lost" && (
             <button onClick={() => onPaymentPlan(lead)} title="Set Payment Plan"
-              className="p-1 rounded hover:bg-orange-50 hover:text-orange-500 text-gray-400">
+              className="p-1 rounded hover:bg-green-50 hover:text-green-500 text-gray-400">
               <CreditCard size={11} />
+            </button>
+          )}
+        {onQualified &&
+          lead.status !== "interested" &&
+          lead.status !== "qualified" &&
+          lead.status !== "new" &&
+          lead.status !== "converted" &&
+          lead.status !== "lost" && (
+            <button onClick={() => onQualified(lead)} title="Mark Qualified"
+              className="p-1 rounded hover:bg-yellow-50 hover:text-yellow-500 text-gray-400">
+              <ShieldCheck size={11} />
             </button>
           )}
         {onInterested &&
           lead.status !== "interested" &&
+          lead.status !== "new" &&
           lead.status !== "converted" &&
           lead.status !== "lost" && (
             <button onClick={() => onInterested(lead)} title="Mark Interested"
-              className="p-1 rounded hover:bg-yellow-50 hover:text-yellow-500 text-gray-400">
-              <Star size={11} />
+              className="p-1 rounded hover:bg-orange-50 hover:text-orange-500 text-gray-400">
+              <Flame size={11} />
             </button>
           )}
         {onConvert &&
@@ -191,15 +238,21 @@ export default function KanbanCard({
               <XCircle size={11} />
             </button>
           )}
-        {onDelete && (
+
+        {/* {onDelete && (
           <button onClick={() => onDelete(lead)} title="Delete"
             className="p-1 rounded hover:bg-rose-50 hover:text-rose-500 text-gray-400 ml-auto">
             <Trash2 size={11} />
           </button>
-        )}
+        )} */}
       </div>
 
-      
+      {viewPaymentPlan && lead.status === "converted" && (
+        <button onClick={() => viewPaymentPlan(lead)} title="View Payment Plan"
+          className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700  flex ml-auto absolute bottom-2 right-2 ">
+          view Payment plan
+        </button>
+      )}
     </div>
   );
 }

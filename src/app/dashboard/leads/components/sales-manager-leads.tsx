@@ -23,22 +23,27 @@ import KanbanBoard from "./kanban-board";
 import PaymentPlanModal from "./payment-plan-modal";
 import MarkInterestedModal from "./mark-interested-modal";
 import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
+import ViewContractModal from "./view-contract-modal";
+import ViewPaymentPlanModal from "./view-payment-plan-modal";
+import SelectProgramModal from "./select-program-modal";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
 
-  const [activeView, setActiveView]         = useState<"opportunities" | "list">("opportunities");
-  const [isAddOpen, setIsAddOpen]           = useState(false);
-  const [editingLead, setEditingLead]       = useState<any>(null);
-  const [activityLead, setActivityLead]     = useState<any>(null);
-  const [lostLead, setLostLead]             = useState<any>(null);
-  const [assigningLead, setAssigningLead]   = useState<any>(null);
+  const [activeView, setActiveView] = useState<"opportunities" | "list">("opportunities");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<any>(null);
+  const [activityLead, setActivityLead] = useState<any>(null);
+  const [lostLead, setLostLead] = useState<any>(null);
+  const [assigningLead, setAssigningLead] = useState<any>(null);
   const [viewActivities, setViewActivities] = useState<any>(null);
   const [interestedLead, setInterestedLead] = useState<any>(null);
   const [paymentPlanLead, setPaymentPlanLead] = useState<any>(null);
   const [viewContractLead, setViewContractLead] = useState<any>(null);
-  const [filters, setFilters]               = useState(defaultLeadFilters);
+  const [filters, setFilters] = useState(defaultLeadFilters);
+  const [selectProgramLead, setSelectProgramLead] = useState<any>(null);
+  const [viewingPaymentPlan, setViewingPaymentPlan] = useState<any>(null);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -80,12 +85,12 @@ export default function SalesManagerLeads() {
     fields.map((f) =>
       f.name === "batch_id"
         ? {
-            ...f,
-            options: [
-              { label: "— None —", value: "" },
-              ...(batches?.data || []).map((b: any) => ({ label: b.name, value: b._id })),
-            ],
-          }
+          ...f,
+          options: [
+            { label: "— None —", value: "" },
+            ...(batches?.data || []).map((b: any) => ({ label: b.name, value: b._id })),
+          ],
+        }
         : f
     );
 
@@ -94,18 +99,18 @@ export default function SalesManagerLeads() {
   const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
 
   const pipelineData = [
-    { label: "New",       count: statsData?.new       || 0, color: "bg-sky-500"    },
+    { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
     { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
     { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
-    { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500"   },
-    { label: "Lost",      count: statsData?.lost      || 0, color: "bg-rose-400"   },
+    { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500" },
+    { label: "Lost", count: statsData?.lost || 0, color: "bg-rose-400" },
   ];
 
   const quickStatsData = [
     { label: "Conversion Rate", value: `${statsData?.conversionRate || 0}%`, color: "text-teal-600" },
-    { label: "Hot Leads",       value: `${statsData?.hot || 0}`,             color: "text-red-500"  },
-    { label: "Assigned",        value: `${statsData?.assigned || 0}`,        color: "text-blue-600" },
-    { label: "Lost",            value: `${statsData?.lost || 0}`,            color: "text-rose-500" },
+    { label: "Hot Leads", value: `${statsData?.hot || 0}`, color: "text-red-500" },
+    { label: "Assigned", value: `${statsData?.assigned || 0}`, color: "text-blue-600" },
+    { label: "Lost", value: `${statsData?.lost || 0}`, color: "text-rose-500" },
   ];
 
   // ── Mutations ────────────────────────────────────────────────
@@ -166,15 +171,24 @@ export default function SalesManagerLeads() {
 
   // ── Actions — delete nahi hai manager ke paas ─────────────────
   const actions = {
-    onEdit:           setEditingLead,
-    onAssign:         setAssigningLead,
-    onActivity:       setActivityLead,
+    onEdit: setEditingLead,
+    onAssign: setAssigningLead,
+    onActivity: setActivityLead,
     onViewActivities: setViewActivities,
-    onConvert:        (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
-    onMarkLost:       setLostLead,
-    onPaymentPlan:    setPaymentPlanLead,
-    onInterested:     setInterestedLead,
-    onViewContract:   setViewContractLead,
+    onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
+    onMarkLost: setLostLead,
+    onPaymentPlan: setPaymentPlanLead,
+    onInterested: setInterestedLead,
+    onQualified: (lead: any) => updateLeadApi({ id: lead._id, data: { status: "qualified" } }),
+    onContacted: (lead: any) => {
+      if (!lead.program_id) {
+        setSelectProgramLead(lead); // modal open
+      } else {
+        updateLeadApi({ id: lead._id, data: { status: "contacted" } });
+      }
+    },
+    onViewContract: setViewContractLead,
+    viewPaymentPlan: setViewingPaymentPlan,
   };
 
   return (
@@ -197,7 +211,7 @@ export default function SalesManagerLeads() {
           onClick={() => setActiveView("list")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
         >
-          <List size={14} /> List
+          <List size={14} /> List View
         </button>
       </div>
 
@@ -218,22 +232,22 @@ export default function SalesManagerLeads() {
           <DynamicTable
             data={data?.data || []} isLoading={isLoading} isError={isError}
             columns={[
-              { key: "name",        label: "Name",        render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
-              { key: "email",       label: "Email"                                                                                                                  },
-              { key: "phone",       label: "Phone"                                                                                                                  },
-              { key: "quality",     label: "Quality",     render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>{lead.quality}</span> },
-              { key: "status",      label: "Status",      render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
-              { key: "program_id",  label: "Program",     render: (lead) => <span>{programMap?.[lead.program_id] || "—"}</span> },
-              { key: "source",      label: "Source",      render: (lead) => <span className="capitalize">{lead.source || "—"}</span> },
+              { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "quality", label: "Quality", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>{lead.quality}</span> },
+              { key: "status", label: "Status", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
+              { key: "program_id", label: "Program", render: (lead) => <span>{programMap?.[lead.program_id] || "—"}</span> },
+              { key: "source", label: "Source", render: (lead) => <span className="capitalize">{lead.source || "—"}</span> },
               { key: "assigned_to", label: "Assigned To", render: (lead) => <span>{lead.assigned_to?.name || "—"}</span> },
             ]}
             actions={[
-              { icon: <Pencil size={14} />,                    label: "Edit",            onClick: setEditingLead,    className: "hover:bg-yellow-50 hover:text-yellow-600" },
-              { icon: <UserPlus size={14} />,                  label: "Assign",          onClick: setAssigningLead,  className: "hover:bg-blue-50 hover:text-blue-600"    },
-              { icon: <Activity size={14} />,                  label: "Add Activity",    onClick: setActivityLead,   className: "hover:bg-indigo-50 hover:text-indigo-600" },
-              { icon: <MdOutlineRemoveRedEye size={14} />,     label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
-              { icon: <UserCheck size={14} />,                 label: "Convert",         onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
-              { icon: <XCircle size={14} />,                   label: "Mark Lost",       onClick: setLostLead,       className: "hover:bg-red-50 hover:text-red-500",      hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              { icon: <Pencil size={14} />, label: "Edit", onClick: setEditingLead, className: "hover:bg-yellow-50 hover:text-yellow-600" },
+              // { icon: <UserPlus size={14} />, label: "Assign", onClick: setAssigningLead, className: "hover:bg-blue-50 hover:text-blue-600" },
+              // { icon: <Activity size={14} />, label: "Add Activity", onClick: setActivityLead, className: "hover:bg-indigo-50 hover:text-indigo-600" },
+              // { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
+              // { icon: <UserCheck size={14} />, label: "Convert", onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              // { icon: <XCircle size={14} />, label: "Mark Lost", onClick: setLostLead, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
             ]}
           />
           <div className="grid grid-cols-3 gap-4 mt-6">
@@ -252,24 +266,24 @@ export default function SalesManagerLeads() {
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
         isUpdating={isUpdating} editFields={injectAll(editLeadFields)}
         editInitialValues={editingLead ? {
-          first_name:        editingLead.first_name        || "",
-          last_name:         editingLead.last_name         || "",
-          email:             editingLead.email             || "",
-          phone:             editingLead.phone             || "",
-          nationality:       editingLead.nationality       || "",
-          profession:        editingLead.profession        || "",
+          first_name: editingLead.first_name || "",
+          last_name: editingLead.last_name || "",
+          email: editingLead.email || "",
+          phone: editingLead.phone || "",
+          nationality: editingLead.nationality || "",
+          profession: editingLead.profession || "",
           opportunity_value: editingLead.opportunity_value || "",
-          batch_id:          editingLead.batch_id?._id     || editingLead.batch_id    || "",
-          program_id:        editingLead.program_id?._id   || editingLead.program_id  || "",
-          status:            editingLead.status            || "",
-          quality:           editingLead.quality           || "",
-          source:            editingLead.source            || "",
-          query:             editingLead.query             || "",
-          message:           editingLead.message           || "",
-          notes:             editingLead.notes             || "",
-          utm_source:        editingLead.utm_source        || "",
-          utm_medium:        editingLead.utm_medium        || "",
-          utm_campaign:      editingLead.utm_campaign      || "",
+          batch_id: editingLead.batch_id?._id || editingLead.batch_id || "",
+          program_id: editingLead.program_id?._id || editingLead.program_id || "",
+          status: editingLead.status || "",
+          quality: editingLead.quality || "",
+          source: editingLead.source || "",
+          query: editingLead.query || "",
+          message: editingLead.message || "",
+          notes: editingLead.notes || "",
+          utm_source: editingLead.utm_source || "",
+          utm_medium: editingLead.utm_medium || "",
+          utm_campaign: editingLead.utm_campaign || "",
         } : undefined}
 
         activityLead={activityLead} onActivityClose={() => setActivityLead(null)}
@@ -305,9 +319,23 @@ export default function SalesManagerLeads() {
           isSubmitting={isMarkingInterested}
         />
       )}
+      <ViewContractModal lead={viewContractLead} onClose={() => setViewContractLead(null)} />
+
+      <ViewPaymentPlanModal lead={viewingPaymentPlan} onClose={() => setViewingPaymentPlan(null)} />
+
+      <SelectProgramModal
+        lead={selectProgramLead}
+        programs={programs || []}
+        onClose={() => setSelectProgramLead(null)}
+        onConfirm={(leadId, programId) => {
+          updateLeadApi({ id: leadId, data: { program_id: programId, status: "contacted" } });
+          setSelectProgramLead(null);
+        }}
+        isLoading={isUpdating}
+      />
 
       {/* ── Contract View Modal ── */}
-      {viewContractLead && (
+      {/* {viewContractLead && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b">
@@ -319,26 +347,26 @@ export default function SalesManagerLeads() {
             <ContractPDFGenerator
               mode="preview"
               contractData={{
-                fullName:              viewContractLead.contractDetails?.fullName,
-                email:                 viewContractLead.email,
-                phone:                 viewContractLead.phone,
-                programName:           viewContractLead.program_id?.name || viewContractLead.program_name,
-                fatherHusbandName:     viewContractLead.contractDetails?.fatherHusbandName,
-                cnic:                  viewContractLead.contractDetails?.cnic,
-                bankAccountNumber:     viewContractLead.contractDetails?.bankAccountNumber,
-                currentAddress:        viewContractLead.contractDetails?.currentAddress,
-                emergencyContactName:  viewContractLead.contractDetails?.emergencyContactName,
-                occupation:            viewContractLead.contractDetails?.occupation,
-                participationAgreement:viewContractLead.contractDetails?.participationAgreement,
-                photoVideoRelease:     viewContractLead.contractDetails?.photoVideoRelease,
-                signatureData:         viewContractLead.contractDetails?.signatureData,
-                signedAt:              viewContractLead.contractDetails?.signedAt,
-                paymentPlan:           viewContractLead.paymentPlan,
+                fullName: viewContractLead.contractDetails?.fullName,
+                email: viewContractLead.email,
+                phone: viewContractLead.phone,
+                programName: viewContractLead.program_id?.name || viewContractLead.program_name,
+                fatherHusbandName: viewContractLead.contractDetails?.fatherHusbandName,
+                cnic: viewContractLead.contractDetails?.cnic,
+                bankAccountNumber: viewContractLead.contractDetails?.bankAccountNumber,
+                currentAddress: viewContractLead.contractDetails?.currentAddress,
+                emergencyContactName: viewContractLead.contractDetails?.emergencyContactName,
+                occupation: viewContractLead.contractDetails?.occupation,
+                participationAgreement: viewContractLead.contractDetails?.participationAgreement,
+                photoVideoRelease: viewContractLead.contractDetails?.photoVideoRelease,
+                signatureData: viewContractLead.contractDetails?.signatureData,
+                signedAt: viewContractLead.contractDetails?.signedAt,
+                paymentPlan: viewContractLead.paymentPlan,
               }}
             />
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 }

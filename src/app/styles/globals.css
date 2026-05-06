@@ -25,6 +25,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+select {
+  position: relative;
+  z-index: 50;
+}
+
 /* ── Main Scrollbar ───────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;

@@ -82,13 +82,13 @@ const menuSections: MenuSection[] = [
         label: "Audit Logs",
         href: "/dashboard/audit-logs",
         icon: ScrollText,
-        roles: ["super_admin", "admin", "finance_manager"],
+        roles: ["super_admin", "admin"],
       },
       {
         label: "Payments",
         href: "/dashboard/payments",
         icon: Receipt,
-        roles: ["super_admin", "admin", "finance_manager"],
+        roles: ["super_admin", "admin", "user"],
       },
       {
         label: "Contract",

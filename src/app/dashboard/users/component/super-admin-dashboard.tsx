@@ -129,7 +129,7 @@ export default function SuperAdminDashboard() {
     <ProtectedRoute>
       {/* Header */}
       <PageHeader
-        title="Super Admin Panel"
+        title="User Management"
         subtitle="Manage all users and their roles"
         titleIcon={<UserCog size={24} />}
         totalCount={data?.count ?? 0}
@@ -206,6 +206,12 @@ export default function SuperAdminDashboard() {
 
                   case "user":
                     return "bg-gray-100 text-gray-600";
+                    
+                  case "instructor":
+                    return "bg-green-100 text-green-700";
+
+                  case "finance_manager":
+                    return "bg-purple-100 text-purple-700";
 
                   default:
                     return "bg-gray-100 text-gray-600";

@@ -166,8 +166,14 @@ export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/
 export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
 export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
 export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
-export const markInstallmentPaid = (invoiceId: string, installmentId: string) =>
-  API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`);
+// utils/api.ts
+export const markInstallmentPaid = (
+  invoiceId: string,
+  installmentId: string,
+  body: { method: string; referenceNumber?: string; notes?: string }
+) =>
+  API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`, body);
+
 export const updateInstallment = (invoiceId: string, installmentId: string, data: any) =>
   API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}`, data);
 
@@ -190,7 +196,11 @@ export const rejectPayment = (id: string, data: { reason: string }) => API.patch
 
 // ─── Finance — Reports ───────────────────────────────────────
 export const getRevenueReport = () => API.get("/api/v1/finance/reports/revenue");
-export const getMonthlyCollections = (year?: number) => API.get("/api/v1/finance/reports/monthly", { params: { year: year || new Date().getFullYear() } });
+// export const getMonthlyCollections = (year?: number) => API.get("/api/v1/finance/reports/monthly", { params: { year: year || new Date().getFullYear() } });
+export const getMonthlyCollections = (year?: number) => 
+  API.get("/api/v1/finance/reports/monthly", { 
+    params: { year: year || new Date().getFullYear() } 
+  });
 export const getPendingReport = () => API.get("/api/v1/finance/reports/pending");
 
 // ─── Finance — Extension ─────────────────────────────────────
