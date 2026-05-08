@@ -14,6 +14,7 @@ import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { BookOpen, Pencil, Trash2, ChevronRight, Layers } from "lucide-react";
 import Breadcrumb from "@/app/component/ui/breadcrumb";
+import { useAppSelector } from "@/store/hooks";
 
 const courseFields: ModalField[] = [
   { name: "title", label: "Course Title", type: "input", inputType: "text", placeholder: "Introduction to NLP" },
@@ -35,6 +36,9 @@ export default function CoursesPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [deletingCourse, setDeletingCourse] = useState<any>(null);
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  const role = authUser?.role;
+  const isAdmin = role === "super_admin" || role === "admin";
 
   // Program info for breadcrumb
   const { data: programData } = useQuery({
@@ -139,18 +143,25 @@ export default function CoursesPage() {
                 >
                   Modules <ChevronRight size={12} />
                 </button>
-                <button
-                  onClick={() => setEditingCourse(course)}
-                  className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() => setDeletingCourse(course)}
-                  className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {
+                  isAdmin && (
+                    <>
+                      <button
+                        onClick={() => setEditingCourse(course)}
+                        className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeletingCourse(course)}
+                        className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                    )
+                }
+
               </div>
             </div>
           ))}

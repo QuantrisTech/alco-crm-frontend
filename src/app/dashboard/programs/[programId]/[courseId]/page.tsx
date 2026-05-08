@@ -15,6 +15,7 @@ import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { Layers, Pencil, Trash2, ChevronRight, Play } from "lucide-react";
 import Breadcrumb from "@/app/component/ui/breadcrumb";
+import { useAppSelector } from "@/store/hooks";
 
 const moduleFields: ModalField[] = [
   { name: "title", label: "Module Title", type: "input", inputType: "text", placeholder: "What is NLP?" },
@@ -28,6 +29,9 @@ export default function ModulesPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<any>(null);
   const [deletingModule, setDeletingModule] = useState<any>(null);
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  const role = authUser?.role;
+  const isAdmin = role === "super_admin" || role === "admin";
 
   const { data: programData } = useQuery({
     queryKey: ["program", programId],
@@ -121,12 +125,15 @@ export default function ModulesPage() {
                 >
                   Lessons <ChevronRight size={12} />
                 </button>
-                <button onClick={() => setEditingModule(module)} className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => setDeletingModule(module)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
-                  <Trash2 size={14} />
-                </button>
+                {isAdmin && (<>
+                  <button onClick={() => setEditingModule(module)} className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => setDeletingModule(module)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                    <Trash2 size={14} />
+                  </button>
+                </>
+                )}
               </div>
             </div>
           ))}

@@ -18,10 +18,9 @@ import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
 import Modal from "../component/ui/model/modal";
 
-// ✅ identifier — email | phone | username
 const loginSchema = z.object({
-  identifier: z.string().min(3, "Email, phone ya username daalo"),
-  password: z.string().min(1, "Password daalo").optional().or(z.literal("")),
+  identifier: z.string().min(3, "Please enter your email, phone, or username"),
+  password: z.string().min(1, "Please enter your password").optional().or(z.literal("")),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -31,7 +30,7 @@ const forgotFields = [
 ];
 
 const resetFields = [
-  { name: "otp", label: "OTP Code", type: "input" as const, inputType: "text", placeholder: "6 digit OTP daalo" },
+  { name: "otp", label: "OTP Code", type: "input" as const, inputType: "text", placeholder: "Enter 6-digit OTP" },
   { name: "newPassword", label: "New Password", type: "input" as const, inputType: "password", placeholder: "••••••••" },
   { name: "confirmPassword", label: "Confirm Password", type: "input" as const, inputType: "password", placeholder: "••••••••" },
 ];
@@ -55,7 +54,6 @@ export default function LoginClient() {
 
   const identifierValue = watch("identifier") || "";
 
-  // ✅ old user detect — phone number ya username type kar raha hai (no @)
   const isLikelyOldUser = identifierValue.length > 2 && !identifierValue.includes("@");
 
   const { mutate, isPending } = useMutation({
@@ -71,7 +69,6 @@ export default function LoginClient() {
       localStorage.setItem("refresh_token", res.data.data.refresh_token);
       toast.success("Login successful! 🎉");
 
-      // ✅ old user → profile pe bhejo setup ke liye
       if (userData.is_old_user || userData.needsAccountSetup) {
         router.push("/dashboard/profile?setup=true");
       } else if (userData.isTemporaryPassword) {
@@ -81,7 +78,7 @@ export default function LoginClient() {
       }
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Login failed!");
+      toast.error(error?.response?.data?.message || "Login failed. Please try again.");
     },
   });
 
@@ -90,11 +87,11 @@ export default function LoginClient() {
       forgotPassword({ email: data.email as string }),
     onSuccess: (_, variables) => {
       setOtpEmail(variables.email as string);
-      toast.success("OTP has been sent! 📧");
+      toast.success("OTP has been sent to your email! 📧");
       setModalStep("reset");
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Email not found!");
+      toast.error(error?.response?.data?.message || "Email address not found.");
     },
   });
 
@@ -104,11 +101,11 @@ export default function LoginClient() {
       return resetPassword({ email: otpEmail, otp: data.otp as string, newPassword: data.newPassword as string });
     },
     onSuccess: () => {
-      toast.success("Password reset! 🔒 Now log in");
+      toast.success("Password reset successfully! 🔒 Please log in.");
       setModalStep(null);
     },
     onError: (error: any) => {
-      toast.error(error?.message || error?.response?.data?.message || "Incorrect or expired OTP!");
+      toast.error(error?.message || error?.response?.data?.message || "OTP is incorrect or has expired.");
     },
   });
 
@@ -134,16 +131,14 @@ export default function LoginClient() {
 
         <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-4">
 
-          {/* ✅ identifier field — email | phone | username */}
           <InputField
             label="Email, Phone or Username"
             type="text"
-            placeholder="you@example.com / 03001234567 / arslan_larik"
+            placeholder="you@example.com / 03001234567 / john_doe"
             error={errors.identifier}
             {...register("identifier")}
           />
 
-          {/* ✅ Password — old user ke liye optional hint dikhao */}
           <div>
             <InputField
               label={
@@ -162,10 +157,10 @@ export default function LoginClient() {
               }
             />
 
-            {/* ✅ Old user hint */}
+            {/* Old user hint */}
             {isLikelyOldUser && (
               <p className="text-xs text-amber-600 mt-1">
-                Purana account? Phone number ya username se login ho sakta hai — password ki zaroorat nahi.
+                Have an old account? You can log in with your phone number or email — no password required.
               </p>
             )}
 
@@ -220,7 +215,7 @@ export default function LoginClient() {
 
       {/* Reset Password Modal */}
       {modalStep === "reset" && (
-        <Modal isOpen={true} onClose={() => setModalStep(null)} title="Reset Password" subtitle={`OTP has been sent! ${otpEmail}`} fields={resetFields} onSubmit={(data) => doReset(data)} isLoading={isResetting} step="reset" onBack={() => setModalStep("forgot")} />
+        <Modal isOpen={true} onClose={() => setModalStep(null)} title="Reset Password" subtitle={`OTP sent to: ${otpEmail}`} fields={resetFields} onSubmit={(data) => doReset(data)} isLoading={isResetting} step="reset" onBack={() => setModalStep("forgot")} />
       )}
     </div>
   );

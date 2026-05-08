@@ -493,10 +493,11 @@ export default function SuperAdminDashboard() {
     });
 
   // ── Pipeline ──
-  const pipelineData = [
+ const pipelineData = [
     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
     { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
     { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
+    { label: "Interested", count: statsData?.interested || 0, color: "bg-orange-400" },
     { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500" },
     { label: "Lost", count: statsData?.lost || 0, color: "bg-rose-400" },
   ];

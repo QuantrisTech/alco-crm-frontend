@@ -16,6 +16,7 @@ import {
   BookOpen, Pencil, Trash2, Copy,
   BookMarked, Users, Clock, Star, ChevronRight
 } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 const programFields: ModalField[] = [
   { name: "name", label: "Program Name", type: "input", inputType: "text", placeholder: "NLP Practitioner" },
@@ -91,6 +92,9 @@ export default function ProgramsPage() {
     status: "",
     category: "",
   });
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  const role = authUser?.role;
+  const isAdmin = role === "super_admin" || role === "admin";
 
   const filterFields: FilterField[] = [
     { name: "search", type: "input", placeholder: "Search programs..." },
@@ -240,30 +244,33 @@ export default function ProgramsPage() {
                   Manage
                   <ChevronRight size={12} />
                 </button>
-
-                <div className="ml-auto flex items-center gap-1">
-                  <button
-                    onClick={() => setEditingProgram(program)}
-                    className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
-                    title="Edit"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => duplicateProgram(program._id)}
-                    className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition"
-                    title="Duplicate"
-                  >
-                    <Copy size={14} />
-                  </button>
-                  <button
-                    onClick={() => setDeletingProgram(program)}
-                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {
+                  isAdmin && (
+                    <div className="ml-auto flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingProgram(program)}
+                        className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
+                        title="Edit"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => duplicateProgram(program._id)}
+                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition"
+                        title="Duplicate"
+                      >
+                        <Copy size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeletingProgram(program)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )
+                }
               </div>
             </div>
           ))}

@@ -1,5 +1,5 @@
 import { FilterField } from "@/app/component/dashboard/page-header";
-import {  Sparkles,  ArrowLeftRight ,  ShieldCheck,  Flame,  BadgeCheck,  Ban,  LucideIcon, ClipboardList,} from "lucide-react";
+import { Sparkles, ArrowLeftRight, ShieldCheck, Flame, BadgeCheck, Ban, LucideIcon, ClipboardList, } from "lucide-react";
 
 // ── Status & Quality Colors ──────────────────────────────────
 export const statusColor = (s: string) => {
@@ -42,54 +42,56 @@ export const PIPELINE_STAGES: {
   bg: string;
   icon: LucideIcon;
 }[] = [
-  {
-    key: "new",
-    label: "New",
-    color: "border-violet-400",
-    bg: "bg-violet-100/80",
-    icon: Sparkles,
-  },
-  {
-    key: "contacted",
-    label: "Contacted",
-    color: "border-sky-400",
-    bg: "bg-sky-100/80",
-    icon: ArrowLeftRight ,
-  },
-  {
-    key: "qualified",
-    label: "Qualified - Breakthrough Session",
-    color: "border-amber-400",
-    bg: "bg-amber-100/80",
-    icon: ShieldCheck,
-  },
-  {
-    key: "interested",
-    label: "Interested",
-    color: "border-orange-400",
-    bg: "bg-orange-100/80",
-    icon: Flame,
-  },
-  // {
-  //   key: "converted",
-  //   label: "Converted",
-  //   color: "border-teal-400",
-  //   bg: "bg-teal-100/80",
-  //   icon: BadgeCheck,
-  // },
-  {
-    key: "payment_plan",
-    label: "Payment Plan",
-    color: "border-green-400",
-    bg: "bg-green-100/80",
-    icon: Ban,
-  },
-  { key: "enrolled", 
-    label: "Enrolled in Batch", 
-    color: "border-green-600", 
-    bg: "bg-green-200/60", 
-    icon: ClipboardList },
-];
+    {
+      key: "new",
+      label: "New",
+      color: "border-violet-400",
+      bg: "bg-violet-100/80",
+      icon: Sparkles,
+    },
+    {
+      key: "contacted",
+      label: "Contacted",
+      color: "border-sky-400",
+      bg: "bg-sky-100/80",
+      icon: ArrowLeftRight,
+    },
+    {
+      key: "qualified",
+      label: "Qualified - Breakthrough Session",
+      color: "border-amber-400",
+      bg: "bg-amber-100/80",
+      icon: ShieldCheck,
+    },
+    {
+      key: "interested",
+      label: "Interested",
+      color: "border-orange-400",
+      bg: "bg-orange-100/80",
+      icon: Flame,
+    },
+    // {
+    //   key: "converted",
+    //   label: "Converted",
+    //   color: "border-teal-400",
+    //   bg: "bg-teal-100/80",
+    //   icon: BadgeCheck,
+    // },
+    {
+      key: "payment_plan",
+      label: "Payment Plan",
+      color: "border-green-400",
+      bg: "bg-green-100/80",
+      icon: Ban,
+    },
+    {
+      key: "enrolled",
+      label: "Enrolled in Batch",
+      color: "border-green-600",
+      bg: "bg-green-200/60",
+      icon: ClipboardList
+    },
+  ];
 
 // ── Status → Pipeline Stage Key ─────────────────────────────
 // export function toStageKey(status: string) {
@@ -103,12 +105,22 @@ export const PIPELINE_STAGES: {
 //   };
 //   return m[status] || "new";
 // }
+// export function toStageKey(lead: any): string {
+//   if (lead.status === "converted") {
+//     if (lead.user_id && lead.batch_id) return "enrolled";
+//     if (lead.paymentPlan?.totalAmount) return "payment_plan";
+//     return "converted";
+//   }
+//   return lead.status || "new";
+// }
+// constants.ts mein sirf yeh function replace karo
+
 export function toStageKey(lead: any): string {
   if (lead.status === "converted") {
-    if (lead.user_id && lead.batch_id) return "enrolled";
-    if (lead.paymentPlan?.totalAmount) return "payment_plan";
-    return "converted";
+    if (lead.advance_paid === true) return "enrolled";
+    return "payment_plan";
   }
+  if (lead.status === "lost") return lead.previous_status || "new";
   return lead.status || "new";
 }
 

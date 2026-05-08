@@ -15,6 +15,7 @@ import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { Play, Pencil, Trash2, Video, FileText, Mic } from "lucide-react";
 import Breadcrumb from "@/app/component/ui/breadcrumb";
+import { useAppSelector } from "@/store/hooks";
 
 const lessonFields: ModalField[] = [
   { name: "title", label: "Lesson Title", type: "input", inputType: "text", placeholder: "NLP Basics" },
@@ -56,6 +57,9 @@ export default function LessonsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any>(null);
   const [deletingLesson, setDeletingLesson] = useState<any>(null);
+    const { user: authUser } = useAppSelector((state) => state.auth);
+    const role = authUser?.role;
+    const isAdmin = role === "super_admin" || role === "admin";
 
   const { data: programData } = useQuery({
     queryKey: ["program", programId],
@@ -162,6 +166,7 @@ export default function LessonsPage() {
                   )}
                 </div>
               </div>
+              {isAdmin && (
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => setEditingLesson(lesson)} className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition">
                   <Pencil size={14} />
@@ -170,6 +175,7 @@ export default function LessonsPage() {
                   <Trash2 size={14} />
                 </button>
               </div>
+              )}
             </div>
           ))}
         </div>

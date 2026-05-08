@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAllLeads, createLead, updateLead,
   addActivityLead, getActivitiesLead,
-  getNamesPrograms,
+  getNamesPrograms, 
+  getAllEnrollments,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -29,9 +30,18 @@ export default function SalesRepLeads() {
   const [filters, setFilters] = useState(defaultLeadFilters);
 
   // ── Queries ──────────────────────────────────────────────────
-  const { data, isLoading, isError } = useQuery({
+  const { data: leadsData, isLoading, isError } = useQuery({
     queryKey: ["sales-leads", filters],
     queryFn: () => getAllLeads({ ...filters, assigned_to: authUser._id }).then((r) => r.data),
+  });
+
+   const { data: enrollmentsData } = useQuery({
+    queryKey: ["enrollments-kanban"],
+    queryFn: () =>
+      getAllEnrollments({
+        page: 1,
+        limit: 1000, // saari enrollments
+      }).then((r) => r.data),
   });
 
   const { data: programs } = useQuery({
@@ -89,7 +99,7 @@ export default function SalesRepLeads() {
     <>
       <PageHeader
         title="Leads" subtitle="Manage all leads" titleIcon={<Users size={24} />}
-        totalCount={data?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
+        totalCount={leadsData?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
         filters={filters} setFilters={setFilters} filterFields={leadFilterFields}
       />
 
@@ -116,14 +126,19 @@ export default function SalesRepLeads() {
             <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <KanbanBoard leads={data?.data || []} programMap={programMap} actions={actions} />
+          <KanbanBoard 
+          leads={leadsData?.data || []} 
+          enrollments={enrollmentsData?.data || []} 
+          programMap={programMap} 
+          actions={actions} 
+          />
         )
       )}
 
       {/* ── List View ── */}
       {activeView === "list" && (
         <DynamicTable
-          data={data?.data || []} isLoading={isLoading} isError={isError}
+          data={leadsData?.data || []} isLoading={isLoading} isError={isError}
           columns={[
             { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
             { key: "email", label: "Email" },

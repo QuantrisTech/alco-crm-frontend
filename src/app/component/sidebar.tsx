@@ -88,7 +88,7 @@ const menuSections: MenuSection[] = [
         label: "Payments",
         href: "/dashboard/payments",
         icon: Receipt,
-        roles: ["super_admin", "admin", "user"],
+        roles: ["user"],
       },
       {
         label: "Contract",
@@ -137,7 +137,7 @@ const menuSections: MenuSection[] = [
         label: "Overview",
         href: "/dashboard/finance",
         icon: Wallet,
-        roles: ["super_admin", "admin", "finance_manager"],
+        roles: ["super_admin", "admin"],
       },
       {
         label: "Invoices",
@@ -151,24 +151,15 @@ const menuSections: MenuSection[] = [
         ],
       },
       // {
-      //   label: "Payments",
-      //   icon: Receipt,
+      //   label: "Reports",
+      //   icon: TrendingUp,
       //   roles: ["super_admin", "admin", "finance_manager"],
       //   children: [
-      //     { label: "All Payments", href: "/dashboard/finance/payments" },
-      //     { label: "Pending Approval", href: "/dashboard/finance/payments/pending" },
+      //     { label: "Revenue", href: "/dashboard/finance/reports/revenue" },
+      //     { label: "Monthly Collections", href: "/dashboard/finance/reports/monthly" },
+      //     { label: "Pending Report", href: "/dashboard/finance/reports/pending" },
       //   ],
       // },
-      {
-        label: "Reports",
-        icon: TrendingUp,
-        roles: ["super_admin", "admin", "finance_manager"],
-        children: [
-          { label: "Revenue", href: "/dashboard/finance/reports/revenue" },
-          { label: "Monthly Collections", href: "/dashboard/finance/reports/monthly" },
-          { label: "Pending Report", href: "/dashboard/finance/reports/pending" },
-        ],
-      },
     ],
   },
   {

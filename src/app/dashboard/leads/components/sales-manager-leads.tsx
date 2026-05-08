@@ -6,6 +6,7 @@ import {
   assignLead, convertLead, markLostLead, addActivityLead,
   getActivitiesLead, getLeadsStats, getNamesPrograms,
   markLeadInterested, updateLeadPaymentPlan, adminGetBatches,
+  getAllEnrollments,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -46,9 +47,18 @@ export default function SalesManagerLeads() {
   const [viewingPaymentPlan, setViewingPaymentPlan] = useState<any>(null);
 
   // ── Queries ──────────────────────────────────────────────────
-  const { data, isLoading, isError } = useQuery({
+  const { data: leadsData, isLoading, isError } = useQuery({
     queryKey: ["sales-leads", filters],
     queryFn: () => getAllLeads({ ...filters, assigned_to: authUser._id }).then((r) => r.data),
+  });
+
+  const { data: enrollmentsData } = useQuery({
+    queryKey: ["enrollments-kanban"],
+    queryFn: () =>
+      getAllEnrollments({
+        page: 1,
+        limit: 1000, // saari enrollments
+      }).then((r) => r.data),
   });
 
   const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
@@ -102,6 +112,7 @@ export default function SalesManagerLeads() {
     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
     { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
     { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
+    { label: "Interested", count: statsData?.interested || 0, color: "bg-orange-400" },
     { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500" },
     { label: "Lost", count: statsData?.lost || 0, color: "bg-rose-400" },
   ];
@@ -195,7 +206,7 @@ export default function SalesManagerLeads() {
     <>
       <PageHeader
         title="Leads" subtitle="Manage all leads" titleIcon={<Users size={24} />}
-        totalCount={data?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
+        totalCount={leadsData?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
         filters={filters} setFilters={setFilters} filterFields={leadFilterFields}
       />
 
@@ -222,7 +233,10 @@ export default function SalesManagerLeads() {
             <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <KanbanBoard leads={data?.data || []} programMap={programMap} actions={actions} />
+          <KanbanBoard leads={leadsData?.data || []}
+            enrollments={enrollmentsData?.data || []} 
+            programMap={programMap} 
+            actions={actions} />
         )
       )}
 
@@ -230,7 +244,7 @@ export default function SalesManagerLeads() {
       {activeView === "list" && (
         <>
           <DynamicTable
-            data={data?.data || []} isLoading={isLoading} isError={isError}
+            data={leadsData?.data || []} isLoading={isLoading} isError={isError}
             columns={[
               { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
               { key: "email", label: "Email" },
