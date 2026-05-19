@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
 import PageHeader from "@/app/component/dashboard/page-header";
-import { CreditCard, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { CreditCard, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronUp, Download, FileText } from "lucide-react";
 import { useState } from "react";
 import { getMyInvoices } from "@/utils/api";
 import DownloadInvoice from "./component/download-invoice";
+import DocumentsGalleryModal from "../profile/component/documents-gallery-modal";
+import DocumentsSection from "../profile/component/documents-section";
 
 // ── API ───────────────────────────────────────────────────────
 
@@ -147,8 +149,20 @@ function daysLeft(date: string) {
 
 // ── Invoice Card ──────────────────────────────────────────────
 function InvoiceCard({ invoice }: { invoice: any }) {
-  const { user } = useAppSelector((state) => state.auth);
+  // const { user } = useAppSelector((state) => state.auth);
   const [open, setOpen] = useState(false);
+  const [receiptsOpen, setReceiptsOpen] = useState(false);
+
+  const user = invoice.user || {};
+  const contractDetails = invoice.enrollment?.leadSnapshot?.contractDetails || {};
+
+  const userForInvoice = {
+    name: user.name || contractDetails.fullName,
+    email: user.email || contractDetails.email,
+    phone: user.phone || contractDetails.phone,
+    cnic: contractDetails.cnic,
+    address: contractDetails.currentAddress,
+  };
 
   const cfg = statusConfig[invoice.status] || statusConfig.PENDING;
   const Icon = cfg.icon;
@@ -168,6 +182,11 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             <p className="font-semibold text-gray-800 text-base">
               {invoice.enrollment?.program?.name || "Program"}
             </p>
+            {(invoice.enrollment?.program?.short_description || invoice.enrollment?.program?.shortDescription) && (
+              <p className="text-xs text-gray-400 mt-0.5 italic">
+                {invoice.enrollment?.program?.short_description || invoice.enrollment?.program?.shortDescription}
+              </p>
+            )}
             <p className="text-xs text-gray-400 mt-0.5">
               Invoice #{invoice._id?.slice(-6).toUpperCase()}
               {invoice.dueDate && ` · Due: ${new Date(invoice.dueDate).toLocaleDateString()}`}
@@ -182,7 +201,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             {/* Download Button */}
             <div className="flex items-center justify-end gap-2 ">
               <button
-                onClick={() => DownloadInvoice(invoice, user)}
+                onClick={() => DownloadInvoice(invoice, userForInvoice)}
                 className="w-full flex items-center justify-center gap-2 px-2.5 py-1 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 <Download size={14} />
@@ -316,6 +335,37 @@ function InvoiceCard({ invoice }: { invoice: any }) {
         </div>
       )}
 
+      {invoice.user?.documents?.filter((d: any) => d.type === "receipt").length > 0 && (
+        <div className="px-5 pb-4">
+          {/* <button
+            onClick={() => setReceiptsOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition"
+          >
+            <FileText size={14} />
+            View Receipts ({invoice.user.documents.filter((d: any) => d.type === "receipt").length})
+          </button>
+
+          <DocumentsGalleryModal
+            isOpen={receiptsOpen}
+            onClose={() => setReceiptsOpen(false)}
+            userId={invoice.user._id}
+            documents={invoice.user.documents}
+            filterType="receipt"
+            queryKey={["my-invoices"]}
+          /> */}
+          <DocumentsSection
+            userId={invoice.user?._id}
+            documents={invoice.user?.documents || []}
+            defaultType="receipt"
+            showDropdown={false}
+            filterType="receipt"
+            queryKey={["my-invoices"]}
+            title="Payment Receipts"
+            description="Upload your payment receipt for verification"
+          />
+        </div>
+      )}
+
       {/* Notice */}
       {invoice.status !== "PAID" && (
         <div className="px-5 pb-4">
@@ -360,7 +410,6 @@ function PaymentsContent() {
   });
 
   const invoices = data?.data?.data || [];
-  console.log("Fetched invoices data:", data);
   const active = invoices.filter((i: any) => i.status !== "PAID");
   const paid = invoices.filter((i: any) => i.status === "PAID");
 

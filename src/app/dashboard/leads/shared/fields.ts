@@ -2,25 +2,18 @@ import { ModalField } from "@/types/ui";
 
 // ── Add Lead Fields ──────────────────────────────────────────
 export const addLeadFields: ModalField[] = [
-  { name: "first_name", label: "First Name", type: "input", inputType: "text", placeholder: "Ahmed" },
-  { name: "last_name", label: "Last Name", type: "input", inputType: "text", placeholder: "Khan" },
-  { name: "email", label: "Email", type: "input", inputType: "email", placeholder: "ahmed@gmail.com" },
-  { name: "phone", label: "Phone", type: "input", inputType: "text", placeholder: "03001234567" },
+  { name: "first_name", label: "First Name*", type: "input", inputType: "text", placeholder: "Ahmed", required: true },
+  { name: "last_name", label: "Last Name*", type: "input", inputType: "text", placeholder: "Khan", required: true },
+  { name: "email", label: "Email*", type: "input", inputType: "email", placeholder: "ahmed@gmail.com", required: true },
+  { name: "phone", label: "Phone*", type: "input", inputType: "text", placeholder: "03001234567", required: true },
   { name: "nationality", label: "Nationality", type: "input", inputType: "text", placeholder: "Pakistani" },
-  { name: "profession", label: "Profession", type: "input", inputType: "text", placeholder: "Engineer" },
-  { name: "opportunity_value", label: "Opportunity Value (Rs)", type: "input", inputType: "number", placeholder: "200000" },
+  { name: "profession", label: "Profession*", type: "input", inputType: "text", placeholder: "Engineer", required: true },
   {
-    name: "program_id", label: "Program", type: "select",
+    name: "program_id", label: "Program*", type: "select", required: true,
     options: [],
   },
   {
-    name: "batch_id",
-    label: "Batch",
-    type: "select",
-    options: [],
-  },
-  {
-    name: "source", label: "Source", type: "select",
+    name: "source", label: "Source*", type: "select", required: true,
     options: [
       { label: "Facebook", value: "facebook" },
       { label: "Google", value: "google" },
@@ -28,6 +21,9 @@ export const addLeadFields: ModalField[] = [
       { label: "Referral", value: "referral" },
       { label: "Enroll", value: "enroll" },
       { label: "Contact", value: "contact" },
+      { label: "UTM", value: "utm" },
+      { label: "Social", value: "social" },
+      { label: "Other", value: "other" },
     ],
   },
   {
@@ -76,32 +72,28 @@ export const simpleAddLeadFields: ModalField[] = [
 
 // ── Edit Lead Fields (Admin / Sales Manager) ─────────────────
 export const editLeadFields: ModalField[] = [
-  { name: "first_name", label: "First Name", type: "input", inputType: "text" },
-  { name: "last_name", label: "Last Name", type: "input", inputType: "text" },
-  { name: "email", label: "Email", type: "input", inputType: "email" },
-  { name: "phone", label: "Phone", type: "input", inputType: "text" },
-  { name: "nationality", label: "Nationality", type: "input", inputType: "text" },
-  { name: "profession", label: "Profession", type: "input", inputType: "text" },
-  { name: "opportunity_value", label: "Opportunity Value (Rs)", type: "input", inputType: "number" },
+{ name: "first_name", label: "First Name*", type: "input", inputType: "text", required: true },
+  { name: "last_name", label: "Last Name*", type: "input", inputType: "text", required: true },
+  { name: "email", label: "Email*", type: "input", inputType: "email", required: true },
+  { name: "phone", label: "Phone*", type: "input", inputType: "text", required: true },
+  { name: "nationality", label: "Nationality", type: "input", inputType: "text"},
+  { name: "profession", label: "Profession*", type: "input", inputType: "text", required: true },
   {
-    name: "program_id", label: "Program", type: "select",
+    name: "program_id", label: "Program*", type: "select", required: true,
     options: [],
   },
   {
-    name: "batch_id",
-    label: "Batch",
-    type: "select",
-    options: [],
-  },
-  {
-    name: "status", label: "Status", type: "select",
+    name: "source", label: "Source*", type: "select", required: true,
     options: [
-      { label: "New", value: "new" },
-      { label: "Contacted", value: "contacted" },
-      { label: "Qualified", value: "qualified" },
-      { label: "Interested", value: "interested" },
-      { label: "Converted", value: "converted" },
-      { label: "Lost", value: "lost" },
+      { label: "Facebook", value: "facebook" },
+      { label: "Google", value: "google" },
+      { label: "Organic", value: "organic" },
+      { label: "Referral", value: "referral" },
+      { label: "Enroll", value: "enroll" },
+      { label: "Contact", value: "contact" },
+      { label: "UTM", value: "utm" },
+      { label: "Social", value: "social" },
+      { label: "Other", value: "other" },
     ],
   },
   {
@@ -112,23 +104,12 @@ export const editLeadFields: ModalField[] = [
       { label: "Cold", value: "cold" },
     ],
   },
-  {
-    name: "source", label: "Source", type: "select",
-    options: [
-      { label: "Facebook", value: "facebook" },
-      { label: "Google", value: "google" },
-      { label: "Organic", value: "organic" },
-      { label: "Referral", value: "referral" },
-      { label: "Enroll", value: "enroll" },
-      { label: "Contact", value: "contact" },
-    ],
-  },
   { name: "query", label: "Query", type: "textarea", placeholder: "Client ka sawaal..." },
   { name: "message", label: "Message", type: "textarea", placeholder: "Additional message..." },
   { name: "notes", label: "Notes", type: "textarea", placeholder: "Internal notes..." },
-  { name: "utm_source", label: "UTM Source", type: "input", inputType: "text" },
-  { name: "utm_medium", label: "UTM Medium", type: "input", inputType: "text" },
-  { name: "utm_campaign", label: "UTM Campaign", type: "input", inputType: "text" },
+  { name: "utm_source", label: "UTM Source", type: "input", inputType: "text", placeholder: "google" },
+  { name: "utm_medium", label: "UTM Medium", type: "input", inputType: "text", placeholder: "cpc" },
+  { name: "utm_campaign", label: "UTM Campaign", type: "input", inputType: "text", placeholder: "nlp-2025" },
 ];
 
 // ── Edit Lead Fields (Sales Rep — limited/disabled) ──────────

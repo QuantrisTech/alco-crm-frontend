@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { setCredentials, logout } from "@/store/authSlice";
 import { getMe } from "@/utils/api";
 import toast from "react-hot-toast";
@@ -9,18 +9,25 @@ import { IoMdClose } from "react-icons/io";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: string[]; // optional — agar pass na karo toh sirf login check hoga
+  allowedRoles?: string[];
 }
 
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  allowedRoles,
+}: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  // const { user: authUser } = useAppSelector((state) => state.auth);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [toastShown, setToastShown] = useState(false);
 
+  // ✅ Sirf ek baar toast show hoga
+  const tempToastShown = useRef(false);
+
+  // ─────────────────────────────────────────────────────────────
+  // AUTH + ROLE CHECK
+  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (pathname === "/auth/callback") {
       setIsLoading(false);
@@ -40,58 +47,79 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
         dispatch(setCredentials({ user: userData, token }));
 
-        // ─── Role Check ──────────────────────────────────────────
+        // ✅ Role Check
         if (allowedRoles && allowedRoles.length > 0) {
           if (!allowedRoles.includes(userData?.role)) {
             toast.error("Access denied. You don't have permission.");
-            router.push("/dashboard"); // unauthorized → dashboard pe bhejo
+            router.push("/dashboard");
             return;
           }
         }
 
-        // ─── Temporary Password Toast ────────────────────────────
-        if (userData?.isTemporaryPassword && !toastShown) {
-          toast(
-            (t) => (
-              <div className="relative pt-4">
-                <div>
-                  ⚠️ You are using a temporary password.
-                  <br />
-                  Please update it to continue securely.
-                </div>
-                <div className="flex flex-col gap-2 my-2">
-                  <button
-                    className="text-yellow-600 underline text-sm"
-                    onClick={() => {
-                      router.push("/dashboard/profile");
-                      toast.dismiss(t.id);
-                    }}
-                  >
-                    Update Password
-                  </button>
-                  <button
-                    className="text-gray-500 text-sm absolute -top-1 -right-2"
-                    onClick={() => toast.dismiss(t.id)}
-                  >
-                    <IoMdClose />
-                  </button>
-                </div>
-              </div>
-            ),
-            { duration: Infinity }
-          );
-          setToastShown(true);
-        }
+        // ✅ user temp state localStorage me save
+        localStorage.setItem(
+          "isTemporaryPassword",
+          userData?.isTemporaryPassword ? "true" : "false"
+        );
 
         setIsLoading(false);
       })
       .catch(() => {
         dispatch(logout());
+        localStorage.removeItem("isTemporaryPassword");
         router.push("/login");
       });
-  }, [pathname, toastShown]);
+  }, [pathname]);
 
-  // ─── Loading ─────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // TEMP PASSWORD TOAST
+  // pathname pe depend nahi karega
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const isTemporary =
+      localStorage.getItem("isTemporaryPassword") === "true";
+
+    // ✅ already shown hai tw dobara nahi
+    if (!isTemporary || tempToastShown.current) return;
+
+    tempToastShown.current = true;
+
+    toast(
+      (t) => (
+        <div className="relative pt-4">
+          <div>
+            ⚠️ You are using a temporary password.
+            <br />
+            Please update it to continue securely.
+          </div>
+
+          <div className="flex flex-col gap-2 my-2">
+            <button
+              className="text-yellow-600 underline text-sm"
+              onClick={() => {
+                router.push("/dashboard/profile");
+                toast.dismiss(t.id);
+              }}
+            >
+              Update Password
+            </button>
+
+            <button
+              className="text-gray-500 text-sm absolute -top-1 -right-2"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              <IoMdClose />
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        id: "temporary-password-toast", // ✅ unique id
+        duration: Infinity,
+      }
+    );
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">

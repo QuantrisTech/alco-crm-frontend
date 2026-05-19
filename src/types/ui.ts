@@ -3,9 +3,11 @@ import { FieldError } from "react-hook-form";
 
 export type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
-  error?: FieldError;
+  // error?: FieldError;
   rightIcon?: React.ReactNode;
-  disabled?: boolean
+  disabled?: boolean;
+  error?: string | { message?: string };
+  bg?: string;
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -29,12 +31,16 @@ export type Option = {
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   options: Option[];
-  error?: FieldError;
+  // error?: FieldError;
+  error?: string | { message?: string };
+  bg?: string;
+  placeholder?: string;
 };
 
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
-  error?: FieldError;
+  // error?: FieldError;
+  error?: string | { message?: string };
 };
 
 export type FieldType = "input" | "select" | "textarea" | "checkbox" | "uploadInput" | "custom";
@@ -49,7 +55,7 @@ export type ModalField = {
   options?: { label: string; value: string, disabled?: boolean }[]; // select ke liye
   required?: boolean;
   disabled?: boolean;
-  autoComplete?: string; 
+  autoComplete?: string;
   uploadType?: "audio" | "video" | "document",
   render?: (value: string | boolean, onChange: (updatedValue: string | boolean) => void) => React.ReactNode; // custom field ke liye
 };
@@ -61,19 +67,19 @@ export type ModalTab = {
   onSubmit?: (data: Record<string, string | boolean>) => void;
 };
 
-export  type ModalProps = {
+export type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  subtitle?: string; 
+  subtitle?: string;
   title: string;
   fields: ModalField[];
   initialValues?: Record<string, string | boolean>;
   onSubmit: (data: Record<string, string | boolean>) => void;
   isLoading?: boolean;
   mode?: "add" | "edit";
-  step?: "forgot" | "reset";  
-  onBack?: () => void;  
-  tabs?: ModalTab[];  
-  zIndex?: number;     
+  step?: "forgot" | "reset";
+  onBack?: () => void;
+  tabs?: ModalTab[];
+  zIndex?: number;
 };
 

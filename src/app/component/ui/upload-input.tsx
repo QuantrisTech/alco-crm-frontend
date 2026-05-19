@@ -23,41 +23,84 @@ export default function UploadInput({
   const { token: authToken } = useAppSelector((state) => state.auth);
 
 
+  // const handleUpload = async (file: File) => {
+  //   const formData = new FormData();
+  //   formData.append(type, file);
+
+  //   try {
+  //     setUploading(true);
+
+  //     const res = await fetch(
+  //       `${process.env.NEXT_PUBLIC_API_URL}/api/v1/programs/upload-${type}`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           Authorization: `Bearer ${authToken}`, // ✅ FIX
+  //         },
+  //         body: formData,
+  //       }
+  //     );
+
+  //     const data = await res.json();
+
+  //     if (!res.ok) throw new Error(data?.message || "Upload failed");
+
+  //     onChange(data.url);
+
+  //     onUploadComplete?.({
+  //       url: data.url,
+  //       duration: data.duration
+  //     });
+  //     toast.success("Upload ho gaya!");
+  //   } catch (err: any) {
+  //     toast.error(err.message || "Upload fail");
+  //   } finally {
+  //     setUploading(false);
+  //   }
+  // };
+
   const handleUpload = async (file: File) => {
+  try {
+    setUploading(true);
+
+    // Step 1: Backend se signature lo
+    const sigRes = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/programs/upload-signature`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+
+    if (!sigRes.ok) throw new Error("Signature fetch failed");
+    const { timestamp, signature, cloudName, apiKey } = await sigRes.json();
+
+    // Step 2: Seedha Cloudinary pe upload — Vercel bypass
     const formData = new FormData();
-    formData.append(type, file);
+    formData.append("file", file);
+    formData.append("timestamp", String(timestamp));
+    formData.append("signature", signature);
+    formData.append("api_key", apiKey);
+    formData.append("folder", "lesson-audios");
 
-    try {
-      setUploading(true);
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+      { method: "POST", body: formData }
+    );
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/programs/upload-${type}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${authToken}`, // ✅ FIX
-          },
-          body: formData,
-        }
-      );
+    const data = await uploadRes.json();
+    if (!uploadRes.ok) throw new Error(data?.error?.message || "Upload failed");
 
-      const data = await res.json();
+    onChange(data.secure_url);
+    onUploadComplete?.({
+      url: data.secure_url,
+      duration: data.duration,
+    });
+    toast.success("Upload ho gaya!");
 
-      if (!res.ok) throw new Error(data?.message || "Upload failed");
-
-      onChange(data.url);
-
-      onUploadComplete?.({
-        url: data.url,
-        duration: data.duration
-      });
-      toast.success("Upload ho gaya!");
-    } catch (err: any) {
-      toast.error(err.message || "Upload fail");
-    } finally {
-      setUploading(false);
-    }
-  };
+  } catch (err: any) {
+    toast.error(err.message || "Upload fail");
+  } finally {
+    setUploading(false);
+  }
+};
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

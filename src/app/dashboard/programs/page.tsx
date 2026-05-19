@@ -19,11 +19,11 @@ import {
 import { useAppSelector } from "@/store/hooks";
 
 const programFields: ModalField[] = [
-  { name: "name", label: "Program Name", type: "input", inputType: "text", placeholder: "NLP Practitioner" },
-  { name: "short_description", label: "Short Description", type: "input", inputType: "text", placeholder: "Brief description" },
+  { name: "name", label: "Program Name*", type: "input", inputType: "text", placeholder: "NLP Practitioner", required: true },
+  { name: "short_description", label: "Short Description*", type: "input", inputType: "text", placeholder: "Brief description", required: true },
   { name: "description", label: "Description", type: "textarea", placeholder: "Full description..." },
   {
-    name: "level", label: "Level", type: "select",
+    name: "level", label: "Level*", type: "select", required: true,
     options: [
       { label: "Level 1", value: "level 1" },
       { label: "Level 2", value: "level 2" },
@@ -34,7 +34,7 @@ const programFields: ModalField[] = [
     ]
   },
   {
-    name: "category", label: "Category", type: "select",
+    name: "category", label: "Category*", type: "select", required: true,
     options: [
       { label: "NLP", value: "nlp" },
       { label: "ICF", value: "icf" },
@@ -53,11 +53,25 @@ const programFields: ModalField[] = [
   },
   { name: "duration_weeks", label: "Duration (weeks)", type: "input", inputType: "text", placeholder: "12" },
   {
-    name: "status", label: "Status", type: "select",
+    name: "status", label: "Status*", type: "select", required: true,
     options: [
       { label: "Active", value: "active" },
       { label: "Draft", value: "draft" },
       { label: "Inactive", value: "inactive" },
+    ]
+  },
+];
+
+// Finance manager ke liye limited fields
+const financeManagerFields: ModalField[] = [
+  { name: "short_description", label: "Short Description", type: "input", inputType: "text", placeholder: "Brief description" },
+  { name: "price", label: "Price", type: "input", inputType: "text", placeholder: "2000" },
+  {
+    name: "currency", label: "Currency", type: "select",
+    options: [
+      { label: "USD", value: "USD" },
+      { label: "AUD", value: "AUD" },
+      { label: "PKR", value: "PKR" },
     ]
   },
 ];
@@ -95,6 +109,9 @@ export default function ProgramsPage() {
   const { user: authUser } = useAppSelector((state) => state.auth);
   const role = authUser?.role;
   const isAdmin = role === "super_admin" || role === "admin";
+  const isFinanceManager = role === "finance_manager";
+  const isSalesManager = role === "sales_manager";
+  const isSalesRep = role === "sales_rep";
 
   const filterFields: FilterField[] = [
     { name: "search", type: "input", placeholder: "Search programs..." },
@@ -163,7 +180,7 @@ export default function ProgramsPage() {
   });
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"]}>
       <PageHeader
         title="Programs"
         subtitle="Manage all training programs"
@@ -237,37 +254,45 @@ export default function ProgramsPage() {
               {/* Actions */}
               <div className="px-5 py-3 flex items-center gap-2">
                 {/* ✅ Manage → courses page pe navigate */}
-                <button
-                  onClick={() => router.push(`/dashboard/programs/${program._id}`)}
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition font-medium"
-                >
-                  Manage
-                  <ChevronRight size={12} />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => router.push(`/dashboard/programs/${program._id}`)}
+                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition font-medium"
+                  >
+                    Manage
+                    <ChevronRight size={12} />
+                  </button>
+                )}
                 {
-                  isAdmin && (
+                  (isAdmin || isFinanceManager) && (
                     <div className="ml-auto flex items-center gap-1">
-                      <button
-                        onClick={() => setEditingProgram(program)}
-                        className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
-                        title="Edit"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => duplicateProgram(program._id)}
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition"
-                        title="Duplicate"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        onClick={() => setDeletingProgram(program)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
-                        title="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {(isAdmin || isFinanceManager) && (
+                        <button
+                          onClick={() => setEditingProgram(program)}
+                          className="p-1.5 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
+                          title="Edit"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
+                      {(isAdmin) && (
+                        <>
+                          <button
+                            onClick={() => duplicateProgram(program._id)}
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition"
+                            title="Duplicate"
+                          >
+                            <Copy size={14} />
+                          </button>
+                          <button
+                            onClick={() => setDeletingProgram(program)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )
                 }
@@ -295,7 +320,7 @@ export default function ProgramsPage() {
           onClose={() => setEditingProgram(null)}
           title="Edit Program"
           subtitle={editingProgram.name}
-          fields={programFields}
+          fields={isFinanceManager ? financeManagerFields : programFields}
           initialValues={{
             name: editingProgram.name,
             short_description: editingProgram.short_description || "",

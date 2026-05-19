@@ -61,6 +61,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
   const pct = enrollment.progress || 0;
   const isComplete = enrollment.status === "completed" || pct >= 100;
   const isRestricted = enrollment.accessStatus === "RESTRICTED";
+  const isSuspended = enrollment?.status === "suspended";
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -161,28 +162,28 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
         {/* Action Buttons */}
         <div className="flex gap-2 mt-4 relative">
           <button
-            onClick={() => !isRestricted && router.push(`/dashboard/courses/${enrollment._id}`)}
-            disabled={isRestricted}
+            onClick={() => !isRestricted && !isSuspended && router.push(`/dashboard/courses/${enrollment._id}`)}
+            disabled={isRestricted || isSuspended}
             className={`flex-1 flex items-center justify-center gap-2 font-semibold text-sm py-2.5 rounded-xl transition-colors
-      ${isRestricted
+      ${isSuspended ? "bg-rose-100 text-rose-400 cursor-not-allowed" : isRestricted
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-yellow-400 text-gray-900 hover:bg-yellow-500"
               }`}
           >
-            <Play size={14} className={isRestricted ? "fill-gray-400" : "fill-gray-900"} />
-            {isRestricted ? "Access Restricted" : pct === 0 ? "Start Learning" : "Continue Learning"}
+            <Play size={14} className={isSuspended ? "fill-rose-400" : isRestricted ? "fill-gray-400" : "fill-gray-900"} />
+            {isSuspended ? "Suspended" : isRestricted ? "Access Restricted" : pct === 0 ? "Start Learning" : "Continue Learning"}
           </button>
-          {!isRestricted && (
-          <button
-            onClick={() => setOpen(!open)}
-            className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
-              ? "border-yellow-300 bg-yellow-50 text-yellow-700"
-              : "border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-          >
-            {open ? "Hide" : "Quick View"}
-          </button>
-        )}
+          {!isRestricted || !isSuspended && (
+            <button
+              onClick={() => setOpen(!open)}
+              className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
+                ? "border-yellow-300 bg-yellow-50 text-yellow-700"
+                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+            >
+              {open ? "Hide" : "Quick View"}
+            </button>
+          )}
         </div>
 
         {/* ── Restricted Overlay Banner ── */}
@@ -195,6 +196,21 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
               <p className="text-sm font-semibold text-rose-700">Access Restricted</p>
               <p className="text-xs text-rose-400 mt-0.5">
                 Your enrollment is on hold due to pending payment. Please clear your dues to unlock access.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Suspended Overlay Banner ── */}
+        {isSuspended && (
+          <div className="mt-3 flex items-start gap-3 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
+            <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center shrink-0 mt-0.5">
+              <Lock size={13} className="text-rose-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-rose-700">Enrollment Suspended</p>
+              <p className="text-xs text-rose-400 mt-0.5">
+                Your enrollment has been suspended. Please contact support for more information.
               </p>
             </div>
           </div>
@@ -356,6 +372,7 @@ export default function UserCourses() {
       : [];
 
   const active = list.filter((e: any) => e.status === "active");
+  const suspended = list.filter((e: any) => e.status === "suspended");
   const completed = list.filter((e: any) => e.status === "completed" || e.isGraduated)
 
   return (
@@ -395,6 +412,19 @@ export default function UserCourses() {
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {active.map((e: any) => <EnrollmentCard key={e._id} enrollment={e} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Suspended Enrollments */}
+          {suspended.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Lock size={14} />
+                Suspended ({suspended.length})
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {suspended.map((e: any) => <EnrollmentCard key={e._id} enrollment={e} />)}
               </div>
             </div>
           )}

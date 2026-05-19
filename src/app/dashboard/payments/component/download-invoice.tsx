@@ -38,7 +38,12 @@ export default function DownloadInvoice(invoice: any, user: any) {
   // ── Advance installment ───────────────────────────────────
   const advanceInst = invoice.installments?.find((i: any) => i.isAdvance);
 
-  // ── Build HTML using the exact template ──────────────────
+  // ── Derived values ────────────────────────────────────────
+  const totalInstallments = invoice.installments?.length ?? 0;
+  const program           = invoice.enrollment?.program;
+  const batch             = invoice.enrollment?.batch;
+
+  // ── Build HTML ────────────────────────────────────────────
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -89,15 +94,19 @@ export default function DownloadInvoice(invoice: any, user: any) {
   <!-- META ROW -->
   <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #dde2ec;">
     <tr>
-      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:33%;">
+      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:25%;">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Issue Date</div>
         <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f1117;">${fmtDate(invoice.createdAt)}</div>
       </td>
-      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:33%;">
+      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:25%;">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Advance Due Date</div>
         <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f1117;">${fmtDate(advanceInst?.dueDate || invoice.dueDate)}</div>
       </td>
-      <td style="padding:22px 28px;width:33%;">
+      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:25%;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Batch Start Date</div>
+        <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f1117;">${fmtDate(batch?.start_date)}</div>
+      </td>
+      <td style="padding:22px 28px;width:25%;">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Enrollment ID</div>
         <div style="font-family:'Courier New',monospace;font-size:11px;color:#4a5060;">${invoice.enrollment?._id || "—"}</div>
       </td>
@@ -121,7 +130,9 @@ export default function DownloadInvoice(invoice: any, user: any) {
             </div>
             <div style="font-size:12px;color:#4a5060;line-height:1.8;">
               ${user?.email || invoice.user?.email || "—"}<br/>
-              <span style="font-weight:600;color:#0f1117;">${user?.phone || "—"}</span>
+              <span style="font-weight:600;color:#0f1117;">${user?.phone || invoice.user?.phone || "—"}</span><br/>
+              ${(user?.cnic || invoice.user?.cnic) ? `<span style="font-weight:600;color:#0f1117;font-family:'Courier New',monospace;">${user?.cnic || invoice.user?.cnic}</span><br/>` : ""}
+              ${(user?.address || invoice.user?.address) ? `<span style="font-size:11.5px;color:#4a5060;">${user?.address || invoice.user?.address}</span>` : ""}
             </div>
           </div>
         </td>
@@ -154,7 +165,14 @@ export default function DownloadInvoice(invoice: any, user: any) {
           </td>
           <td style="vertical-align:middle;padding-left:14px;">
             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1a3a5c;margin-bottom:2px;">Enrolled Program</div>
-            <div style="font-size:14px;font-weight:800;color:#1a3a5c;">${invoice.enrollment?.program?.name || "—"}</div>
+            <div style="font-size:14px;font-weight:800;color:#1a3a5c;">${program?.name || invoice.enrollment?.program?.name || "—"}</div>
+            ${(program?.short_description || program?.shortDescription)
+              ? `<div style="font-size:11.5px;color:#3a5a7c;margin-top:3px;font-style:italic;">${program?.short_description || program?.shortDescription}</div>`
+              : ""}
+          </td>
+          <td style="text-align:right;vertical-align:middle;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1a3a5c;margin-bottom:2px;">Installments</div>
+            <div style="font-size:22px;font-weight:800;color:#1a3a5c;font-family:'Courier New',monospace;">${totalInstallments}</div>
           </td>
         </tr>
       </table>
@@ -162,7 +180,9 @@ export default function DownloadInvoice(invoice: any, user: any) {
 
     <!-- PAYMENT SCHEDULE TABLE -->
     <div style="margin-bottom:28px;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:12px;">Payment Schedule</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:12px;">
+        Payment Schedule &nbsp;<span style="font-weight:400;color:#aab0be;">(${totalInstallments} installment${totalInstallments !== 1 ? "s" : ""})</span>
+      </div>
       <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dde2ec;border-radius:12px;overflow:hidden;border-collapse:collapse;">
         <thead>
           <tr style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);">
@@ -185,6 +205,10 @@ export default function DownloadInvoice(invoice: any, user: any) {
         <td></td>
         <td style="width:320px;">
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dde2ec;border-radius:14px;overflow:hidden;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #dde2ec;">
+              <td style="padding:11px 18px;font-size:13px;color:#4a5060;font-weight:500;">Qty (Installments)</td>
+              <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:600;color:#0f1117;font-size:13px;">${totalInstallments}</td>
+            </tr>
             <tr style="border-bottom:1px solid #dde2ec;">
               <td style="padding:11px 18px;font-size:13px;color:#4a5060;font-weight:500;">Subtotal</td>
               <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:600;color:#0f1117;font-size:13px;">Rs ${invoice.totalAmount?.toLocaleString()}</td>

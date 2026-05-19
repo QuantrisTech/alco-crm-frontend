@@ -58,6 +58,7 @@ export default function SalesManagerLeads() {
       getAllEnrollments({
         page: 1,
         limit: 1000, // saari enrollments
+      search: filters.search || "",
       }).then((r) => r.data),
   });
 
@@ -236,7 +237,8 @@ export default function SalesManagerLeads() {
           <KanbanBoard leads={leadsData?.data || []}
             enrollments={enrollmentsData?.data || []} 
             programMap={programMap} 
-            actions={actions} />
+            actions={actions}
+            filters={filters} />
         )
       )}
 

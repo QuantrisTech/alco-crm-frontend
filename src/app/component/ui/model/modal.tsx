@@ -50,6 +50,7 @@ export default function Modal({
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   // ✅ Active tab state
   const [activeTab, setActiveTab] = useState(tabs?.[0]?.key || "");
+const [errors, setErrors] = useState<Record<string, string>>({});
 
   const togglePassword = (name: string) => {
     setShowPasswords((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -75,13 +76,42 @@ export default function Modal({
     ? (currentTab?.fields || [])
     : fields;
 
+  // const handleSubmit = () => {
+  //   if (tabs && currentTab?.onSubmit) {
+  //     currentTab.onSubmit(form);
+  //   } else {
+  //     onSubmit(form);
+  //   }
+  // };
+
   const handleSubmit = () => {
-    if (tabs && currentTab?.onSubmit) {
-      currentTab.onSubmit(form);
-    } else {
-      onSubmit(form);
+  // Validate required fields
+  const activeFieldList = tabs ? (currentTab?.fields || []) : fields;
+  const newErrors: Record<string, string> = {};
+
+  activeFieldList.forEach((field) => {
+    if (field.required) {
+      const val = form[field.name];
+      if (!val || (typeof val === "string" && val.trim() === "")) {
+        newErrors[field.name] = `${field.label.replace("*", "").trim()} is required`;
+      }
     }
-  };
+  });
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return; // stop submission
+  }
+
+  setErrors({});
+
+  if (tabs && currentTab?.onSubmit) {
+    currentTab.onSubmit(form);
+  } else {
+    onSubmit(form);
+  }
+};
+
 
   const renderField = (field: ModalField) => {
     switch (field.type) {
@@ -95,7 +125,12 @@ export default function Modal({
             type={isPasswordField ? (isVisible ? "text" : "password") : (field.inputType || "text")}
             placeholder={field.placeholder}
             value={form[field.name] as string}
-            onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            // onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+error={errors[field.name]}
+            onChange={(e) => {
+  setForm({ ...form, [field.name]: e.target.value });
+  if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+}}
             disabled={field.disabled}
             autoComplete={isPasswordField ? "new-password" : "off"}
             rightIcon={
@@ -119,7 +154,12 @@ export default function Modal({
             options={field.options || []}
             value={form[field.name] as string}
             defaultValue={field.defaultValue as string}
-            onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            // onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            error={errors[field.name]}
+            onChange={(e) => {
+  setForm({ ...form, [field.name]: e.target.value });
+  if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+}}
             disabled={field?.disabled}
           />
         );
@@ -130,7 +170,12 @@ export default function Modal({
             label={field.label}
             placeholder={field.placeholder}
             value={form[field.name] as string}
-            onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            // onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            error={errors[field.name]}
+            onChange={(e) => {
+  setForm({ ...form, [field.name]: e.target.value });
+  if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+}}
             disabled={field.disabled}
           />
         );
@@ -150,7 +195,12 @@ export default function Modal({
             key={field.name}
             label={field.label}
             value={form[field.name] as string}
-            type={form["content_type"] as any}
+            // type={form["content_type"] as any}
+            type={
+              (field.uploadType ||
+                form["content_type"]) as
+              "audio" | "video" | "document"
+            }
 
             // ✅ only URL
             onChange={(url) =>

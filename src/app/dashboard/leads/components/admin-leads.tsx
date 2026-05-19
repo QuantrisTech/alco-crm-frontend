@@ -56,13 +56,14 @@ export default function AdminLeads() {
   });
 
   const { data: enrollmentsData } = useQuery({
-    queryKey: ["enrollments-kanban"],
-    queryFn: () =>
-      getAllEnrollments({
-        page: 1,
-        limit: 1000, // saari enrollments
-      }).then((r) => r.data),
-  });
+  queryKey: ["enrollments-kanban", filters.search],
+  queryFn: () =>
+    getAllEnrollments({
+      page: 1,
+      limit: 1000,
+      search: filters.search || "",
+    }).then((r) => r.data),
+});
 
   const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
     queryKey: ["lead-activities", viewActivities?._id],
@@ -263,6 +264,7 @@ export default function AdminLeads() {
             enrollments={enrollmentsData?.data || []}
             programMap={programMap}
             actions={actions}
+            filters={filters}
           />
         )
       )}
@@ -378,146 +380,6 @@ export default function AdminLeads() {
         }}
         isLoading={isUpdating}
       />
-
-      {/* {viewContractLead && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <h3 className="font-semibold text-gray-800">Contract — {viewContractLead.fullName}</h3>
-              <button onClick={() => setViewContractLead(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
-            <ContractPDFGenerator
-              mode="preview"
-              contractData={{
-                fullName: viewContractLead.contractDetails?.fullName,
-                email: viewContractLead.email,
-                phone: viewContractLead.phone,
-                programName: viewContractLead.program_id?.name || viewContractLead.program_name,
-                fatherHusbandName: viewContractLead.contractDetails?.fatherHusbandName,
-                cnic: viewContractLead.contractDetails?.cnic,
-                bankAccountNumber: viewContractLead.contractDetails?.bankAccountNumber,
-                currentAddress: viewContractLead.contractDetails?.currentAddress,
-                emergencyContactName: viewContractLead.contractDetails?.emergencyContactName,
-                occupation: viewContractLead.contractDetails?.occupation,
-                participationAgreement: viewContractLead.contractDetails?.participationAgreement,
-                photoVideoRelease: viewContractLead.contractDetails?.photoVideoRelease,
-                signatureData: viewContractLead.contractDetails?.signatureData,
-                signedAt: viewContractLead.contractDetails?.signedAt,
-                paymentPlan: viewContractLead.paymentPlan,
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {viewingPaymentPlan && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800">Payment Plan</h3>
-              <button onClick={() => setViewingPaymentPlan(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Total Amount</span>
-                <span className="font-semibold text-gray-400">Rs {viewingPaymentPlan.paymentPlan?.totalAmount?.toLocaleString() || "—"}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Advance</span>
-                <span className="font-semibold text-gray-400">Rs {viewingPaymentPlan.paymentPlan?.advanceAmount?.toLocaleString() || "—"}</span>
-              </div>
-              {viewingPaymentPlan.paymentPlan?.advanceDueDate && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Advance Due</span>
-                  <span className="text-gray-500">{new Date(viewingPaymentPlan.paymentPlan.advanceDueDate).toLocaleDateString("en-PK")}</span>
-                </div>
-              )}
-            </div>
-
-           
-            {viewingPaymentPlan.paymentPlan?.installments?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold  text-gray-500 uppercase">Installments</p>
-                {viewingPaymentPlan.paymentPlan.installments.map((inst: any, i: number) => (
-                  <div key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg ${inst.status === "paid" ? "bg-green-50 border border-green-100" : "bg-gray-50 border border-gray-100"}`}>
-                    <div>
-                      <p className="text-xs font-medium text-gray-700">{inst.label}</p>
-                      {inst.dueDate && (
-                        <p className="text-[10px] text-gray-400">{new Date(inst.dueDate).toLocaleDateString("en-PK")}</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold  text-gray-700">Rs {inst.amount?.toLocaleString()}</p>
-                      <p className={`text-[10px] font-medium ${inst.status === "paid" ? "text-green-600" : "text-gray-400"}`}>
-                        {inst.status === "paid" ? "✓ Paid" : "Pending"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {viewingPaymentPlan.paymentPlan?.notes && (
-              <p className="text-xs text-gray-400 mt-3 italic">{viewingPaymentPlan.paymentPlan.notes}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {selectProgramLead && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-5 w-full max-w-sm">
-            <h3 className="text-sm font-semibold mb-4 text-gray-600">Select Program</h3>
-
-            <Select
-              label="Program"
-              value={selectProgramLead.program_id || ""}
-              onChange={(e) =>
-                setSelectProgramLead({
-                  ...selectProgramLead,
-                  program_id: e.target.value,
-                })
-              }
-              options={[
-                { label: "Select program", value: "", disabled: true },
-                ...(programs || []).map((p: any) => ({
-                  label: p.name,
-                  value: p._id,
-                })),
-              ]}
-            />
-
-            <div className="flex justify-end gap-2 mt-5">
-              <button
-                onClick={() => setSelectProgramLead(null)}
-                className="px-3 py-1.5 text-sm text-gray-500"
-              >
-                Cancel
-              </button>
-
-              <button
-                disabled={!selectProgramLead.program_id}
-                onClick={() => {
-                  updateLeadApi({
-                    id: selectProgramLead._id,
-                    data: {
-                      program_id: selectProgramLead.program_id,
-                      status: "contacted",
-                    },
-                  });
-                  setSelectProgramLead(null);
-                }}
-                className={`px-3 py-1.5 text-sm rounded-md text-white 
-            ${!selectProgramLead.program_id ? "bg-gray-300 cursor-not-allowed" : "bg-yellow-400 hover:bg-yellow-500"}
-          `}
-              >
-                Continue to Contacted
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
     </>
   );
 }

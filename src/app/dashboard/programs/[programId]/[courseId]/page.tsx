@@ -19,7 +19,7 @@ import { useAppSelector } from "@/store/hooks";
 
 const moduleFields: ModalField[] = [
   { name: "title", label: "Module Title", type: "input", inputType: "text", placeholder: "What is NLP?" },
-  { name: "description", label: "Description", type: "textarea", placeholder: "Module description..." },
+  { name: "description", label: "Description (optional)", type: "textarea", placeholder: "Module description..." },
 ];
 
 export default function ModulesPage() {

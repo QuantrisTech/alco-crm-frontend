@@ -41,6 +41,7 @@ export default function SalesRepLeads() {
       getAllEnrollments({
         page: 1,
         limit: 1000, // saari enrollments
+      search: filters.search || "",
       }).then((r) => r.data),
   });
 
@@ -131,6 +132,7 @@ export default function SalesRepLeads() {
           enrollments={enrollmentsData?.data || []} 
           programMap={programMap} 
           actions={actions} 
+            filters={filters}
           />
         )
       )}

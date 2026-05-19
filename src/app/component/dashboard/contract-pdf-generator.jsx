@@ -695,6 +695,8 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
 
   const isPreviewMode = mode === "preview" && contractData;
 
+  console.log()
+
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 640, margin: "0 auto", padding: 20 }}>
 

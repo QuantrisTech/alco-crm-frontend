@@ -30,7 +30,15 @@ const lessonFields: ModalField[] = [
       { label: "Live Session", value: "live_session" },
     ]
   },
-  { name: "content_url", label: "Content URL", type: "uploadInput", inputType: "text", placeholder: "https://..." },
+  // { name: "content_url", label: "Content URL", type: "uploadInput", inputType: "text", placeholder: "https://..." },
+  {
+    name: "content_url",
+    label: "Content URL",
+    type: "uploadInput",
+    uploadType: "audio",
+    inputType: "text",
+    placeholder: "https://..."
+  },
   { name: "duration_minutes", label: "Duration (mins)", type: "input", inputType: "text", placeholder: "45" },
   {
     name: "status", label: "Status", type: "select",
@@ -57,9 +65,10 @@ export default function LessonsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any>(null);
   const [deletingLesson, setDeletingLesson] = useState<any>(null);
-    const { user: authUser } = useAppSelector((state) => state.auth);
-    const role = authUser?.role;
-    const isAdmin = role === "super_admin" || role === "admin";
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  const [modalKey, setModalKey] = useState(0);
+  const role = authUser?.role;
+  const isAdmin = role === "super_admin" || role === "admin";
 
   const { data: programData } = useQuery({
     queryKey: ["program", programId],
@@ -86,6 +95,8 @@ export default function LessonsPage() {
     onSuccess: () => {
       toast.success("Lesson created! ✅");
       setIsAddOpen(false);
+      // Modal ko remount karwao — key change karke
+      setModalKey(prev => prev + 1);
       queryClient.invalidateQueries({ queryKey: ["admin-lessons", moduleId] });
     },
     onError: () => toast.error("Failed!"),
@@ -167,21 +178,21 @@ export default function LessonsPage() {
                 </div>
               </div>
               {isAdmin && (
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => setEditingLesson(lesson)} className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => setDeletingLesson(lesson)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
-                  <Trash2 size={14} />
-                </button>
-              </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => setEditingLesson(lesson)} className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => setDeletingLesson(lesson)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               )}
             </div>
           ))}
         </div>
       )}
 
-      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Lesson" fields={lessonFields} onSubmit={(data) => addLesson(data)} isLoading={isAdding} mode="add" />
+      <Modal key={modalKey}  isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Lesson" fields={lessonFields} onSubmit={(data) => addLesson(data)} isLoading={isAdding} mode="add" />
 
       {editingLesson && (
         <Modal isOpen={!!editingLesson} onClose={() => setEditingLesson(null)} title="Edit Lesson" fields={lessonFields}

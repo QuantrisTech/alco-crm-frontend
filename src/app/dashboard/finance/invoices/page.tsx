@@ -6,16 +6,21 @@ import {
   getMyInvoices,
   createInvoice,
   updateInvoice,
+  sendReceivingInvoiceEmail,
+  sendInvoiceEmail,
+  getSalesRoleInvoices
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import Modal from "@/app/component/ui/model/modal";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
-import { FileText, CheckCircle, Pencil, ListOrdered } from "lucide-react";
+import { FileText, CheckCircle, Pencil, ListOrdered, Eye, Send, View } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import InstallmentPaymentModal from "../component/installment-payment-modal";
 import EditInstallmentsModal from "../component/edit-installments-modal";
+import { InvoiceViewModal } from "../component/invoice-receiving-list";
+import SendReceiptModal from "../component/send-receipt-modal";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -60,6 +65,8 @@ export default function InvoicesPage() {
 
   const isStudent = authUser?.role === "user";
   const isAdmin = ["admin", "super_admin", "finance_manager"].includes(authUser?.role || "");
+  const isSalesManager = authUser?.role === "sales_manager";
+  const isSalesRep = authUser?.role === "sales_rep";
 
   const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10" });
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -94,12 +101,40 @@ export default function InvoicesPage() {
       },
     ];
 
+  // const { data, isLoading, isError } = useQuery({
+  //   queryKey: isStudent ? ["my-invoices"] : ["invoices", filters],
+  //   queryFn: isStudent
+  //     ? () => getMyInvoices().then((r) => r.data)
+  //     : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
+  // });
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: isStudent ? ["my-invoices"] : ["invoices", filters],
+    queryKey: isStudent
+      ? ["my-invoices"]
+      : isSalesManager
+        ? ["sales-manager-invoices", filters]
+        : ["invoices", filters],
     queryFn: isStudent
       ? () => getMyInvoices().then((r) => r.data)
-      : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
+      : isSalesManager
+        ? () => getSalesRoleInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data)
+        : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
   });
+
+  const [viewInvoice, setViewInvoice] = useState<any>(null);
+  const [isSendingInvoice, setIsSendingInvoice] = useState(false);
+
+  const handleSendInvoice = async (invoiceId: string) => {
+    setIsSendingInvoice(true);
+    try {
+      await sendInvoiceEmail(invoiceId);
+      toast.success("Invoice email bhej diya gaya ✅");
+    } catch {
+      toast.error("Email send nahi hui ❌");
+    } finally {
+      setIsSendingInvoice(false);
+    }
+  };
 
   const { mutate: addInvoice, isPending: isAdding } = useMutation({
     mutationFn: createInvoice,
@@ -206,18 +241,46 @@ export default function InvoicesPage() {
             }]
             : []),
         ]}
+        // invoices/page.tsx — actions array (complete)
+        // actions={
+        //   isAdmin
+        //     ? [
+        //       {
+        //         icon: <ListOrdered size={14} />,
+        //         label: "Edit Installments",
+        //         onClick: (inv: any) => setEditInstallmentInvoice(inv),
+        //         className: "hover:bg-indigo-50 hover:text-indigo-600",
+        //       },
+        //       {
+        //         icon: <CheckCircle size={14} />,
+        //         label: "Pay Installments",
+        //         onClick: (inv: any) => setInstallmentInvoice(inv),
+        //         className: "hover:bg-green-50 hover:text-green-600",
+        //         hidden: (inv: any) => inv.status === "PAID",
+        //       },
+        //       {
+        //         icon: <Eye size={14} />,
+        //         label: "View Invoice",
+        //         onClick: (inv: any) => setViewInvoice(inv),
+        //         className: "hover:bg-blue-50 hover:text-blue-600",
+        //         disabled: () => isSendingInvoice,
+        //       },
+        //       {
+        //         icon: <Send size={14} />,
+        //         label: "Send Invoice",
+        //         onClick: (inv: any) => handleSendInvoice(inv._id),
+        //         className: "hover:bg-yellow-50 hover:text-yellow-600",
+        //       },
+        //     ]
+        //     : []
+        // }
+
         actions={
-          isAdmin 
+          isAdmin
             ? [
-              // {
-              //   icon: <Pencil size={14} />,
-              //   label: "Edit Invoice",
-              //   onClick: (inv: any) => setEditingInvoice(inv),
-              //   className: "hover:bg-yellow-50 hover:text-yellow-600",
-              // },
               {
                 icon: <ListOrdered size={14} />,
-                label: "Edit Installments",        // ← NEW action
+                label: "Edit Installments",
                 onClick: (inv: any) => setEditInstallmentInvoice(inv),
                 className: "hover:bg-indigo-50 hover:text-indigo-600",
               },
@@ -228,8 +291,30 @@ export default function InvoicesPage() {
                 className: "hover:bg-green-50 hover:text-green-600",
                 hidden: (inv: any) => inv.status === "PAID",
               },
+              {
+                icon: <Eye size={14} />,
+                label: "View Invoice",
+                onClick: (inv: any) => setViewInvoice(inv),
+                className: "hover:bg-blue-50 hover:text-blue-600",
+                disabled: () => isSendingInvoice,
+              },
+              {
+                icon: <Send size={14} />,
+                label: "Send Invoice",
+                onClick: (inv: any) => handleSendInvoice(inv._id),
+                className: "hover:bg-yellow-50 hover:text-yellow-600",
+              },
             ]
-            : []
+            : isSalesManager
+              ? [
+                {
+                  icon: <Eye size={14} />,
+                  label: "View Invoice",
+                  onClick: (inv: any) => setViewInvoice(inv),
+                  className: "hover:bg-blue-50 hover:text-blue-600",
+                },
+              ]
+              : []
         }
       />
 
@@ -260,6 +345,8 @@ export default function InvoicesPage() {
               mode="edit"
             />
           )}
+
+          <InvoiceViewModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} />
 
           {/* Pay installments modal */}
           <InstallmentPaymentModal

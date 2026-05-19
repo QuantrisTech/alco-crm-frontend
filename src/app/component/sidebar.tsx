@@ -64,7 +64,7 @@ const menuSections: MenuSection[] = [
         label: "Programs",
         href: "/dashboard/programs",
         icon: GraduationCap,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"],
       },
       {
         label: "Courses",
@@ -96,12 +96,12 @@ const menuSections: MenuSection[] = [
         icon: FileText,
         roles: ["user"],
       },
-      {
-        label: "Settings",
-        href: "/dashboard/settings",
-        icon: Settings,
-        roles: ["super_admin", "admin", "user", "sales_manager", "sales_rep", "finance_manager"],
-      },
+      // {
+      //   label: "Settings",
+      //   href: "/dashboard/settings",
+      //   icon: Settings,
+      //   roles: ["super_admin", "admin", "user", "sales_manager", "sales_rep", "finance_manager"],
+      // },
     ],
   },
   {
@@ -124,7 +124,7 @@ const menuSections: MenuSection[] = [
         label: "Access Control",
         href: "/dashboard/access",
         icon: ShieldCheck,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "finance_manager"],
       },
     ],
   },

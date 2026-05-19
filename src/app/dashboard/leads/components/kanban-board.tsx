@@ -10,6 +10,7 @@ export default function KanbanBoard({
   programMap,
   actions,
   onViewEnrollment,   // optional: parent apna custom modal open kar sakta hai
+  filters,
 }: any) {
   const scrollRef               = useRef<HTMLDivElement>(null);
   const [isDown, setIsDown]     = useState(false);
@@ -33,7 +34,15 @@ export default function KanbanBoard({
   });
 
   // ── Enrollments alag array hai — leads se independent ──
-  const enrollmentList: any[] = enrollments || [];
+  // const enrollmentList: any[] = enrollments || [];
+  const enrollmentList: any[] = (enrollments || []).filter((e: any) => {
+  if (!filters?.search) return true;
+  const q = filters.search.toLowerCase();
+  const name = (e.leadSnapshot?.contractDetails?.fullName || "").toLowerCase();
+  const email = (e.leadSnapshot?.contractDetails?.email || "").toLowerCase();
+  const phone = (e.leadSnapshot?.contractDetails?.phone || "").toLowerCase();
+  return name.includes(q) || email.includes(q) || phone.includes(q);
+});
 
   // ── Column value & count ──
   const colValue = (key: string) => {

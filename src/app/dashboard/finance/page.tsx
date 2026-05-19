@@ -1,9 +1,11 @@
 "use client";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getRevenueReport, getMonthlyCollections, getPendingReport, getOverdueInvoices, getUpcomingDues } from "@/utils/api";
-import { Wallet, TrendingUp, AlertCircle, Clock, CheckCircle, FileText } from "lucide-react";
-import PageHeader from "@/app/component/dashboard/page-header";
 import Link from "next/link";
+import { getRevenueReport, getMonthlyCollections, getPendingReport, getOverdueInvoices, getUpcomingDues, sendReceivingInvoiceEmail, getAllInvoices } from "@/utils/api";
+import { Wallet, TrendingUp, AlertCircle, Clock, CheckCircle, FileText, Send } from "lucide-react";
+import InvoiceReceivingList from "./component/invoice-receiving-list";
+import PageHeader from "@/app/component/dashboard/page-header";
 
 // ── Stat Card ──────────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, color, href }: any) {
@@ -50,6 +52,7 @@ function MonthlyBar({ data }: { data: any[] }) {
 }
 
 export default function FinanceOverview() {
+
   const { data: revenue } = useQuery({
     queryKey: ["finance-revenue"],
     queryFn: () => getRevenueReport().then((r) => r.data.data),
@@ -149,6 +152,16 @@ export default function FinanceOverview() {
           </div>
         )}
       </div>
+
+      <div className="mt-6">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <Send size={16} className="text-yellow-500" />
+          Receiving Invoices
+        </h3>
+        <InvoiceReceivingList />
+      </div>
+
+
     </>
   );
 }

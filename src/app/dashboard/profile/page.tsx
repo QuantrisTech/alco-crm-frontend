@@ -14,6 +14,7 @@ import { changePassword, deleteMyAccount, getProfile, updateProfile } from "@/ut
 import API from "@/utils/api";
 import Popup from "@/app/component/ui/popup/popup";
 import PageHeader from "@/app/component/dashboard/page-header";
+import DocumentsSection from "./component/documents-section";
 
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
@@ -276,6 +277,14 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        <DocumentsSection
+          userId={data?._id}
+          documents={data?.documents || []}
+          showDropdown={true}
+          queryKey={["profile"]}
+          title="My Documents"
+        />
 
         {/* Danger Zone */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">

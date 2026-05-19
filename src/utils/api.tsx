@@ -96,6 +96,12 @@ export const getProfile = () => API.get("/api/users/profile");
 export const updateProfile = (data: { name: string }) => API.patch("/api/users/profile", data);
 export const changePassword = (data: { oldPassword: string; newPassword: string }) => API.patch("/api/users/change-password", data);
 export const deleteMyAccount = () => API.delete("/api/users/delete-account");
+// ── User Documents ────────────────────────────────────────────
+export const uploadUserDocument = (userId: string, data: { type: string; label?: string; url: string; fileType: "image" | "pdf" }) =>
+  API.post(`/api/users/${userId}/documents`, data);
+
+export const deleteUserDocument = (userId: string, docId: string) =>
+  API.delete(`/api/users/${userId}/documents/${docId}`);
 
 // Lead APIs
 export const getAllLeads = (params?: any) => API.get("/api/v1/leads", { params });
@@ -185,6 +191,15 @@ export const getMyInvoices = () => API.get("/api/v1/finance/invoices/my");
 export const getPendingInvoices = () => API.get("/api/v1/finance/invoices/pending");
 export const getOverdueInvoices = () => API.get("/api/v1/finance/invoices/overdue");
 export const getUpcomingDues = (days?: number) => API.get("/api/v1/finance/invoices/upcoming-dues", { params: { days: days || 30 } });
+
+// ─── Finance — INVOICE RECIEVING ──────────────────────────────────────
+export const sendInvoiceEmail = (id: string) =>
+  API.post(`/api/v1/finance/invoices/${id}/send-invoice`);
+
+export const sendReceivingInvoiceEmail = (id: string, body: any) =>
+  API.post(`/api/v1/finance/invoices/${id}/send-receiving-invoice`, body);
+export const getSalesRoleInvoices = (params?: any) =>
+  axios.get("/finance/invoices/sales", { params });
 
 // ─── Finance — Payments ──────────────────────────────────────
 export const getAllPayments = (params?: any) => API.get("/api/v1/finance/payments", { params });

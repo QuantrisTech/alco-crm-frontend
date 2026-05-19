@@ -1,5 +1,8 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
+import InputField from "@/app/component/ui/inputField";
+import Select from "@/app/component/ui/select";
+import { RiResetLeftLine } from "react-icons/ri";
 
 export type FilterField = {
   type: "input" | "select";
@@ -39,10 +42,7 @@ export default function PageHeader({
           {titleIcon && <span className="flex items-center">{titleIcon}</span>}
           {title}
         </h1>
-
-        {subtitle && (
-          <p className="text-gray-400 text-sm mt-1">{subtitle}</p>
-        )}
+        {subtitle && <p className="text-gray-400 text-sm mt-1">{subtitle}</p>}
       </div>
 
       {/* Right Side */}
@@ -70,53 +70,47 @@ export default function PageHeader({
         )}
 
         {totalCount && (
-          <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
-            Total:{" "}
-            <span className="font-bold text-gray-900">{totalCount}</span>
-          </div>
-        )}
+        <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
+          Total: <span className="font-bold text-gray-900">{totalCount}</span>
+        </div>
+         )} 
 
         {filterFields && (
-          <div className="flex flex-wrap gap-3 ">
+          <div className="flex flex-wrap gap-3 items-end">
             {filterFields.map((field) => {
               if (field.type === "input") {
                 return (
-                  <input
-                    key={field.name}
-                    type="text"
-                    placeholder={field.placeholder}
-                    value={filters?.[field.name] || ""}
-                    onChange={(e) =>
-                      setFilters?.((prev: any) => ({
-                        ...prev,
-                        [field.name]: e.target.value,
-                      }))
-                    }
-                    className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600 w-56"
-                  />
+                  <div key={field.name} className="w-52">
+                    <InputField
+                      label=""
+                      placeholder={field.placeholder}
+                      value={filters?.[field.name] || ""}
+                      onChange={(e) =>
+                        setFilters?.((prev: any) => ({
+                          ...prev,
+                          [field.name]: e.target.value,
+                        }))
+                      }
+                      bg="bg-white"
+                    />
+                  </div>
                 );
               }
 
               if (field.type === "select") {
                 return (
-                  <select
-                    key={field.name}
-                    value={filters?.[field.name] || ""}
-                    onChange={(e) =>
-                      setFilters?.((prev: any) => ({
-                        ...prev,
-                        [field.name]: e.target.value,
-                      }))
-                    }
-                    className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600"
-                  >
-                    <option value="">All {field.name}</option>
-                    {field.options?.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div key={field.name} className="w-40">
+                    <Select
+                      label=""
+                      options={field.options || []}
+                      value={filters?.[field.name] || ""}
+                      placeholder={field.placeholder || `All ${field.name}`}
+                      onChange={(e) =>
+                        setFilters?.((prev: any) => ({ ...prev, [field.name]: e.target.value }))
+                      }
+                      bg="bg-white"
+                    />
+                  </div>
                 );
               }
 
@@ -127,7 +121,7 @@ export default function PageHeader({
             {Object.values(filters || {}).some((v) => v) && (
               <button
                 onClick={() => setFilters?.({})}
-                className="text-sm text-gray-400 hover:text-red-500 transition"
+                className="bg-red-50 rounded-lg px-4 py-2 border border-red-100 shadow-sm text-sm text-red-600"
               >
                 Reset
               </button>
