@@ -18,10 +18,17 @@ import Breadcrumb from "@/app/component/ui/breadcrumb";
 import { useAppSelector } from "@/store/hooks";
 
 const lessonFields: ModalField[] = [
-  { name: "title", label: "Lesson Title", type: "input", inputType: "text", placeholder: "NLP Basics" },
-  { name: "description", label: "Description", type: "textarea", placeholder: "Lesson description..." },
+  { name: "title", label: "Lesson Title*", type: "input", inputType: "text", placeholder: "NLP Basics", required: true },
+  { name: "description", label: "Description*", type: "textarea", placeholder: "Lesson description...", required: true },
   {
-    name: "content_type", label: "Content Type", type: "select",
+    name: "status", label: "Status*", type: "select", required: true,
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Draft", value: "draft" },
+    ]
+  },
+  {
+    name: "content_type", label: "Content Type*", type: "select", required: true,
     options: [
       { label: "Video", value: "video" },
       { label: "Audio", value: "audio" },
@@ -33,20 +40,15 @@ const lessonFields: ModalField[] = [
   // { name: "content_url", label: "Content URL", type: "uploadInput", inputType: "text", placeholder: "https://..." },
   {
     name: "content_url",
-    label: "Content URL",
+    label: "Content URL*",
     type: "uploadInput",
     uploadType: "audio",
     inputType: "text",
-    placeholder: "https://..."
+    placeholder: "https://...",
+    required: true
   },
   { name: "duration_minutes", label: "Duration (mins)", type: "input", inputType: "text", placeholder: "45" },
-  {
-    name: "status", label: "Status", type: "select",
-    options: [
-      { label: "Active", value: "active" },
-      { label: "Draft", value: "draft" },
-    ]
-  },
+  
 ];
 
 const contentIcon = (type: string) => {

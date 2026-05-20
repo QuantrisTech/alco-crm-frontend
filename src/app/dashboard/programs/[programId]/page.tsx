@@ -17,10 +17,10 @@ import Breadcrumb from "@/app/component/ui/breadcrumb";
 import { useAppSelector } from "@/store/hooks";
 
 const courseFields: ModalField[] = [
-  { name: "title", label: "Course Title", type: "input", inputType: "text", placeholder: "Introduction to NLP" },
-  { name: "description", label: "Description", type: "textarea", placeholder: "Course description..." },
+  { name: "title", label: "Course Title*", type: "input", inputType: "text", placeholder: "Introduction to NLP" , required: true},
+  { name: "description", label: "Description*", type: "textarea", placeholder: "Course description..." , required: true},
   {
-    name: "status", label: "Status", type: "select",
+    name: "status", label: "Status*", type: "select", required: true,
     options: [
       { label: "Active", value: "active" },
       { label: "Draft", value: "draft" },

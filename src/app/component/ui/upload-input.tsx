@@ -93,7 +93,7 @@ export default function UploadInput({
       url: data.secure_url,
       duration: data.duration,
     });
-    toast.success("Upload ho gaya!");
+    toast.success("Upload successfull!");
 
   } catch (err: any) {
     toast.error(err.message || "Upload fail");

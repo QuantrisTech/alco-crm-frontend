@@ -18,7 +18,7 @@ import Breadcrumb from "@/app/component/ui/breadcrumb";
 import { useAppSelector } from "@/store/hooks";
 
 const moduleFields: ModalField[] = [
-  { name: "title", label: "Module Title", type: "input", inputType: "text", placeholder: "What is NLP?" },
+  { name: "title", label: "Module Title*", type: "input", inputType: "text", placeholder: "What is NLP?", required: true },
   { name: "description", label: "Description (optional)", type: "textarea", placeholder: "Module description..." },
 ];
 
