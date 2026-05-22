@@ -1,8 +1,9 @@
 import React from "react";
-import { Plus, Trash2 } from "lucide-react";
+// component
 import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
-import { RiResetLeftLine } from "react-icons/ri";
+// icon
+import { Plus, Trash2 } from "lucide-react";
 
 export type FilterField = {
   type: "input" | "select";
@@ -121,7 +122,7 @@ export default function PageHeader({
             {Object.values(filters || {}).some((v) => v) && (
               <button
                 onClick={() => setFilters?.({})}
-                className="bg-red-50 rounded-lg px-4 py-2 border border-red-100 shadow-sm text-sm text-red-600"
+                className="bg-red-50 rounded-lg px-4 py-2 my-auto text-sm text-red-600"
               >
                 Reset
               </button>

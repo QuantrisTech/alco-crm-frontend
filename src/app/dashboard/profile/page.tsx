@@ -96,15 +96,67 @@ export default function ProfilePage() {
   });
 
   const handlePasswordSubmit = () => {
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) { toast.error("Passwords do not match!"); return; }
-    if (passwordForm.newPassword.length < 6) { toast.error("Password must be at least 6 characters!"); return; }
+    if (!passwordForm.oldPassword.trim()) {
+      toast.error("Current password is required!");
+      return;
+    }
+
+    if (!passwordForm.newPassword.trim()) {
+      toast.error("New password is required!");
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters!");
+      return;
+    }
+
+    if (!passwordForm.confirmPassword.trim()) {
+      toast.error("Please confirm your new password!");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+
     setShowPasswordConfirm(true);
   };
 
   const handleSetupSubmit = () => {
-    if (!setupForm.email) { toast.error("Email daalo!"); return; }
-    if (setupForm.password.length < 6) { toast.error("Password kam az kam 6 characters!"); return; }
-    if (setupForm.password !== setupForm.confirmPassword) { toast.error("Passwords match nahi kar rahe!"); return; }
+    if (!setupForm.email.trim()) {
+      toast.error("Email is required!");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(setupForm.email)) {
+      toast.error("Please enter a valid email address!");
+      return;
+    }
+
+    if (!setupForm.password.trim()) {
+      toast.error("Password is required!");
+      return;
+    }
+
+    if (setupForm.password.length < 6) {
+      toast.error("Password must be at least 6 characters!");
+      return;
+    }
+
+    if (!setupForm.confirmPassword.trim()) {
+      toast.error("Please confirm your password!");
+      return;
+    }
+
+    if (setupForm.password !== setupForm.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+
     completeSetup();
   };
 
@@ -136,10 +188,10 @@ export default function ProfilePage() {
                 <ShieldCheck size={18} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-amber-800">Apna account secure karo</h3>
+                <h3 className="text-sm font-semibold text-amber-800">ecure Your Account</h3>
                 <p className="text-xs text-amber-600 mt-0.5">
-                  Email aur password set karo taake apna LMS account properly access kar sako.
-                  Baad mein bhi kar sakte ho — abhi sirf phone/username se kaam chalega.
+                  Set your email and password to securely access your LMS account.
+                  You can also do this later.
                 </p>
               </div>
             </div>
@@ -200,7 +252,7 @@ export default function ProfilePage() {
                   variant="secondary"
                   onClick={() => router.push("/dashboard")}
                 >
-                  Baad mein karunga
+                  Later
                 </Button>
               </div>
             </div>
