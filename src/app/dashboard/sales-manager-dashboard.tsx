@@ -113,15 +113,15 @@ export default function SalesManagerDashboard() {
 
   // ── Stats cards ──
   const stats = [
-    {
-      title: "Total Users",
-      value: usersData?.count?.toString() || "0",
-      change: "All roles",
-      icon: Users,
-      bg: "bg-gray-800",
-      text: "text-white",
-      onClick: () => router.push("/dashboard/users"),
-    },
+    // {
+    //   title: "Total Users",
+    //   value: usersData?.count?.toString() || "0",
+    //   change: "All roles",
+    //   icon: Users,
+    //   bg: "bg-gray-800",
+    //   text: "text-white",
+    //   onClick: () => router.push("/dashboard/users"),
+    // },
     {
       title: "Total Leads",
       value: statsData?.total?.toString() || "0",
