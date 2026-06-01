@@ -61,6 +61,13 @@ const contentIcon = (type: string) => {
   }
 };
 
+const formatDuration = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
 export default function LessonsPage() {
   const { programId, courseId, moduleId } = useParams();
   const queryClient = useQueryClient();
@@ -167,7 +174,7 @@ export default function LessonsPage() {
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-gray-500 capitalize">{lesson.content_type?.replace("_", " ")}</span>
                   {lesson.duration_minutes && (
-                    <span className="text-xs text-gray-500">{lesson.duration_minutes} mins</span>
+                    <span className="text-xs text-gray-500">{formatDuration(lesson.duration_minutes)}</span>
                   )}
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lesson.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}`}>
                     {lesson.status}
