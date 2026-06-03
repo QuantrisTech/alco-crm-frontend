@@ -240,7 +240,16 @@ export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollment
 
 
 // ─── Access Control ───────────────────────────────────────────
-export const grantAccess = (data: { enrollmentId: string; days: number }) => API.post("/api/v1/access/grant", data);
+// export const grantAccess = (data: { enrollmentId: string; days: number }) => API.post("/api/v1/access/grant", data);
+export const grantAccess = (data: { enrollmentId: string; days: number; reason?: string; installmentIds?: string[] }) =>
+  API.post("/api/v1/access/grant", data);
+
+export const grantFinanceAccess = (data: { enrollmentId: string; days: number; reason?: string; installmentIds?: string[] }) =>
+  API.post("/api/v1/access/finance-grant", data);
+
+export const getGracePoolStatus = (enrollmentId: string) =>
+  API.get(`/api/v1/access/pool-status/${enrollmentId}`);
+
 export const checkAccess = (enrollmentId: string) => API.get(`/api/v1/access/check/${enrollmentId}`);
 
 // ─── Audit Logs ───────────────────────────────────────────────
@@ -320,8 +329,21 @@ export const adminCreateLmsResource = (data: any) => API.post("/admin/v1/lms/res
 export const adminUpdateLmsResource = (id: string, data: any) => API.put(`/admin/v1/lms/resources/${id}`, data);
 export const adminDeleteLmsResource = (id: string) => API.delete(`/admin/v1/lms/resources/${id}`);
 
+export const adminGetResources    = (params?: any) => 
+  API.get("/api/v1/lms/resources", { params });
 
-export default API;
+export const adminCreateResource  = (formData: FormData) =>
+  API.post("/api/v1/lms/resources", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const adminUpdateResource  = (id: string, formData: FormData) =>
+  API.put(`/api/v1/lms/resources/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const adminDeleteResource  = (id: string) =>
+  API.delete(`/api/v1/lms/resources/${id}`);
 
 // ─── Website SEO Pages ────────────────────────────────────────
 
@@ -375,3 +397,5 @@ export const adminUpsertSeoPage = (slug: string, data: {
 // DELETE — Remove an SEO page by slug
 export const adminDeleteSeoPage = (slug: string) =>
   API.delete(`/api/v1/seo/pages/${slug}`);
+
+export default API;

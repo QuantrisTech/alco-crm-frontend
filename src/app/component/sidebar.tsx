@@ -122,8 +122,8 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
-  
- {
+
+  {
     roles: ["super_admin", "admin"],
     mode: "website",
     items: [
@@ -135,6 +135,12 @@ const menuSections: MenuSection[] = [
           { label: "All Blogs", href: "/dashboard/blogs" },
           { label: "Create Blog", href: "/dashboard/blogs/create" },
         ],
+      },
+      {
+        label: "Resources",
+        href: "/dashboard/resources",
+        icon: GraduationCap,
+        roles: ["super_admin", "admin"],
       },
       {
         label: "SEO Pages",
@@ -178,7 +184,7 @@ const menuSections: MenuSection[] = [
     ],
   },
 ];
-    
+
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -247,11 +253,10 @@ export default function Sidebar() {
               <button
                 key={m}
                 onClick={() => handleModeSwitch(m)}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
-                  sidebarMode === m
+                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${sidebarMode === m
                     ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
                     : "border-transparent text-gray-400 hover:bg-gray-800 hover:text-white"
-                }`}
+                  }`}
               >
                 {m === "crm"
                   ? <Monitor size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />
@@ -301,11 +306,10 @@ export default function Sidebar() {
                       <div key={item.label}>
                         <button
                           onClick={() => toggleMenu(item.label)}
-                          className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${
-                            isChildActive
+                          className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${isChildActive
                               ? "text-yellow-400"
                               : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon size={18} />
@@ -329,11 +333,10 @@ export default function Sidebar() {
                                   <div key={child.header}>
                                     <button
                                       onClick={() => toggleGroup(groupKey)}
-                                      className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
-                                        isGroupActive
+                                      className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${isGroupActive
                                           ? "text-yellow-400"
                                           : "text-gray-500 hover:text-gray-300"
-                                      }`}
+                                        }`}
                                     >
                                       <span>{child.header}</span>
                                       {isGroupOpen
@@ -349,11 +352,10 @@ export default function Sidebar() {
                                             <Link
                                               key={sc.href}
                                               href={sc.href}
-                                              className={`block px-3 py-1.5 rounded-md text-sm transition-all ${
-                                                isActive
+                                              className={`block px-3 py-1.5 rounded-md text-sm transition-all ${isActive
                                                   ? "bg-yellow-400 text-gray-900 font-semibold"
                                                   : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                              }`}
+                                                }`}
                                             >
                                               {sc.label}
                                             </Link>
@@ -371,11 +373,10 @@ export default function Sidebar() {
                                 <Link
                                   key={child.href}
                                   href={child.href}
-                                  className={`block px-3 py-2 rounded-md text-sm transition-all ${
-                                    isActive
+                                  className={`block px-3 py-2 rounded-md text-sm transition-all ${isActive
                                       ? "bg-yellow-400 text-gray-900 font-semibold"
                                       : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                  }`}
+                                    }`}
                                 >
                                   {child.label}
                                 </Link>
@@ -395,11 +396,10 @@ export default function Sidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                        isActive
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
                           ? "bg-yellow-400 text-gray-900 font-semibold"
                           : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Icon size={18} />
                       <span className="text-sm">{item.label}</span>

@@ -452,6 +452,8 @@ export default function SuperAdminDashboard() {
     queryFn: () => adminGetAllUsers().then(r => r.data),
   });
 
+  console.log("Users Data:", usersData);
+
   const { data: statsData } = useQuery({
     queryKey: ["dashboard-lead-stats"],
     queryFn: () => getLeadsStats().then(r => r.data.data),
@@ -516,7 +518,7 @@ export default function SuperAdminDashboard() {
   const stats = [
     {
       title: "Total Users",
-      value: usersData?.count?.toString() || "0",
+      value: usersData?.users?.length?.toString() || "0",
       change: "All roles",
       icon: Users,
       bg: "bg-gray-800",

@@ -36,10 +36,6 @@ export default function Navbar() {
       {/* Right Side */}
       <div className="flex items-center gap-4">
         {/* Notification Bell */}
-        {/* <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
-          <Bell size={20} className="text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full"></span>
-        </button> */}
         <NotificationBell />
 
         {/* User Avatar — Profile Link */}
