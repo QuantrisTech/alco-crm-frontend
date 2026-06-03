@@ -145,7 +145,7 @@ function EnrollmentsContent() {
     {
       name: "user",
       label: "Student",
-      type: "select",
+      type: "searchable-select",
       options: users.map((u: any) => ({
         label: `${u.name} (${u.email || u.phone || "—"})`,
         value: u._id,

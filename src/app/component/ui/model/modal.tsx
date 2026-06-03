@@ -8,6 +8,7 @@ import Button from "@/app/component/ui/button";
 import { useState } from "react";
 import { ModalField, ModalProps } from "@/types/ui";
 import UploadInput from "../upload-input";
+import SearchableSelect from "../searchable-select";
 
 export default function Modal({
   isOpen,
@@ -50,7 +51,7 @@ export default function Modal({
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   // ✅ Active tab state
   const [activeTab, setActiveTab] = useState(tabs?.[0]?.key || "");
-const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const togglePassword = (name: string) => {
     setShowPasswords((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -85,32 +86,32 @@ const [errors, setErrors] = useState<Record<string, string>>({});
   // };
 
   const handleSubmit = () => {
-  // Validate required fields
-  const activeFieldList = tabs ? (currentTab?.fields || []) : fields;
-  const newErrors: Record<string, string> = {};
+    // Validate required fields
+    const activeFieldList = tabs ? (currentTab?.fields || []) : fields;
+    const newErrors: Record<string, string> = {};
 
-  activeFieldList.forEach((field) => {
-    if (field.required) {
-      const val = form[field.name];
-      if (!val || (typeof val === "string" && val.trim() === "")) {
-        newErrors[field.name] = `${field.label.replace("*", "").trim()} is required`;
+    activeFieldList.forEach((field) => {
+      if (field.required) {
+        const val = form[field.name];
+        if (!val || (typeof val === "string" && val.trim() === "")) {
+          newErrors[field.name] = `${field.label.replace("*", "").trim()} is required`;
+        }
       }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return; // stop submission
     }
-  });
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return; // stop submission
-  }
+    setErrors({});
 
-  setErrors({});
-
-  if (tabs && currentTab?.onSubmit) {
-    currentTab.onSubmit(form);
-  } else {
-    onSubmit(form);
-  }
-};
+    if (tabs && currentTab?.onSubmit) {
+      currentTab.onSubmit(form);
+    } else {
+      onSubmit(form);
+    }
+  };
 
 
   const renderField = (field: ModalField) => {
@@ -126,11 +127,11 @@ const [errors, setErrors] = useState<Record<string, string>>({});
             placeholder={field.placeholder}
             value={form[field.name] as string}
             // onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
-error={errors[field.name]}
+            error={errors[field.name]}
             onChange={(e) => {
-  setForm({ ...form, [field.name]: e.target.value });
-  if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
-}}
+              setForm({ ...form, [field.name]: e.target.value });
+              if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+            }}
             disabled={field.disabled}
             autoComplete={isPasswordField ? "new-password" : "off"}
             rightIcon={
@@ -157,9 +158,25 @@ error={errors[field.name]}
             // onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
             error={errors[field.name]}
             onChange={(e) => {
-  setForm({ ...form, [field.name]: e.target.value });
-  if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
-}}
+              setForm({ ...form, [field.name]: e.target.value });
+              if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+            }}
+            disabled={field?.disabled}
+          />
+        );
+      case "searchable-select":
+        return (
+          <SearchableSelect
+            key={field.name}
+            label={field.label}
+            options={field.options || []}
+            value={form[field.name] as string}
+            defaultValue={field.defaultValue as string}
+            error={errors[field.name]}
+            onChange={(e) => {
+              setForm({ ...form, [field.name]: e.target.value });
+              if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+            }}
             disabled={field?.disabled}
           />
         );
@@ -173,9 +190,9 @@ error={errors[field.name]}
             // onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
             error={errors[field.name]}
             onChange={(e) => {
-  setForm({ ...form, [field.name]: e.target.value });
-  if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
-}}
+              setForm({ ...form, [field.name]: e.target.value });
+              if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+            }}
             disabled={field.disabled}
           />
         );
