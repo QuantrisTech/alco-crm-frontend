@@ -322,3 +322,56 @@ export const adminDeleteLmsResource = (id: string) => API.delete(`/admin/v1/lms/
 
 
 export default API;
+
+// ─── Website SEO Pages ────────────────────────────────────────
+
+// GET all SEO pages
+export const adminGetSeoPages = (params?: any) =>
+  API.get("/api/v1/seo/pages", { params });
+
+// GET a single SEO page by slug (e.g. "home", "programs", "about-us")
+export const adminGetSeoPageBySlug = (slug: string) =>
+  API.get(`/api/v1/seo/pages/${slug}`);
+
+// POST — Create a new SEO page
+export const adminCreateSeoPage = (data: {
+  slug: string;
+  title: string;
+  description: string;
+  keywords?: string[];
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  canonical_url?: string;
+  no_index?: boolean;
+}) => API.post("/api/v1/seo/pages", data);
+
+// PUT — Full update of an SEO page by slug
+export const adminUpdateSeoPage = (slug: string, data: {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  canonical_url?: string;
+  no_index?: boolean;
+}) => API.put(`/api/v1/seo/pages/${slug}`, data);
+
+// PATCH — Upsert (create if not exists, update if exists) by slug
+export const adminUpsertSeoPage = (slug: string, data: {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  canonical_url?: string;
+  no_index?: boolean;
+}, exists: boolean) => exists 
+  ? API.patch(`/api/v1/seo/pages/${slug}`, data)
+  : API.post(`/api/v1/seo/pages`, { slug, ...data });
+
+// DELETE — Remove an SEO page by slug
+export const adminDeleteSeoPage = (slug: string) =>
+  API.delete(`/api/v1/seo/pages/${slug}`);
