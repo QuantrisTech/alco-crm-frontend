@@ -148,8 +148,9 @@ function EnrollmentsContent() {
   const createFields: ModalField[] = [
     {
       name: "user",
-      label: "Student",
+      label: "Student*",
       type: "searchable-select",
+      required: true,
       options: users.map((u: any) => ({
         label: `${u.name} (${u.email || u.phone || "—"})`,
         value: u._id,
@@ -157,8 +158,9 @@ function EnrollmentsContent() {
     },
     {
       name: "program",
-      label: "Program",
+      label: "Program*",
       type: "select",
+      required: true,
       options: programs.map((p: any) => ({
         label: p.name,
         value: p._id,
@@ -166,7 +168,8 @@ function EnrollmentsContent() {
     },
     {
       name: "batch",
-      label: "Batch (optional)",
+      label: "Batch*",
+      required: true,
       type: "select",
       options: [
         { label: "— None —", value: "" },

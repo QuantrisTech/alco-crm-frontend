@@ -11,7 +11,7 @@ type Props = {
   onClose: () => void;
   onAssign: (userId: string) => void;
   isLoading: boolean;
-  currentUserRole: "admin" | "sales_manager" | "sales_rep";
+  currentUserRole: "super_admin" | "admin" | "sales_manager" | "sales_rep";
 };
 
 export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, currentUserRole }: Props) {
@@ -23,7 +23,10 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
     queryKey: ["users-for-assign"],
     queryFn: () =>
       (authUser.role === "admin" || authUser.role === "super_admin"
-        ? adminGetAllUsers()
+        ? adminGetAllUsers({
+          page: 1,
+          limit: 5000,
+        })
         : getAllUsersForRole()
       ).then((res) => res.data),
   });

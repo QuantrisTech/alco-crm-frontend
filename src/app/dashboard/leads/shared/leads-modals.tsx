@@ -52,7 +52,7 @@ interface LeadsModalsProps {
   onAssignClose?: () => void;
   onAssign?: (userId: string) => void;
   isAssigning?: boolean;
-  currentUserRole?: "admin" | "sales_manager" | "sales_rep";
+  currentUserRole?: "super_admin" | "admin" | "sales_manager" | "sales_rep";
 }
 
 export default function LeadsModals({
