@@ -26,6 +26,8 @@ import {
   GraduationCap,
   PauseCircle,
   PlayCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
@@ -320,6 +322,12 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed!"),
   });
 
+  const currentPage = Number(filters.page);
+  const limit = Number(filters.limit);
+
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: String(newPage) }));
+  };
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
@@ -339,94 +347,158 @@ function EnrollmentsContent() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        // columns={[
+        //   {
+        //     key: "user",
+        //     label: "Student",
+        //     render: (e) => (
+        //       <div className="flex items-center gap-2">
+        //         <div>
+        //           <p className="font-medium text-gray-800">
+        //             {e.user?.name || "—"}
+        //           </p>
+        //           <p className="text-xs text-gray-400">{e.user?.email}</p>
+        //         </div>
+        //       </div>
+        //     ),
+        //   },
+        //   {
+        //     key: "role",
+        //     label: "Role",
+        //     render: (e) => (
+        //       <span
+        //         className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColor(e.user?.role)}`}
+        //       >
+        //         {e.user?.role || "—"}
+        //       </span>
+        //     ),
+        //   },
+        //   {
+        //     key: "program",
+        //     label: "Program",
+        //     render: (e) => (
+        //       <span className="text-gray-700">{e.program?.name || "—"}</span>
+        //     ),
+        //   },
+        //   {
+        //     key: "batch",
+        //     label: "Batch",
+        //     render: (e) => (
+        //       <span className="text-gray-500 text-sm">
+        //         {e.batch?.name || "—"}
+        //       </span>
+        //     ),
+        //   },
+        //   {
+        //     key: "status",
+        //     label: "Status",
+        //     render: (e) => (
+        //       <span
+        //         className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(e.status)}`}
+        //       >
+        //         {e.status}
+        //       </span>
+        //     ),
+        //   },
+        //   {
+        //     key: "accessStatus",
+        //     label: "Access",
+        //     render: (e) => (
+        //       <span
+        //         className={`px-2.5 py-1 rounded-full text-xs font-medium ${accessColor(e.accessStatus)}`}
+        //       >
+        //         {e.accessStatus || "—"}
+        //       </span>
+        //     ),
+        //   },
+        //   {
+        //     key: "progress",
+        //     label: "Progress",
+        //     render: (e) => (
+        //       <div className="flex items-center gap-2">
+        //         <div className="w-16 bg-gray-100 rounded-full h-1.5">
+        //           <div
+        //             className="h-1.5 rounded-full bg-yellow-400"
+        //             style={{ width: `${e.progress || 0}%` }}
+        //           />
+        //         </div>
+        //         <span className="text-xs text-gray-500">
+        //           {e.progress || 0}%
+        //         </span>
+        //       </div>
+        //     ),
+        //   },
+        //   {
+        //     key: "enrolledAt",
+        //     label: "Enrolled",
+        //     render: (e) => (
+        //       <span className="text-gray-400 text-sm">
+        //         {e.enrolledAt
+        //           ? new Date(e.enrolledAt).toLocaleDateString()
+        //           : "—"}
+        //       </span>
+        //     ),
+        //   },
+        // ]}
         columns={[
           {
             key: "user",
             label: "Student",
-            render: (e) => (
-              <div className="flex items-center gap-2">
-                <div>
-                  <p className="font-medium text-gray-800">
-                    {e.user?.name || "—"}
-                  </p>
-                  <p className="text-xs text-gray-400">{e.user?.email}</p>
-                </div>
+            render: (row) => (   // row = { user, enrollments[] }
+              <div>
+                <p className="font-medium text-gray-800">{row.user?.name || "—"}</p>
+                <p className="text-xs text-gray-400">{row.user?.email}</p>
               </div>
             ),
           },
           {
             key: "role",
             label: "Role",
-            render: (e) => (
-              <span
-                className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColor(e.user?.role)}`}
-              >
-                {e.user?.role || "—"}
+            render: (row) => (
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColor(row.user?.role)}`}>
+                {row.user?.role || "—"}
               </span>
             ),
           },
           {
-            key: "program",
-            label: "Program",
-            render: (e) => (
-              <span className="text-gray-700">{e.program?.name || "—"}</span>
-            ),
-          },
-          {
-            key: "batch",
-            label: "Batch",
-            render: (e) => (
-              <span className="text-gray-500 text-sm">
-                {e.batch?.name || "—"}
-              </span>
+            key: "enrollments",
+            label: "Programs",
+            render: (row) => (
+              <div className="flex flex-col gap-1">
+                {row.enrollments.map((e: any) => (
+                  <span key={e._id} className="text-sm text-gray-700">
+                    - {e.program?.name || "—"}
+                    <span className="text-xs text-gray-400 ml-1">
+                      ({e.batch?.name || "No Batch"})
+                    </span>
+                  </span>
+                ))}
+              </div>
             ),
           },
           {
             key: "status",
             label: "Status",
-            render: (e) => (
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(e.status)}`}
-              >
-                {e.status}
-              </span>
-            ),
-          },
-          {
-            key: "accessStatus",
-            label: "Access",
-            render: (e) => (
-              <span
-                className={`px-2.5 py-1 rounded-full text-xs font-medium ${accessColor(e.accessStatus)}`}
-              >
-                {e.accessStatus || "—"}
-              </span>
-            ),
-          },
-          {
-            key: "progress",
-            label: "Progress",
-            render: (e) => (
-              <div className="flex items-center gap-2">
-                <div className="w-16 bg-gray-100 rounded-full h-1.5">
-                  <div
-                    className="h-1.5 rounded-full bg-yellow-400"
-                    style={{ width: `${e.progress || 0}%` }}
-                  />
-                </div>
-                <span className="text-xs text-gray-500">
-                  {e.progress || 0}%
-                </span>
+            render: (row) => (
+              <div className="flex flex-col gap-1">
+                {row.enrollments.map((e: any) => (
+                  <span
+                    key={e._id}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium w-fit ${statusColor(e.status)}`}
+                  >
+                    {e.status}
+                  </span>
+                ))}
               </div>
             ),
           },
           {
             key: "enrolledAt",
             label: "Enrolled",
-            render: (e) => (
+            render: (row) => (
               <span className="text-gray-400 text-sm">
-                {e.enrolledAt
-                  ? new Date(e.enrolledAt).toLocaleDateString()
+                {row.enrollments[0]?.enrolledAt
+                  ? new Date(row.enrollments[0].enrolledAt).toLocaleDateString()
                   : "—"}
               </span>
             ),
@@ -470,6 +542,36 @@ function EnrollmentsContent() {
           },
         ] : []}
       />
+
+      {/* Pagination */}
+      {(data?.meta?.totalPages ?? 0) >= 1 && (
+        <div className="flex items-center justify-between mt-8">
+          <p className="text-xs text-gray-400">
+            Page{" "}
+            <span className="font-semibold text-gray-700">{currentPage}</span>
+            {" "}of{" "}
+            <span className="font-semibold text-gray-700">{data?.meta?.totalPages}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronLeft size={14} />
+              Prev
+            </button>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === data?.meta?.totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Next
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add Modal — dropdowns for user, program, batch */}
       <Modal
