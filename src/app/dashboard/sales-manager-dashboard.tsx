@@ -12,7 +12,8 @@ import {
   getLeadsStats, getAllEnrollments,
   getRevenueReport, getPendingReport, getOverdueInvoices,
   getUpcomingDues,
-  getMonthlyCollections
+  getMonthlyCollections,
+  getAllUsersForRole,
 } from "@/utils/api";
 import Link from "next/link";
 
@@ -46,6 +47,11 @@ export default function SalesManagerDashboard() {
   const router = useRouter();
 
   // ── Queries ──
+  const { data: roleUsersData } = useQuery({
+    queryKey: ["dashboard-role-users"],
+    queryFn: () => getAllUsersForRole().then(r => r.data),
+  });
+
   const { data: usersData } = useQuery({
     queryKey: ["dashboard-users"],
     queryFn: () => adminGetAllUsers().then(r => r.data),
@@ -86,13 +92,13 @@ export default function SalesManagerDashboard() {
     queryFn: () => getUpcomingDues(30).then((r) => r.data),
   });
 
-    const { data: monthly } = useQuery({
-      queryKey: ["finance-monthly"],
-      queryFn: () => getMonthlyCollections().then((r) => r.data.data), // r.data.data = { year, data: [] }
-    });
+  const { data: monthly } = useQuery({
+    queryKey: ["finance-monthly"],
+    queryFn: () => getMonthlyCollections().then((r) => r.data.data), // r.data.data = { year, data: [] }
+  });
 
   // ── Pipeline ──
- const pipelineData = [
+  const pipelineData = [
     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
     { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
     { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
@@ -113,15 +119,15 @@ export default function SalesManagerDashboard() {
 
   // ── Stats cards ──
   const stats = [
-    // {
-    //   title: "Total Users",
-    //   value: usersData?.count?.toString() || "0",
-    //   change: "All roles",
-    //   icon: Users,
-    //   bg: "bg-gray-800",
-    //   text: "text-white",
-    //   onClick: () => router.push("/dashboard/users"),
-    // },
+    {
+      title: "Total Users",
+      value: roleUsersData?.users?.filter((u: any) => u.role === "user").length?.toString() || "0",
+      change: "Registered users",
+      icon: Users,
+      bg: "bg-gray-800",
+      text: "text-white",
+      onClick: () => router.push("/dashboard/users"),
+    },
     {
       title: "Total Leads",
       value: statsData?.total?.toString() || "0",
@@ -212,8 +218,8 @@ export default function SalesManagerDashboard() {
         <div className="col-span-2">
           <LeadPipeline data={pipelineData} />
           <div className="my-4">
-          {monthly && <MonthlyBar data={monthly.data || monthly} />}
-        </div>
+            {monthly && <MonthlyBar data={monthly.data || monthly} />}
+          </div>
           <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm mt-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">

@@ -1,100 +1,135 @@
 "use client";
 
-import {
-  Users, TrendingUp, Calendar,
-  UserCog,
-} from "lucide-react";
-import { StatCard } from "@/app/component/dashboard/stat-card";
-import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
-import QuickStats from "@/app/component/dashboard/quick-stats";
-import SessionsTable from "@/app/component/dashboard/sessions-table";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getAllUsersForRole } from "@/utils/api";
+import { User, UsersResponse } from "@/types/apiType";
+import ProtectedRoute from "@/app/component/protected-route";
+import { UserCog, ChevronLeft, ChevronRight } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
-
-
-const stats = [
-  {
-    title: "Assigned Leads",
-    value: "120",
-    change: "+10%",
-    icon: Users,
-    bg: "bg-gray-800",
-    text: "text-white",
-  },
-  {
-    title: "Conversions",
-    value: "38",
-    change: "+8%",
-    icon: TrendingUp,
-    bg: "bg-yellow-400",
-    text: "text-gray-900",
-  },
-  {
-    title: "Today's Sessions",
-    value: "6",
-    change: "+2",
-    icon: Calendar,
-    bg: "bg-blue-600",
-    text: "text-white",
-  },
-];
-
-const pipeline = [
-  { label: "New Leads", count: 30, color: "bg-gray-800" },
-  { label: "Contacted", count: 22, color: "bg-yellow-400" },
-  { label: "Qualified", count: 15, color: "bg-yellow-400" },
-  { label: "Closed", count: 10, color: "bg-yellow-400" },
-];
-
-const sessions = [
-  {
-    student: "Ali Khan",
-    program: "NLP",
-    date: "Mar 5, 2026 at 2:00 PM",
-    status: "scheduled",
-  },
-  {
-    student: "Sara Ahmed",
-    program: "Coaching",
-    date: "Mar 5, 2026 at 4:00 PM",
-    status: "scheduled",
-  },
-];
+import DynamicTable from "@/app/component/dashboard/dynamic-table";
 
 export default function SalesManagerDashboard() {
-  return (
-    <div className="space-y-6">
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const [filters, setFilters] = useState({ search: "" });
 
+  // ── Fetch Users ──
+  const { data, isLoading, isError } = useQuery<UsersResponse>({
+    queryKey: ["role-users"],
+    queryFn: () => getAllUsersForRole().then((res) => res.data),
+  });
+
+  // ── Sirf role === "user" + search filter ──
+  const filtered = (data?.users || []).filter((user: User) => {
+    const q = filters.search.toLowerCase();
+    const isUser = user.role === "user";
+    return (
+      isUser &&
+      (!q ||
+        user.name?.toLowerCase().includes(q) ||
+        user.email?.toLowerCase().includes(q))
+    );
+  });
+
+  // ── Client-side pagination ──
+  const totalPages = Math.ceil(filtered.length / limit);
+  const paginated = filtered.slice((page - 1) * limit, page * limit);
+
+  // ── Reset page on filter change ──
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
+
+  return (
+    <ProtectedRoute>
       {/* Header */}
       <PageHeader
-        title="Sales Manager Dashboard"
-        subtitle="Manage your leads and sessions efficiently"
+        title="Users"
+        subtitle="View all registered users"
         titleIcon={<UserCog size={24} />}
-      // totalCount={data?.count ?? 0}
-      // onAdd={() => setIsAddOpen(true)}
-      // onDeleteAll={() => setShowDeleteAll(true)}
+        totalCount={filtered.length}
+        filters={filters}
+        setFilters={setFilters}
+        filterFields={[
+          {
+            type: "input",
+            name: "search",
+            placeholder: "Search by name or email...",
+          },
+        ]}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.title} {...stat} />
-        ))}
-      </div>
-
-      {/* Pipeline */}
-      {/* <LeadPipeline data={pipeline} /> */}
-
-      {/* Quick Stats */}
-      {/* <QuickStats
-        data={[
-          { label: "Conversion Rate", value: "32%", color: "text-green-600" },
-          { label: "Follow-ups Today", value: "12", color: "text-blue-600" },
+      {/* Table */}
+      <DynamicTable
+        data={paginated}
+        isLoading={isLoading}
+        isError={isError}
+        columns={[
+          {
+            key: "name",
+            label: "Name",
+            render: (user) => (
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-black font-bold text-xs flex-shrink-0"
+                  style={{ background: user?.avatarColor, opacity: 0.85 }}
+                >
+                  {user.name?.charAt(0)?.toUpperCase()}
+                </div>
+                <span className="font-medium text-gray-800">{user.name}</span>
+              </div>
+            ),
+          },
+          {
+            key: "email",
+            label: "Email",
+            render: (user) => (
+              <span className="text-gray-500">{user.email}</span>
+            ),
+          },
+          {
+            key: "createdAt",
+            label: "Joined",
+            render: (user) => (
+              <span className="text-gray-400 text-sm">
+                {new Date(user.createdAt).toLocaleDateString()}
+              </span>
+            ),
+          },
         ]}
-      /> */}
+        actions={[]}
+      />
 
-      {/* Sessions */}
-      {/* <SessionsTable data={sessions} /> */}
-
-    </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-8">
+          <p className="text-xs text-gray-400">
+            Page <span className="font-semibold text-gray-700">{page}</span> of{" "}
+            <span className="font-semibold text-gray-700">{totalPages}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+    </ProtectedRoute>
   );
 }

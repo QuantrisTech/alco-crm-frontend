@@ -12,6 +12,7 @@ import {
   getNamesPrograms,
   getAllUsersForRole,
   adminGetBatches,
+  assignEnrollment,
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
@@ -32,6 +33,7 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
 import EnrollmentActionsPopup from "./components/enrollment-actions-popup";
+import AssignLeadModal from "../leads/components/assign-lead-modal";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -117,6 +119,7 @@ function EnrollmentsContent() {
   const [suspendingEnrollment, setSuspendingEnrollment] = useState<any>(null);
   const [reactivatingEnrollment, setReactivatingEnrollment] = useState<any>(null);
   const [actionsRow, setActionsRow] = useState<any>(null);
+  const [assigningEnrollment, setAssigningEnrollment] = useState<any>(null);
 
   // ── Dropdown data ────────────────────────────────────────────────────────
   // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
@@ -327,6 +330,32 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed!"),
   });
 
+  const { mutate: assignEnrollmentMutate, isPending: isAssigning } =
+    useMutation({
+      mutationFn: ({
+        id,
+        assigned_to,
+      }: {
+        id: string;
+        assigned_to: string;
+      }) => assignEnrollment(id, assigned_to),
+
+      onSuccess: () => {
+        toast.success("Enrollment assigned successfully");
+        setAssigningEnrollment(null);
+
+        queryClient.invalidateQueries({
+          queryKey: ["enrollments"],
+        });
+      },
+
+      onError: (err: any) => {
+        toast.error(
+          err?.response?.data?.message || "Failed to assign enrollment"
+        );
+      },
+    });
+
   const currentPage = Number(filters.page);
   const limit = Number(filters.limit);
 
@@ -352,6 +381,7 @@ function EnrollmentsContent() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        hideToggle={false}
         // columns={[
         //   {
         //     key: "user",
@@ -473,7 +503,8 @@ function EnrollmentsContent() {
                 {row.enrollments.map((e: any) => (
                   <span key={e._id} className="text-sm text-gray-700">
                     - {e.program?.name || "—"}
-                    <span className="text-xs text-gray-400 ml-1">
+                    <br/>
+                    <span className="text-[10px] text-gray-400 ml-2">
                       ({e.batch?.name || "No Batch"})
                     </span>
                   </span>
@@ -493,6 +524,35 @@ function EnrollmentsContent() {
                   >
                     {e.status}
                   </span>
+                ))}
+              </div>
+            ),
+          },
+          {
+            key: "assigned_to",
+            label: "Assigned To",
+            render: (row) => (
+              <div className="flex flex-col gap-1">
+                {row.enrollments.map((e: any) => (
+                  <div key={e._id}>
+                    {e.assigned_to ? (
+                      <>
+                        <p className="px-2 py-1 text-[10px] rounded bg-gray-100 text-gray-700">
+                          {e.assigned_to.name}
+                        </p>
+                        {/* <p className="text-xs text-gray-400">
+                          {e.program?.name}
+                        </p> */}
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setAssigningEnrollment(e)}
+                        className="px-2 py-1 text-[10px] rounded bg-yellow-100 text-yellow-700"
+                      >
+                        not assigned
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             ),
@@ -613,10 +673,10 @@ function EnrollmentsContent() {
           //   // accessStatus: editingEnrollment.accessStatus || "",
           // }}
           initialValues={{
-  progress: editingEnrollment.progress || 0,
-  batch_id: editingEnrollment.batch?._id || editingEnrollment.batch || "",
-  program_id: editingEnrollment.program?._id || editingEnrollment.program || "",
-}}
+            progress: editingEnrollment.progress || 0,
+            batch_id: editingEnrollment.batch?._id || editingEnrollment.batch || "",
+            program_id: editingEnrollment.program?._id || editingEnrollment.program || "",
+          }}
           onSubmit={(data) =>
             editEnrollment({ id: editingEnrollment._id, data })
           }
@@ -726,7 +786,26 @@ function EnrollmentsContent() {
           onReactivate={(e) => setReactivatingEnrollment(e)}
           onDelete={(e) => setDeletingEnrollment(e)}
           onClose={() => setActionsRow(null)}
-           onEdit={(e) => setEditingEnrollment(e)}
+          onEdit={(e) => setEditingEnrollment(e)}
+        />
+      )}
+
+      {assigningEnrollment && (
+        <AssignLeadModal
+          lead={{
+            assigned_to: assigningEnrollment.assigned_to,
+            first_name: assigningEnrollment.user?.name,
+            email: assigningEnrollment.user?.email,
+          }}
+          currentUserRole={authUser.role}
+          isLoading={isAssigning}
+          onClose={() => setAssigningEnrollment(null)}
+          onAssign={(userId) =>
+            assignEnrollmentMutate({
+              id: assigningEnrollment._id,
+              assigned_to: userId,
+            })
+          }
         />
       )}
     </>

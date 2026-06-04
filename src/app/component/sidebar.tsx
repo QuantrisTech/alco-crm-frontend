@@ -149,13 +149,21 @@ const menuSections: MenuSection[] = [
         children: [
           { label: "All Pages", href: "/dashboard/seo-pages" },
           { label: "Home", href: "/dashboard/seo-pages/home" },
-          { label: "Get 1:1 Coaching", href: "/dashboard/seo-pages/get-1on1-coaching" },
-          { label: "Blogs", href: "/dashboard/seo-pages/blogs" },
+          { label: "One On One Coaching Sessions", href: "/dashboard/seo-pages/one-on-one-coaching-sessions" },
+          // { label: "Blogs", href: "/dashboard/seo-pages/blogs" },
           { label: "Contact", href: "/dashboard/seo-pages/contact" },
+          {
+            header: "Blog",
+            subChildren: [
+              { label: "Main", href: "/dashboard/seo-pages/blogs" },
+              // { label: "Latest News", href: "/dashboard/seo-pages/blogs/latest-news" },
+              // { label: "Industry Trends", href: "/dashboard/seo-pages/blogs/industry-trends" },
+            ],
+          },
           {
             header: "Programs",
             subChildren: [
-              { label: "Main", href: "/dashboard/seo-pages/programs" },
+              // { label: "Main", href: "/dashboard/seo-pages/programs" },
               { label: "NLP Practitioner", href: "/dashboard/seo-pages/nlp-practitioner" },
               { label: "NLP Master Practitioner", href: "/dashboard/seo-pages/nlp-master-practitioner" },
               { label: "Advanced Hypnotherapy", href: "/dashboard/seo-pages/advanced-hypnotherapy-training" },

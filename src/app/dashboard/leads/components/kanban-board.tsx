@@ -12,9 +12,9 @@ export default function KanbanBoard({
   onViewEnrollment,   // optional: parent apna custom modal open kar sakta hai
   filters,
 }: any) {
-  const scrollRef               = useRef<HTMLDivElement>(null);
-  const [isDown, setIsDown]     = useState(false);
-  const [startX, setStartX]     = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDown, setIsDown] = useState(false);
+  const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
   // ── Leads ko pipeline stages mein group karo ──
@@ -35,14 +35,29 @@ export default function KanbanBoard({
 
   // ── Enrollments alag array hai — leads se independent ──
   // const enrollmentList: any[] = enrollments || [];
-  const enrollmentList: any[] = (enrollments || []).filter((e: any) => {
-  if (!filters?.search) return true;
-  const q = filters.search.toLowerCase();
-  const name = (e.leadSnapshot?.contractDetails?.fullName || "").toLowerCase();
-  const email = (e.leadSnapshot?.contractDetails?.email || "").toLowerCase();
-  const phone = (e.leadSnapshot?.contractDetails?.phone || "").toLowerCase();
-  return name.includes(q) || email.includes(q) || phone.includes(q);
-});
+  //   const enrollmentList: any[] = (enrollments || []).filter((e: any) => {
+  //   if (!filters?.search) return true;
+  //   const q = filters.search.toLowerCase();
+  //   const name = (e.leadSnapshot?.contractDetails?.fullName || "").toLowerCase();
+  //   const email = (e.leadSnapshot?.contractDetails?.email || "").toLowerCase();
+  //   const phone = (e.leadSnapshot?.contractDetails?.phone || "").toLowerCase();
+  //   return name.includes(q) || email.includes(q) || phone.includes(q);
+  // });
+  const enrollmentList = (enrollments || [])
+    .flatMap((item: any) =>
+      (item.enrollments || []).map((enr: any) => ({
+        ...enr,
+        user: item.user,
+      }))
+    )
+    .filter((e: any) => {
+      if (!filters?.search) return true;
+      const q = filters.search.toLowerCase();
+      const name = (e.user?.name || "").toLowerCase();
+      const email = (e.user?.email || "").toLowerCase();
+      const phone = (e.user?.phone || "").toLowerCase();
+      return name.includes(q) || email.includes(q) || phone.includes(q);
+    });
 
   // ── Column value & count ──
   const colValue = (key: string) => {
@@ -72,11 +87,11 @@ export default function KanbanBoard({
     setScrollLeft(scrollRef.current.scrollLeft);
   };
   const handleMouseLeave = () => setIsDown(false);
-  const handleMouseUp    = () => setIsDown(false);
-  const handleMouseMove  = (e: React.MouseEvent) => {
+  const handleMouseUp = () => setIsDown(false);
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDown || !scrollRef.current) return;
     e.preventDefault();
-    const x    = e.pageX - scrollRef.current.offsetLeft;
+    const x = e.pageX - scrollRef.current.offsetLeft;
     const walk = (x - startX) * 1.5;
     scrollRef.current.scrollLeft = scrollLeft - walk;
   };
@@ -117,7 +132,8 @@ export default function KanbanBoard({
             </div>
 
             {/* ── Cards ── */}
-            <div className="flex flex-col gap-2 flex-1 overflow-y-auto h-full pr-1 kanban-mini-scroll">
+            {/* <div className="flex flex-col gap-2 flex-1 overflow-y-auto h-full pr-1 kanban-mini-scroll"> */}
+            <div className="flex flex-col gap-2 overflow-y-auto pr-1 kanban-mini-scroll" style={{ maxHeight: "calc(100vh - 220px)" }}>
 
               {stage.key === "enrolled" ? (
                 // ── Enrolled column: EnrollmentCards render karo ──

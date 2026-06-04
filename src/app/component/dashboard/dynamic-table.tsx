@@ -24,24 +24,25 @@ type Props = {
   isError: boolean;
   columns: Column[];
   actions?: Action[];
+  hideToggle?: boolean;
 };
 
 // --- Icons (SVG, no emoji) ---
 const TableIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2"/>
-    <line x1="3" y1="9" x2="21" y2="9"/>
-    <line x1="3" y1="15" x2="21" y2="15"/>
-    <line x1="9" y1="3" x2="9" y2="21"/>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="3" y1="15" x2="21" y2="15" />
+    <line x1="9" y1="3" x2="9" y2="21" />
   </svg>
 );
 
 const GridIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1"/>
-    <rect x="14" y="3" width="7" height="7" rx="1"/>
-    <rect x="3" y="14" width="7" height="7" rx="1"/>
-    <rect x="14" y="14" width="7" height="7" rx="1"/>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
   </svg>
 );
 
@@ -208,6 +209,7 @@ export default function DynamicTable({
   isError,
   columns,
   actions = [],
+  hideToggle = true,
 }: Props) {
   const [view, setView] = useState<"table" | "card">("table");
 
@@ -233,17 +235,19 @@ export default function DynamicTable({
             <TableIcon />
             <span>List</span>
           </button>
-          <button
-            onClick={() => setView("card")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
+          {hideToggle && (
+            <button
+              onClick={() => setView("card")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
               ${view === "card"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-400 hover:text-gray-600"
-              }`}
-          >
-            <GridIcon />
-            <span>Cards</span>
-          </button>
+                  ? "bg-white text-gray-800 shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+                }`}
+            >
+              <GridIcon />
+              <span>Cards</span>
+            </button>
+          )}
         </div>
       </div>
 

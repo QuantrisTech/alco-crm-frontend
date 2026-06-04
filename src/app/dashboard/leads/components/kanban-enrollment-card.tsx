@@ -24,6 +24,7 @@ function EnrollmentDetailModal({
     const cd = snap?.contractDetails;
     const user = enrollment.user;
     const prog = enrollment.program;
+    const batch = enrollment.batch;
 
     return (
         <div
@@ -396,7 +397,7 @@ export default function EnrollmentCard({
                         </span>
                     </div>
                 </div>
-                <div className="flex justify-between align-center ">
+                <div className="flex flex-col justify-between align-center ">
                     {/* ── Batch ── */}
                     {enrollment.batch && (
                         <p className="text-[10px] text-gray-400 my-auto">
@@ -408,7 +409,7 @@ export default function EnrollmentCard({
                     <button
                         onClick={handleView}
                         title="View Enrollment Details"
-                        className="flex items-center  gap-1 px-2 py-1 ml-auto rounded-lg bg-green-100 text-green-700 transition-colors"
+                        className="flex items-center mt-2  gap-1 px-2 py-1 ml-auto rounded-lg bg-green-100 text-green-700 transition-colors"
                     >
                         <Eye size={11} />
                         <span className="text-[10px] font-medium">View Details</span>

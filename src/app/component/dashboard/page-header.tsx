@@ -3,7 +3,7 @@ import React from "react";
 import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
 // icon
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, TrendingUp } from "lucide-react";
 
 export type FilterField = {
   type: "input" | "select";
@@ -16,7 +16,9 @@ type HeaderProps = {
   title?: string;
   subtitle?: string;
   titleIcon?: React.ReactNode;
-  totalCount?: number;
+  totalCount?: any;
+  coveredCount?: number;
+  coveredLabel?: string;
   onAdd?: () => void;
   onDeleteAll?: () => void;
   filters?: Record<string, string>;
@@ -28,7 +30,9 @@ export default function PageHeader({
   title = "Admin Panel",
   subtitle = "Manage all users and their roles",
   titleIcon,
-  totalCount = 0,
+  totalCount,
+  coveredCount,
+  coveredLabel = "Covered",
   onAdd,
   onDeleteAll,
   filters = { search: "", status: "", quality: "", source: "" },
@@ -71,10 +75,22 @@ export default function PageHeader({
         )}
 
         {totalCount && (
-        <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
-          Total: <span className="font-bold text-gray-900">{totalCount}</span>
-        </div>
-         )} 
+          <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
+            Total: <span className="font-bold text-gray-900">{totalCount}</span>
+          </div>
+        )}
+
+        {coveredCount && coveredCount !== undefined && (
+          // <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
+          //   <span className="font-bold text-gray-900">{coveredCount}</span>
+          //   <span className="ml-1">{coveredLabel || "Items Covered"}</span>
+          // </div>
+          <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm">
+            <TrendingUp size={15} className="text-yellow-500" />
+            <span className="text-sm font-semibold text-gray-700">{coveredCount}/{coveredLabel}</span>
+            <span className="text-xs text-gray-400">pages covered</span>
+          </div>
+        )}
 
         {filterFields && (
           <div className="flex flex-wrap gap-3 items-end">

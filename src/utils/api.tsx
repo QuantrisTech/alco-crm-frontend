@@ -230,6 +230,8 @@ export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments"
 export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
 export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
 export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
+export const assignEnrollment = (id: string, assigned_to: string) =>
+  API.patch(`/api/v1/enrollments/${id}/assign`, { assigned_to });
 
 export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);        
 export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
@@ -347,55 +349,135 @@ export const adminDeleteResource  = (id: string) =>
 
 // ─── Website SEO Pages ────────────────────────────────────────
 
-// GET all SEO pages
-export const adminGetSeoPages = (params?: any) =>
-  API.get("/api/v1/seo/pages", { params });
+// // GET all SEO pages
+// export const adminGetSeoPages = (params?: any) =>
+//   API.get("/api/v1/seo/pages", { params });
 
-// GET a single SEO page by slug (e.g. "home", "programs", "about-us")
-export const adminGetSeoPageBySlug = (slug: string) =>
-  API.get(`/api/v1/seo/pages/${slug}`);
+// // GET a single SEO page by slug (e.g. "home", "programs", "about-us")
+// export const adminGetSeoPageBySlug = (slug: string) =>
+//   API.get(`/api/v1/seo/pages/${slug}`);
 
-// POST — Create a new SEO page
-export const adminCreateSeoPage = (data: {
-  slug: string;
+// // POST — Create a new SEO page
+// export const adminCreateSeoPage = (data: {
+//   slug: string;
+//   title: string;
+//   description: string;
+//   keywords?: string[];
+//   og_title?: string;
+//   og_description?: string;
+//   og_image?: string;
+//   canonical_url?: string;
+//   no_index?: boolean;
+// }) => API.post("/api/v1/seo/pages", data);
+
+// // PUT — Full update of an SEO page by slug
+// export const adminUpdateSeoPage = (slug: string, data: {
+//   title?: string;
+//   description?: string;
+//   keywords?: string[];
+//   og_title?: string;
+//   og_description?: string;
+//   og_image?: string;
+//   canonical_url?: string;
+//   no_index?: boolean;
+// }) => API.put(`/api/v1/seo/pages/${slug}`, data);
+
+// // PATCH — Upsert (create if not exists, update if exists) by slug
+// export const adminUpsertSeoPage = (slug: string, data: {
+//   title?: string;
+//   description?: string;
+//   keywords?: string[];
+//   og_title?: string;
+//   og_description?: string;
+//   og_image?: string;
+//   canonical_url?: string;
+//   no_index?: boolean;
+// }, exists: boolean) => exists 
+//   ? API.patch(`/api/v1/seo/pages/${slug}`, data)
+//   : API.post(`/api/v1/seo/pages`, { slug, ...data });
+
+// // DELETE — Remove an SEO page by slug
+// export const adminDeleteSeoPage = (slug: string) =>
+//   API.delete(`/api/v1/seo/pages/${slug}`);
+
+export interface SeoFormData {
   title: string;
   description: string;
-  keywords?: string[];
-  og_title?: string;
-  og_description?: string;
-  og_image?: string;
-  canonical_url?: string;
-  no_index?: boolean;
-}) => API.post("/api/v1/seo/pages", data);
+  keywords: string;
+  og_title: string;
+  og_description: string;
+  og_image: string;
+  canonical_url: string;
+  no_index: boolean;
+}
+ 
+// Converts frontend form shape → backend model shape
+export const mapToBackend = (slug: string, label: string, form: SeoFormData) => ({
+  pageSlug: slug,
+  pageLabel: label,
+  title: form.title.trim(),
+  description: form.description.trim(),
+  keywords: form.keywords
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean),
+  openGraph: {
+    title: form.og_title.trim() || form.title.trim(),
+    description: form.og_description.trim() || form.description.trim(),
+    image: form.og_image.trim() || "",
+    url: "",
+    siteName: "AL&CO",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: form.og_title.trim() || form.title.trim(),
+    description: form.og_description.trim() || form.description.trim(),
+    image: form.og_image.trim() || "",
+  },
+  canonical: form.canonical_url.trim() || "",
+  robots: {
+    index: !form.no_index,
+    follow: true,
+  },
+});
+ 
+// Converts backend response → frontend form shape
+export const mapFromBackend = (data: any): SeoFormData => ({
+  title: data.title || "",
+  description: data.description || "",
+  keywords: Array.isArray(data.keywords) ? data.keywords.join(", ") : "",
+  og_title: data.openGraph?.title || "",
+  og_description: data.openGraph?.description || "",
+  og_image: data.openGraph?.image || "",
+  canonical_url: data.canonical || "",
+  no_index: data.robots?.index === false,
+});
+ 
+// ── API calls ──
+ 
+// GET all pages (admin list)
+export const adminGetSeoPages = () => API.get("/api/v1/seo");
+ 
+// GET single page by slug (public + admin)
+export const adminGetSeoPageBySlug = (slug: string) =>
+  API.get(`/api/v1/seo/page/${slug}`);
+ 
+// PATCH upsert — creates if not exists, updates if exists
+// export const adminUpsertSeoPage = (slug: string, label: string, form: SeoFormData) =>
+//   API.patch("/api/v1/seo/upsert", mapToBackend(slug, label, form));
 
-// PUT — Full update of an SEO page by slug
-export const adminUpdateSeoPage = (slug: string, data: {
-  title?: string;
-  description?: string;
-  keywords?: string[];
-  og_title?: string;
-  og_description?: string;
-  og_image?: string;
-  canonical_url?: string;
-  no_index?: boolean;
-}) => API.put(`/api/v1/seo/pages/${slug}`, data);
-
-// PATCH — Upsert (create if not exists, update if exists) by slug
-export const adminUpsertSeoPage = (slug: string, data: {
-  title?: string;
-  description?: string;
-  keywords?: string[];
-  og_title?: string;
-  og_description?: string;
-  og_image?: string;
-  canonical_url?: string;
-  no_index?: boolean;
-}, exists: boolean) => exists 
-  ? API.patch(`/api/v1/seo/pages/${slug}`, data)
-  : API.post(`/api/v1/seo/pages`, { slug, ...data });
-
-// DELETE — Remove an SEO page by slug
+// export const adminUpsertSeoPage = (slug: string, payload: any) =>
+//   API.patch("/api/v1/seo/upsert", {
+//     pageSlug: slug,        // ✅ slug yahan inject hoga
+//     ...payload,
+//   });
+export const adminUpsertSeoPage = (slug: string, label: string, data: any) =>
+  API.patch("/api/v1/seo/upsert", { pageSlug: slug, pageLabel: label, ...data });
+ 
+// DELETE
 export const adminDeleteSeoPage = (slug: string) =>
-  API.delete(`/api/v1/seo/pages/${slug}`);
+  API.delete(`/api/v1/seo/${slug}`);
 
 export default API;

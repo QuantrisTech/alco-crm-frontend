@@ -518,7 +518,7 @@ export default function SuperAdminDashboard() {
   const stats = [
     {
       title: "Total Users",
-      value: usersData?.users?.length?.toString() || "0",
+      value: usersData?.total || "0",
       change: "All roles",
       icon: Users,
       bg: "bg-gray-800",

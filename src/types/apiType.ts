@@ -36,5 +36,6 @@ export type UsersResponse = {
   success: boolean;
   count: number;
   users: User[];
-  totalPages?: any
+  totalPages?: any;
+  total?: any;
 }
