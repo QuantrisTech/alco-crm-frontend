@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
+import EnrollmentActionsPopup from "./components/enrollment-actions-popup";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -115,6 +116,7 @@ function EnrollmentsContent() {
   const [graduatingEnrollment, setGraduatingEnrollment] = useState<any>(null);
   const [suspendingEnrollment, setSuspendingEnrollment] = useState<any>(null);
   const [reactivatingEnrollment, setReactivatingEnrollment] = useState<any>(null);
+  const [actionsRow, setActionsRow] = useState<any>(null);
 
   // ── Dropdown data ────────────────────────────────────────────────────────
   // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
@@ -242,8 +244,8 @@ function EnrollmentsContent() {
         { label: "Active", value: "active" },
         { label: "Completed", value: "completed" },
         { label: "Suspended", value: "suspended" },
-        { label: "Cancelled", value: "cancelled" },
-        { label: "Blocked", value: "blocked" },
+        // { label: "Cancelled", value: "cancelled" },
+        // { label: "Blocked", value: "blocked" },
       ],
     },
   ];
@@ -505,40 +507,48 @@ function EnrollmentsContent() {
           },
         ]}
 
+        // actions={canAction ? [
+        //   {
+        //     icon: <Pencil size={14} />,
+        //     label: "Edit",
+        //     onClick: (e) => setEditingEnrollment(e),
+        //     className: "hover:bg-yellow-50 hover:text-yellow-600",
+        //   },
+        //   {
+        //     icon: <GraduationCap size={14} />,
+        //     label: "Graduate",
+        //     onClick: (e) => setGraduatingEnrollment(e),
+        //     className: "hover:bg-teal-50 hover:text-teal-600",
+        //     hidden: (e) => e.isGraduated || e.status !== "active",
+        //   },
+        //   {
+        //     icon: <PauseCircle size={14} />,
+        //     label: "Suspend",
+        //     onClick: (e) => setSuspendingEnrollment(e),
+        //     className: "hover:bg-yellow-50 hover:text-yellow-600",
+        //     hidden: (e) => e.status !== "active",
+        //   },
+        //   {
+        //     icon: <PlayCircle size={14} />,
+        //     label: "Reactivate",
+        //     onClick: (e) => setReactivatingEnrollment(e),
+        //     className: "hover:bg-green-50 hover:text-green-600",
+        //     hidden: (e) => e.status !== "suspended",
+        //   },
+        //   {
+        //     icon: <Trash2 size={14} />,
+        //     label: "Delete",
+        //     onClick: (e) => setDeletingEnrollment(e),
+        //     className: "hover:bg-rose-50 hover:text-rose-500",
+        //     hidden: () => !isAdmin, // sirf admin delete kar sakta
+        //   },
+        // ] : []}
         actions={canAction ? [
           {
-            icon: <Pencil size={14} />,
-            label: "Edit",
-            onClick: (e) => setEditingEnrollment(e),
-            className: "hover:bg-yellow-50 hover:text-yellow-600",
-          },
-          {
-            icon: <GraduationCap size={14} />,
-            label: "Graduate",
-            onClick: (e) => setGraduatingEnrollment(e),
-            className: "hover:bg-teal-50 hover:text-teal-600",
-            hidden: (e) => e.isGraduated || e.status !== "active",
-          },
-          {
-            icon: <PauseCircle size={14} />,
-            label: "Suspend",
-            onClick: (e) => setSuspendingEnrollment(e),
-            className: "hover:bg-yellow-50 hover:text-yellow-600",
-            hidden: (e) => e.status !== "active",
-          },
-          {
-            icon: <PlayCircle size={14} />,
-            label: "Reactivate",
-            onClick: (e) => setReactivatingEnrollment(e),
-            className: "hover:bg-green-50 hover:text-green-600",
-            hidden: (e) => e.status !== "suspended",
-          },
-          {
-            icon: <Trash2 size={14} />,
-            label: "Delete",
-            onClick: (e) => setDeletingEnrollment(e),
-            className: "hover:bg-rose-50 hover:text-rose-500",
-            hidden: () => !isAdmin, // sirf admin delete kar sakta
+            icon: <BookOpen size={14} />,
+            label: "Actions",
+            onClick: (row) => setActionsRow(row), // sirf popup kholo
+            className: "hover:bg-blue-50 hover:text-blue-600",
           },
         ] : []}
       />
@@ -592,13 +602,18 @@ function EnrollmentsContent() {
           title="Edit Enrollment"
           subtitle={editingEnrollment.user?.name}
           fields={editFields}
+          // initialValues={{
+          //   progress: editingEnrollment.progress || 0,
+          //   // status: editingEnrollment.status,
+          //   batch_id: editingEnrollment.batch_id?._id || editingEnrollment.batch_id || "",
+          //   program_id: editingEnrollment.program_id?._id || editingEnrollment.program_id || "",
+          //   // accessStatus: editingEnrollment.accessStatus || "",
+          // }}
           initialValues={{
-            progress: editingEnrollment.progress || 0,
-            // status: editingEnrollment.status,
-            batch_id: editingEnrollment.batch_id?._id || editingEnrollment.batch_id || "",
-            program_id: editingEnrollment.program_id?._id || editingEnrollment.program_id || "",
-            // accessStatus: editingEnrollment.accessStatus || "",
-          }}
+  progress: editingEnrollment.progress || 0,
+  batch_id: editingEnrollment.batch?._id || editingEnrollment.batch || "",
+  program_id: editingEnrollment.program?._id || editingEnrollment.program || "",
+}}
           onSubmit={(data) =>
             editEnrollment({ id: editingEnrollment._id, data })
           }
@@ -696,6 +711,19 @@ function EnrollmentsContent() {
           confirmText="Yes, Delete"
           isLoading={isDeleting}
           loadingText="Deleting..."
+        />
+      )}
+
+      {actionsRow && (
+        <EnrollmentActionsPopup
+          row={actionsRow}
+          isAdmin={isAdmin}
+          onGraduate={(e) => setGraduatingEnrollment(e)}
+          onSuspend={(e) => setSuspendingEnrollment(e)}
+          onReactivate={(e) => setReactivatingEnrollment(e)}
+          onDelete={(e) => setDeletingEnrollment(e)}
+          onClose={() => setActionsRow(null)}
+           onEdit={(e) => setEditingEnrollment(e)}
         />
       )}
     </>
