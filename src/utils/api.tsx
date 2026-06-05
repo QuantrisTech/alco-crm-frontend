@@ -156,6 +156,7 @@ export const adminUpdateBatch = (id: string, data: any) => API.put(`/api/v1/prog
 export const adminDeleteBatch = (id: string) => API.delete(`/api/v1/programs/batches/${id}`);
 
 //--------------------------------- website blog ------------------------
+export const getBlogsPublic = () => API.get("/api/v1/blogs/public");
 export const adminGetBlogs = (params?: any) => API.get("/api/v1/blogs", { params });
 export const adminCreateBlog = (data: any) => API.post("/api/v1/blogs", data);
 // export const adminUpdateBlog = (id: string, data: any) => API.put(`/api/v1/blogs/${id}`, data);

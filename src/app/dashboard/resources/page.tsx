@@ -193,7 +193,7 @@ export default function ResourcesPage() {
   });
 
   return (
-    <ProtectedRoute allowedRoles={["super_admin", "admin"]}>
+    <ProtectedRoute allowedRoles={["super_admin", "admin", "seo"]}>
       <PageHeader
         title="Resources"
         subtitle="Manage books and PDF resources"

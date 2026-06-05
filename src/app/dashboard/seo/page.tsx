@@ -181,7 +181,7 @@ export default function SeoPagesDashboard() {
   });
 
   const { data: seoData, isLoading } = useQuery({
-    queryKey: ["admin-seo-pages"],
+    queryKey: ["admin-seo"],
     queryFn: () =>
       adminGetSeoPages().then((res) => res.data?.data || res.data || []),
   });
@@ -198,7 +198,7 @@ export default function SeoPagesDashboard() {
     mutationFn: (slug: string) => adminDeleteSeoPage(slug),
     onSuccess: (_, slug) => {
       toast.success(`SEO deleted for "${slug}"`);
-      queryClient.invalidateQueries({ queryKey: ["admin-seo-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-seo"] });
       setDeletingSlug(null);
     },
     onError: (error: any) => {
@@ -232,7 +232,7 @@ export default function SeoPagesDashboard() {
   const percent = Math.round((donePages / totalPages) * 100);
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["super_admin", "admin", "seo"]}>
       {/* Header */}
       <PageHeader
         title="Website SEO"
@@ -309,7 +309,7 @@ export default function SeoPagesDashboard() {
                         key={page.slug}
                         page={page}
                         seo={seoMap[page.slug]}
-                        onEdit={() => router.push(`/dashboard/seo-pages/${page.slug}`)}
+                        onEdit={() => router.push(`/dashboard/seo/${page.slug}`)}
                         onDelete={() => {
                           setDeletingSlug(page.slug);
                           deletePage(page.slug);

@@ -131,7 +131,7 @@ export default function BlogsPage() {
   });
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={["admin", "super_admin", "seo"]}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

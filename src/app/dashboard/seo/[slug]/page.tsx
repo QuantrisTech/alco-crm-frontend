@@ -163,7 +163,7 @@ export default function EditSeoPage() {
     mutationFn: (payload: any) => adminUpsertSeoPage(pageSlug, pageInfo.label, payload), // ✅ pageLabel pass
     onSuccess: () => {
       toast.success("SEO data saved successfully!");
-      queryClient.invalidateQueries({ queryKey: ["admin-seo-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-seo"] });
       queryClient.invalidateQueries({ queryKey: ["admin-seo-page", pageSlug] });
     },
     onError: (error: any) => {
@@ -176,8 +176,8 @@ export default function EditSeoPage() {
     mutationFn: () => adminDeleteSeoPage(pageSlug),
     onSuccess: () => {
       toast.success("SEO data deleted!");
-      queryClient.invalidateQueries({ queryKey: ["admin-seo-pages"] });
-      router.push("/dashboard/seo-pages");
+      queryClient.invalidateQueries({ queryKey: ["admin-seo"] });
+      router.push("/dashboard/seo");
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to delete SEO data!");
@@ -248,7 +248,7 @@ export default function EditSeoPage() {
     <ProtectedRoute>
       <Breadcrumb
         items={[
-          { label: "SEO Pages", href: "/dashboard/seo-pages" },
+          { label: "SEO Pages", href: "/dashboard/seo" },
           { label: pageInfo.label },
         ]}
       />
@@ -264,7 +264,7 @@ export default function EditSeoPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/dashboard/seo-pages")}
+            onClick={() => router.push("/dashboard/seo")}
             className="flex items-center gap-2 px-4 py-2 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
           >
             <ArrowLeft size={15} /> Back

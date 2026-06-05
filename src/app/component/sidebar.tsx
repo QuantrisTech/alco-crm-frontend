@@ -67,11 +67,11 @@ function isChildGroup(item: ChildItem | ChildGroup): item is ChildGroup {
 const menuSections: MenuSection[] = [
   {
     roles: [
-      "super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager",
+      "super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager", "seo"
     ],
     mode: "crm",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager"] },
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager", "seo"] },
       { label: "Leads", href: "/dashboard/leads", icon: Users, roles: ["super_admin", "admin", "sales_manager", "sales_rep"] },
       { label: "Programs", href: "/dashboard/programs", icon: GraduationCap, roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"] },
       { label: "Courses", href: "/dashboard/courses", icon: FileVolume, roles: ["user"] },
@@ -124,13 +124,13 @@ const menuSections: MenuSection[] = [
   },
 
   {
-    roles: ["super_admin", "admin"],
+    roles: ["super_admin", "admin", "seo"],
     mode: "website",
     items: [
       {
         label: "Blogs",
         icon: BookOpen,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "seo"],
         children: [
           { label: "All Blogs", href: "/dashboard/blogs" },
           { label: "Create Blog", href: "/dashboard/blogs/create" },
@@ -140,51 +140,51 @@ const menuSections: MenuSection[] = [
         label: "Resources",
         href: "/dashboard/resources",
         icon: GraduationCap,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "seo"],
       },
       {
-        label: "SEO Pages",
+        label: "SEO",
         icon: SearchCheck,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "seo"],
         children: [
-          { label: "All Pages", href: "/dashboard/seo-pages" },
-          { label: "Home", href: "/dashboard/seo-pages/home" },
-          { label: "One On One Coaching Sessions", href: "/dashboard/seo-pages/one-on-one-coaching-sessions" },
-          // { label: "Blogs", href: "/dashboard/seo-pages/blogs" },
-          { label: "Contact", href: "/dashboard/seo-pages/contact" },
+          { label: "All Pages", href: "/dashboard/seo" },
+          { label: "Home", href: "/dashboard/seo/home" },
+          { label: "One On One Coaching Sessions", href: "/dashboard/seo/one-on-one-coaching-sessions" },
+          // { label: "Blogs", href: "/dashboard/seo/blogs" },
+          { label: "Contact", href: "/dashboard/seo/contact" },
           {
             header: "Blog",
             subChildren: [
-              { label: "Main", href: "/dashboard/seo-pages/blogs" },
-              // { label: "Latest News", href: "/dashboard/seo-pages/blogs/latest-news" },
-              // { label: "Industry Trends", href: "/dashboard/seo-pages/blogs/industry-trends" },
+              { label: "Main", href: "/dashboard/seo/blogs" },
+              // { label: "Latest News", href: "/dashboard/seo/blogs/latest-news" },
+              // { label: "Industry Trends", href: "/dashboard/seo/blogs/industry-trends" },
             ],
           },
           {
             header: "Programs",
             subChildren: [
-              // { label: "Main", href: "/dashboard/seo-pages/programs" },
-              { label: "NLP Practitioner", href: "/dashboard/seo-pages/nlp-practitioner" },
-              { label: "NLP Master Practitioner", href: "/dashboard/seo-pages/nlp-master-practitioner" },
-              { label: "Advanced Hypnotherapy", href: "/dashboard/seo-pages/advanced-hypnotherapy-training" },
-              { label: "NLP Trainer's Program", href: "/dashboard/seo-pages/nlp-trainers-training-program" },
-              { label: "Hypnosis Trainer's Program", href: "/dashboard/seo-pages/hypnosis-trainers-training-program" },
-              { label: "NLP Master Trainer", href: "/dashboard/seo-pages/nlp-master-trainer-program" },
+              // { label: "Main", href: "/dashboard/seo/programs" },
+              { label: "NLP Practitioner", href: "/dashboard/seo/nlp-practitioner" },
+              { label: "NLP Master Practitioner", href: "/dashboard/seo/nlp-master-practitioner" },
+              { label: "Advanced Hypnotherapy", href: "/dashboard/seo/advanced-hypnotherapy-training" },
+              { label: "NLP Trainer's Program", href: "/dashboard/seo/nlp-trainers-training-program" },
+              { label: "Hypnosis Trainer's Program", href: "/dashboard/seo/hypnosis-trainers-training-program" },
+              { label: "NLP Master Trainer", href: "/dashboard/seo/nlp-master-trainer-program" },
             ],
           },
           {
             header: "About Us",
             subChildren: [
-              { label: "Who is Arslan Larik", href: "/dashboard/seo-pages/who-is-arslan-larik" },
-              { label: "Who is Bismillah Pervez", href: "/dashboard/seo-pages/who-is-bismillah-pervez" },
-              { label: "Why Train With AL&CO", href: "/dashboard/seo-pages/why-train-with-alco" },
+              { label: "Who is Arslan Larik", href: "/dashboard/seo/who-is-arslan-larik" },
+              { label: "Who is Bismillah Pervez", href: "/dashboard/seo/who-is-bismillah-pervez" },
+              { label: "Why Train With AL&CO", href: "/dashboard/seo/why-train-with-alco" },
             ],
           },
           {
             header: "Services",
             subChildren: [
-              { label: "Four Clouds Model", href: "/dashboard/seo-pages/four-clouds-model" },
-              { label: "Resource", href: "/dashboard/seo-pages/resource" },
+              { label: "Four Clouds Model", href: "/dashboard/seo/four-clouds-model" },
+              { label: "Resource", href: "/dashboard/seo/resource" },
             ],
           },
         ],
