@@ -135,7 +135,12 @@ function EnrollmentsContent() {
     queryFn: () => getAllUsersForRole().then((r) => r.data),
     // staleTime: 1000 * 60 * 5,
   });
-  const users = (usersRes?.users ?? []).filter((u: any) => u.role === "user");
+  // const users = (usersRes?.users ?? []).filter((u: any) => u.role === "user");
+  const users = (usersRes?.users ?? [])
+    .filter((u: any) => u.role === "user")
+    .filter((u: any, idx: number, arr: any[]) =>
+      arr.findIndex((x) => x._id === u._id) === idx  // dedupe by _id
+    );
 
   console.log("Users for dropdown:", users);
 
@@ -362,6 +367,21 @@ function EnrollmentsContent() {
   const handlePageChange = (newPage: number) => {
     setFilters((prev) => ({ ...prev, page: String(newPage) }));
   };
+
+  const enrolledCombinations = new Set(
+    (data?.data ?? []).flatMap((row: any) =>
+      row.enrollments.map((e: any) => `${row.user?._id}_${e.program?._id}`)
+    )
+  );
+
+  const handleAddEnrollment = (formData: any) => {
+    const key = `${formData.user}_${formData.program}`;
+    if (enrolledCombinations.has(key)) {
+      toast.error("user is already enrolled in this program!");
+      return;
+    }
+    addEnrollment(formData);
+  };
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
@@ -379,9 +399,13 @@ function EnrollmentsContent() {
 
       <DynamicTable
         data={data?.data || []}
+        currentPage={currentPage}
+        pageSize={limit}
         isLoading={isLoading}
         isError={isError}
         hideToggle={false}
+        totalPages={data?.meta?.totalPages}
+        onPageChange={handlePageChange}
         // columns={[
         //   {
         //     key: "user",
@@ -503,7 +527,7 @@ function EnrollmentsContent() {
                 {row.enrollments.map((e: any) => (
                   <span key={e._id} className="text-sm text-gray-700">
                     - {e.program?.name || "—"}
-                    <br/>
+                    <br />
                     <span className="text-[10px] text-gray-400 ml-2">
                       ({e.batch?.name || "No Batch"})
                     </span>
@@ -616,43 +640,15 @@ function EnrollmentsContent() {
         ] : []}
       />
 
-      {/* Pagination */}
-      {(data?.meta?.totalPages ?? 0) >= 1 && (
-        <div className="flex items-center justify-between mt-8">
-          <p className="text-xs text-gray-400">
-            Page{" "}
-            <span className="font-semibold text-gray-700">{currentPage}</span>
-            {" "}of{" "}
-            <span className="font-semibold text-gray-700">{data?.meta?.totalPages}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              <ChevronLeft size={14} />
-              Prev
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === data?.meta?.totalPages}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              Next
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Add Modal — dropdowns for user, program, batch */}
       <Modal
+        key={isAddOpen ? "open" : "closed"}
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         title="Create Enrollment"
         fields={createFields}
-        onSubmit={addEnrollment}
+        // onSubmit={addEnrollment}
+        onSubmit={handleAddEnrollment}
         isLoading={isAdding}
         mode="add"
       />

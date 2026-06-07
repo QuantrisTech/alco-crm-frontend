@@ -69,6 +69,10 @@ export default function SalesManagerDashboard() {
         data={paginated}
         isLoading={isLoading}
         isError={isError}
+        currentPage={page}       
+        pageSize={limit}         
+        totalPages={data?.totalPages}
+        onPageChange={(newPage) => setPage(newPage)}
         columns={[
           {
             key: "name",
@@ -106,7 +110,7 @@ export default function SalesManagerDashboard() {
       />
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {/* {totalPages > 1 && (
         <div className="flex items-center justify-between mt-8">
           <p className="text-xs text-gray-400">
             Page <span className="font-semibold text-gray-700">{page}</span> of{" "}
@@ -129,7 +133,7 @@ export default function SalesManagerDashboard() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
     </ProtectedRoute>
   );
 }

@@ -332,6 +332,8 @@ export default function AdminCourses() {
             data={batches || []}
             isLoading={batchLoading}
             isError={false}
+            currentPage={batches?.meta?.page || 1}
+            pageSize={batches?.meta?.limit || 10}
             columns={[
               { key: "name",         label: "Batch Name", render: (b) => <span className="font-medium text-gray-800">{b.name}</span> },
               { key: "program_id",   label: "Program",    render: (b) => <span className="text-gray-600">{b.program_id?.name || "—"}</span> },

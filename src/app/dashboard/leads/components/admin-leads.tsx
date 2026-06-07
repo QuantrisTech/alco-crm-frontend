@@ -48,22 +48,38 @@ export default function AdminLeads() {
   const [viewContractLead, setViewContractLead] = useState<any>(null);
   const [selectProgramLead, setSelectProgramLead] = useState<any>(null);
   const [viewingPaymentPlan, setViewingPaymentPlan] = useState<any>(null);
+  const [filtersPage, setFiltersPage] = useState({
+    page: "1",
+    limit: "10",
+  });
+
+  const currentPage = Number(filtersPage.page);
+  const limit = Number(filtersPage.limit);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data: leadsData, isLoading, isError } = useQuery({
-    queryKey: ["admin-leads", filters],
-    queryFn: () => getAllLeads(filters).then((r) => r.data),
+    // queryKey: ["admin-leads", filters],
+    // queryFn: () => getAllLeads(filters).then((r) => r.data),
+    queryKey: ["admin-leads", filters, filtersPage],  // 👈 filtersPage bhi add karo
+    queryFn: () => getAllLeads({ ...filters, ...filtersPage }).then((r) => r.data),
   });
 
-  const { data: enrollmentsData } = useQuery({
-  queryKey: ["enrollments-kanban", filters.search],
-  queryFn: () =>
-    getAllEnrollments({
-      page: 1,
-      limit: 1000,
-      search: filters.search || "",
-    }).then((r) => r.data),
+  const { data: allLeadsData, isLoading: isKanbanLoading } = useQuery({
+  queryKey: ["admin-leads-kanban", filters],
+  queryFn: () => getAllLeads({ ...filters, page: "1", limit: "1000" }).then((r) => r.data),
+  enabled: activeView === "opportunities",  // sirf tab fetch karo jab kanban open ho
 });
+
+
+  const { data: enrollmentsData } = useQuery({
+    queryKey: ["enrollments-kanban", filters.search],
+    queryFn: () =>
+      getAllEnrollments({
+        page: 1,
+        limit: 1000,
+        search: filters.search || "",
+      }).then((r) => r.data),
+  });
 
   const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
     queryKey: ["lead-activities", viewActivities?._id],
@@ -227,6 +243,10 @@ export default function AdminLeads() {
     viewPaymentPlan: setViewingPaymentPlan,
   };
 
+  const handlePageChange = (newPage: number) => {
+    setFiltersPage((prev) => ({ ...prev, page: String(newPage) }));
+  };
+
   return (
     <>
       <PageHeader
@@ -259,7 +279,7 @@ export default function AdminLeads() {
           </div>
         ) : (
           <KanbanBoard
-            leads={leadsData?.data || []}
+            leads={allLeadsData?.data || []}
             // SAHI — actual array
             enrollments={enrollmentsData?.data || []}
             programMap={programMap}
@@ -274,6 +294,9 @@ export default function AdminLeads() {
         <>
           <DynamicTable
             data={leadsData?.data || []} isLoading={isLoading} isError={isError}
+            currentPage={currentPage} pageSize={limit}
+            totalPages={Math.ceil((leadsData?.meta?.total ?? 0) / limit)}
+            onPageChange={handlePageChange}
             columns={[
               { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
               { key: "email", label: "Email" },

@@ -28,6 +28,8 @@ export default function UpcomingDuesPage() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        currentPage={data?.meta?.page || 1}
+        pageSize={data?.meta?.limit || 10}
         columns={[
           { key: "user", label: "Student", render: (inv) => <div><p className="font-medium text-gray-800">{inv.user?.name || "—"}</p><p className="text-xs text-gray-400">{inv.user?.email}</p></div> },
           { key: "remainingAmount", label: "Remaining", render: (inv) => <span className="font-bold text-gray-800">Rs {(inv.remainingAmount || 0).toLocaleString()}</span> },

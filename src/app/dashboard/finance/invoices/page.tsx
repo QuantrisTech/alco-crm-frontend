@@ -21,6 +21,7 @@ import InstallmentPaymentModal from "../component/installment-payment-modal";
 import EditInstallmentsModal from "../component/edit-installments-modal";
 import { InvoiceViewModal } from "../component/invoice-receiving-list";
 import SendReceiptModal from "../component/send-receipt-modal";
+import CreateInvoiceModal from "../component/create-invoice-modal";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -176,6 +177,8 @@ export default function InvoicesPage() {
         data={invoiceList}
         isLoading={isLoading}
         isError={isError}
+        currentPage={data?.meta?.page || 1}
+        pageSize={data?.meta?.limit || 10}
         columns={[
           ...(isAdmin
             ? [{
@@ -320,7 +323,10 @@ export default function InvoicesPage() {
 
       {isAdmin && (
         <>
-          <Modal
+
+          <CreateInvoiceModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+
+          {/* <Modal
             isOpen={isAddOpen}
             onClose={() => setIsAddOpen(false)}
             title="Create Invoice"
@@ -328,7 +334,7 @@ export default function InvoicesPage() {
             onSubmit={addInvoice}
             isLoading={isAdding}
             mode="add"
-          />
+          /> */}
 
           {editingInvoice && (
             <Modal

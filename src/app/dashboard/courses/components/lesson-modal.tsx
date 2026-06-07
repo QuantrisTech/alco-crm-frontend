@@ -10,6 +10,7 @@ import {
     ChevronLeft, ChevronRight, Play, List, Layers, Lock
 } from "lucide-react";
 import toast from "react-hot-toast";
+import formatDuration from "@/utils/func";
 
 type Props = {
     enrollmentId: any;
@@ -298,7 +299,7 @@ export default function LessonModal({
                                     {lesson?.content_type?.replace("_", " ")}
                                     {lesson?.duration_minutes && (
                                         <span className="ml-2 flex items-center gap-1">
-                                            <Clock size={11} /> {lesson.duration_minutes} min
+                                            <Clock size={11} /> {formatDuration(lesson.duration_minutes)}m
                                         </span>
                                     )}
                                 </p>
@@ -518,7 +519,7 @@ export default function LessonModal({
                                                         </p>
                                                         {l.duration_minutes > 0 && (
                                                             <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5">
-                                                                <Clock size={9} /> {l.duration_minutes}m
+                                                                <Clock size={9} /> {formatDuration(l.duration_minutes)}m
                                                             </p>
                                                         )}
                                                     </div>

@@ -10,6 +10,7 @@ import {
 import API from "@/utils/api";
 import { useQueryClient } from "@tanstack/react-query";
 import LessonModal from "../components/lesson-modal";
+import formatDuration from "@/utils/func";
 
 const getLearningDashboard = (enrollmentId: string) =>
   API.get(`/api/v1/learn/${enrollmentId}`).then((r) => r.data.data);
@@ -256,7 +257,7 @@ export default function CourseLearningPage() {
                                     {lesson.duration_minutes > 0 && (
                                       <span className="flex items-center gap-1 text-xs text-gray-400">
                                         <Clock size={10} />
-                                        {lesson.duration_minutes}m
+                                        {formatDuration(lesson.duration_minutes)}m
                                       </span>
                                     )}
                                     {lesson.progress_percentage > 0 && !lesson.is_completed && (

@@ -65,6 +65,8 @@ export default function AuditLogsPage() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        currentPage={data?.meta?.page || 1}
+        pageSize={data?.meta?.limit || 10}
         columns={[
           {
             key: "user", label: "Performed By",

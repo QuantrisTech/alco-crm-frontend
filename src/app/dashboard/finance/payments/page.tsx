@@ -140,6 +140,8 @@ export default function PaymentsPage() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        currentPage={data?.meta?.page || 1}
+        pageSize={data?.meta?.limit || 10}
         columns={[
           { key: "user", label: "Student", render: (p) => <span className="font-medium text-gray-800">{p.user?.name || "—"}</span> },
           { key: "amount", label: "Amount", render: (p) => <span className="font-bold text-gray-800">Rs {(p.amount || 0).toLocaleString()}</span> },

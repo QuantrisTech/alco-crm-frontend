@@ -170,6 +170,15 @@ export default function ProfilePage() {
     }
   };
 
+  useEffect(() => {
+    if (data?.email) {
+      setSetupForm((prev) => ({
+        ...prev,
+        email: data.email,
+      }));
+    }
+  }, [data]);
+
   return (
     <ProtectedRoute>
       <div className="flex-1 px-2 space-y-6 max-w-3xl">
@@ -188,7 +197,7 @@ export default function ProfilePage() {
                 <ShieldCheck size={18} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-amber-800">ecure Your Account</h3>
+                <h3 className="text-sm font-semibold text-amber-800">Secure Your Account</h3>
                 <p className="text-xs text-amber-600 mt-0.5">
                   Set your email and password to securely access your LMS account.
                   You can also do this later.
@@ -203,10 +212,12 @@ export default function ProfilePage() {
                   <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="email"
+                    // value={setupForm.email}
                     value={setupForm.email}
+                    disabled={true} // Disable if not in setup mode
                     onChange={(e) => setSetupForm({ ...setupForm, email: e.target.value })}
                     placeholder="your@email.com"
-                    className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
                   />
                 </div>
               </div>
@@ -219,7 +230,7 @@ export default function ProfilePage() {
                     value={setupForm.password}
                     onChange={(e) => setSetupForm({ ...setupForm, password: e.target.value })}
                     placeholder="Min 6 characters"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 pr-10"
+                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 pr-10"
                   />
                   <button type="button" onClick={() => setShowSetupPassword(!showSetupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                     {showSetupPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -234,7 +245,7 @@ export default function ProfilePage() {
                   value={setupForm.confirmPassword}
                   onChange={(e) => setSetupForm({ ...setupForm, confirmPassword: e.target.value })}
                   placeholder="Confirm password"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 />
               </div>
 

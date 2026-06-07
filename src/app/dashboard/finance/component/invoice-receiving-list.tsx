@@ -480,6 +480,8 @@ export default function InvoiceReceivingList() {
         isError={isError}
         columns={columns}
         actions={actions}
+        currentPage={data?.meta?.page || 1}
+        pageSize={data?.meta?.limit || 10}
       />
 
       <InvoiceViewModal invoice={viewInvoice} onClose={() => setViewInvoice(null)} />

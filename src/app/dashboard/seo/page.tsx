@@ -23,7 +23,6 @@ const SEO_STRUCTURE = [
     icon: "🌐",
     pages: [
       { slug: "home", label: "Home", url: "/" },
-      // { slug: "blogs", label: "Blogs", url: "/blogs" },
       { slug: "contact", label: "Contact", url: "/contact" },
       { slug: "one-on-one-coaching-sessions", label: "One On One Coaching Sessions", url: "/one-on-one-coaching-sessions" },
     ],

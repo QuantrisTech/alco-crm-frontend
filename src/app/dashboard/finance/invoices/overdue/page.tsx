@@ -23,6 +23,8 @@ export function OverdueInvoicesPage() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        currentPage={data?.meta?.page || 1}
+        pageSize={data?.meta?.limit || 10}
         columns={[
           { key: "user", label: "Student", render: (inv) => <div><p className="font-medium text-gray-800">{inv.user?.name || "—"}</p><p className="text-xs text-gray-400">{inv.user?.phone || inv.user?.email}</p></div> },
           { key: "totalAmount", label: "Total", render: (inv) => <span>Rs {(inv.totalAmount || 0).toLocaleString()}</span> },

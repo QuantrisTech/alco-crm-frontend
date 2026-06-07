@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 
 type Column = {
@@ -25,6 +26,10 @@ type Props = {
   columns: Column[];
   actions?: Action[];
   hideToggle?: boolean;
+  currentPage?: number;
+  pageSize?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 };
 
 // --- Icons (SVG, no emoji) ---
@@ -54,7 +59,7 @@ const Spinner = () => (
 );
 
 // --- Card View ---
-function CardView({ data, columns, actions }: { data: any[]; columns: Column[]; actions: Action[] }) {
+function CardView({ data, columns, actions, currentPage, pageSize }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number }) {
   if (data.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400 text-sm">No data found</div>
@@ -71,7 +76,7 @@ function CardView({ data, columns, actions }: { data: any[]; columns: Column[]; 
           {/* Card Header: index badge */}
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold bg-yellow-50 text-yellow-600 border border-yellow-200 px-2 py-0.5 rounded-full">
-              #{index + 1}
+              #{(currentPage - 1) * pageSize + index + 1}
             </span>
             {/* Actions in top-right */}
             {actions.length > 0 && (
@@ -131,7 +136,7 @@ function CardView({ data, columns, actions }: { data: any[]; columns: Column[]; 
 }
 
 // --- Table View ---
-function TableView({ data, columns, actions }: { data: any[]; columns: Column[]; actions: Action[] }) {
+function TableView({ data, columns, actions, currentPage, pageSize }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number }) {
   return (
     <table className="w-full text-sm">
       <thead className="bg-gray-50 border-b">
@@ -150,7 +155,7 @@ function TableView({ data, columns, actions }: { data: any[]; columns: Column[];
       <tbody>
         {data?.map((item, index) => (
           <tr key={item._id || index} className="border-b last:border-0 hover:bg-gray-50 transition">
-            <td className="px-6 py-4 text-gray-400">{index + 1}</td>
+            <td className="px-6 py-4 text-gray-400">{(currentPage - 1) * pageSize + index + 1}</td>
             {columns.map((col) => (
               <td key={col.key} className="px-6 py-4 text-gray-500">
                 {col.render ? col.render(item, index) : item[col.key] || "—"}
@@ -210,59 +215,94 @@ export default function DynamicTable({
   columns,
   actions = [],
   hideToggle = true,
+  currentPage = 1,
+  pageSize = 10,
+  totalPages = 1,
+  onPageChange,
 }: Props) {
   const [view, setView] = useState<"table" | "card">("table");
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <>
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
 
-      {/* ---- VIEW TOGGLE HEADER ---- */}
-      <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
-        <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">
-          {data?.length ?? 0} Records
-        </span>
+        {/* ---- VIEW TOGGLE HEADER ---- */}
+        <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
+          <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">
+            {data?.length ?? 0} Records
+          </span>
 
-        {/* Toggle Buttons */}
-        <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
-          <button
-            onClick={() => setView("table")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-              ${view === "table"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-400 hover:text-gray-600"
-              }`}
-          >
-            <TableIcon />
-            <span>List</span>
-          </button>
-          {hideToggle && (
+          {/* Toggle Buttons */}
+          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
             <button
-              onClick={() => setView("card")}
+              onClick={() => setView("table")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-              ${view === "card"
+              ${view === "table"
                   ? "bg-white text-gray-800 shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
                 }`}
             >
-              <GridIcon />
-              <span>Cards</span>
+              <TableIcon />
+              <span>List</span>
             </button>
-          )}
+            {hideToggle && (
+              <button
+                onClick={() => setView("card")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
+              ${view === "card"
+                    ? "bg-white text-gray-800 shadow-sm"
+                    : "text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                <GridIcon />
+                <span>Cards</span>
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* ---- CONTENT ---- */}
-      {isLoading ? (
-        <Spinner />
-      ) : isError ? (
-        <div className="text-center py-20 text-red-500 text-sm">
-          Failed to load data.
+        {/* ---- CONTENT ---- */}
+        {isLoading ? (
+          <Spinner />
+        ) : isError ? (
+          <div className="text-center py-20 text-red-500 text-sm">
+            Failed to load data.
+          </div>
+        ) : view === "table" ? (
+          <TableView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} />
+        ) : (
+          <CardView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} />
+        )}
+      </div>
+      {/* ---- PAGINATION ---- */}
+      {totalPages && totalPages >= 1 && onPageChange && (
+        <div className="flex items-center justify-between mt-8">
+          <p className="text-xs text-gray-400">
+            Page{" "}
+            <span className="font-semibold text-gray-700">{currentPage}</span>
+            {" "}of{" "}
+            <span className="font-semibold text-gray-700">{totalPages}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <ChevronLeft size={14} />
+              Prev
+            </button>
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Next
+              <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
-      ) : view === "table" ? (
-        <TableView data={data} columns={columns} actions={actions} />
-      ) : (
-        <CardView data={data} columns={columns} actions={actions} />
       )}
-    </div>
+    </>
   );
 }

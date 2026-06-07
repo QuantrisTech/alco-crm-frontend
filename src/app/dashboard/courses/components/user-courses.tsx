@@ -7,6 +7,7 @@ import PageHeader from "@/app/component/dashboard/page-header";
 import { FileVolume, BookOpen, Play, Clock, CheckCircle, Lock, ChevronRight, Award, Users, Calendar } from "lucide-react";
 import LessonModal from "./lesson-modal";
 import { useAppSelector } from "@/store/hooks";
+import formatDuration from "@/utils/func";
 
 // ── API calls ─────────────────────────────────────────────────
 const getMyEnrollmentsWithProgress = () =>
@@ -58,11 +59,13 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
   });
 
 
+
   const pct = enrollment.progress || 0;
   const isComplete = enrollment.status === "completed" || pct >= 100;
   const isRestricted = enrollment.accessStatus === "RESTRICTED";
   const isSuspended = enrollment?.status === "suspended";
 
+  const hasContent = ["level 1", "level 2"].includes(enrollment.program?.level);
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* ── Card Header ── */}
@@ -162,18 +165,27 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
         {/* Action Buttons */}
         <div className="flex gap-2 mt-4 relative">
           <button
-            onClick={() => !isRestricted && !isSuspended && router.push(`/dashboard/courses/${enrollment._id}`)}
-            disabled={isRestricted || isSuspended}
+            onClick={() => !isRestricted && !isSuspended && hasContent && router.push(`/dashboard/courses/${enrollment._id}`)}
+            disabled={isRestricted || isSuspended || !hasContent}
             className={`flex-1 flex items-center justify-center gap-2 font-semibold text-sm py-2.5 rounded-xl transition-colors
-      ${isSuspended ? "bg-rose-100 text-rose-400 cursor-not-allowed" : isRestricted
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-yellow-400 text-gray-900 hover:bg-yellow-500"
+    ${isSuspended ? "bg-rose-100 text-rose-400 cursor-not-allowed"
+                : isRestricted ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : !hasContent ? "bg-gray-100 text-gray-400 cursor-not-allowed"  // ← NEW
+                    : "bg-yellow-400 text-gray-900 hover:bg-yellow-500"
               }`}
           >
-            <Play size={14} className={isSuspended ? "fill-rose-400" : isRestricted ? "fill-gray-400" : "fill-gray-900"} />
-            {isSuspended ? "Suspended" : isRestricted ? "Access Restricted" : pct === 0 ? "Start Learning" : "Continue Learning"}
+            <Play size={14} className={
+              isSuspended ? "fill-rose-400"
+                : (isRestricted || !hasContent) ? "fill-gray-400"
+                  : "fill-gray-900"
+            } />
+            {isSuspended ? "Suspended"
+              : isRestricted ? "Access Restricted"
+                : !hasContent ? "Coming Soon"       // ← NEW
+                  : pct === 0 ? "Start Learning"
+                    : "Continue Learning"}
           </button>
-          {!isRestricted || !isSuspended && (
+          {(!isRestricted && !isSuspended && hasContent) && (
             <button
               onClick={() => setOpen(!open)}
               className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
@@ -312,7 +324,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
                                   <div className="flex items-center gap-2 shrink-0">
                                     {lesson.duration_minutes > 0 && (
                                       <span className="text-xs text-gray-400">
-                                        {lesson.duration_minutes}m
+                                        {formatDuration(lesson.duration_minutes)}m
                                       </span>
                                     )}
                                     {lesson.progress_percentage > 0 && !lesson.is_completed && (

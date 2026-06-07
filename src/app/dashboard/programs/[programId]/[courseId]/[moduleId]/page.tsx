@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { Play, Pencil, Trash2, Video, FileText, Mic } from "lucide-react";
 import Breadcrumb from "@/app/component/ui/breadcrumb";
 import { useAppSelector } from "@/store/hooks";
+import formatDuration from "@/utils/func";
 
 const lessonFields: ModalField[] = [
   { name: "title", label: "Lesson Title*", type: "input", inputType: "text", placeholder: "NLP Basics", required: true },
@@ -59,13 +60,6 @@ const contentIcon = (type: string) => {
     case "live_session": return <Play size={14} className="text-green-500" />;
     default: return <FileText size={14} className="text-gray-400" />;
   }
-};
-
-const formatDuration = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
 export default function LessonsPage() {
@@ -174,7 +168,7 @@ export default function LessonsPage() {
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-gray-500 capitalize">{lesson.content_type?.replace("_", " ")}</span>
                   {lesson.duration_minutes && (
-                    <span className="text-xs text-gray-500">{formatDuration(lesson.duration_minutes)}</span>
+                    <span className="text-xs text-gray-500">{formatDuration(lesson.duration_minutes)}m</span>
                   )}
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lesson.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}`}>
                     {lesson.status}

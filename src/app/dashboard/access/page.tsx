@@ -212,6 +212,8 @@ export default function AccessControlPage() {
         data={data?.data || []}
         isLoading={isLoading}
         isError={isError}
+        currentPage={filters.page}
+        pageSize={filters.limit}
         columns={[
           {
             key: "user",

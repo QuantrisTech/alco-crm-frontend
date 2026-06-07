@@ -45,11 +45,26 @@ export default function SalesManagerLeads() {
   const [filters, setFilters] = useState(defaultLeadFilters);
   const [selectProgramLead, setSelectProgramLead] = useState<any>(null);
   const [viewingPaymentPlan, setViewingPaymentPlan] = useState<any>(null);
+  const [filtersPage, setFiltersPage] = useState({
+    page: "1",
+    limit: "10",
+  });
+
+  const currentPage = Number(filtersPage.page);
+  const limit = Number(filtersPage.limit);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data: leadsData, isLoading, isError } = useQuery({
-    queryKey: ["sales-leads", filters],
-    queryFn: () => getAllLeads({ ...filters, assigned_to: authUser._id }).then((r) => r.data),
+    // queryKey: ["admin-leads", filters],
+    // queryFn: () => getAllLeads(filters).then((r) => r.data),
+    queryKey: ["admin-leads", filters, filtersPage],  // 👈 filtersPage bhi add karo
+    queryFn: () => getAllLeads({ ...filters, ...filtersPage }).then((r) => r.data),
+  });
+
+  const { data: allLeadsData, isLoading: isKanbanLoading } = useQuery({
+    queryKey: ["admin-leads-kanban", filters],
+    queryFn: () => getAllLeads({ ...filters, page: "1", limit: "1000" }).then((r) => r.data),
+    enabled: activeView === "opportunities",  // sirf tab fetch karo jab kanban open ho
   });
 
   const { data: enrollmentsData } = useQuery({
@@ -58,7 +73,7 @@ export default function SalesManagerLeads() {
       getAllEnrollments({
         page: 1,
         limit: 1000, // saari enrollments
-      search: filters.search || "",
+        search: filters.search || "",
       }).then((r) => r.data),
   });
 
@@ -203,6 +218,10 @@ export default function SalesManagerLeads() {
     viewPaymentPlan: setViewingPaymentPlan,
   };
 
+    const handlePageChange = (newPage: number) => {
+    setFiltersPage((prev) => ({ ...prev, page: String(newPage) }));
+  };
+
   return (
     <>
       <PageHeader
@@ -234,9 +253,10 @@ export default function SalesManagerLeads() {
             <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <KanbanBoard leads={leadsData?.data || []}
-            enrollments={enrollmentsData?.data || []} 
-            programMap={programMap} 
+          <KanbanBoard 
+            leads={allLeadsData?.data || []}
+            enrollments={enrollmentsData?.data || []}
+            programMap={programMap}
             actions={actions}
             filters={filters} />
         )
@@ -247,6 +267,9 @@ export default function SalesManagerLeads() {
         <>
           <DynamicTable
             data={leadsData?.data || []} isLoading={isLoading} isError={isError}
+            currentPage={currentPage} pageSize={limit}
+            totalPages={Math.ceil((leadsData?.meta?.total ?? 0) / limit)}
+            onPageChange={handlePageChange}
             columns={[
               { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
               { key: "email", label: "Email" },

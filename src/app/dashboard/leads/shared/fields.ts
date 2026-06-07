@@ -27,7 +27,7 @@ export const addLeadFields: ModalField[] = [
     ],
   },
   {
-    name: "quality", label: "Quality", type: "select",
+    name: "quality", label: "Quality*", type: "select", required: true,
     options: [
       { label: "Hot", value: "hot" },
       { label: "Warm", value: "warm" },

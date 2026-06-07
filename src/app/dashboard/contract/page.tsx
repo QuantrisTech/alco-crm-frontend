@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyLeadContract, submitLeadContract } from "@/utils/api";
+import { getMyLeadContract, getProfile, submitLeadContract } from "@/utils/api";
 import toast from "react-hot-toast";
 import {
   FileText, CheckCircle, PenLine, Type, RotateCcw,
@@ -68,17 +68,17 @@ const formatAmount = (n?: number) => `Rs ${Number(n || 0).toLocaleString("en-PK"
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-400" },
-  filled:  { label: "Filled",  color: "text-blue-700",  bg: "bg-blue-50",  dot: "bg-blue-400"  },
-  signed:  { label: "Signed",  color: "text-teal-700",  bg: "bg-teal-50",  dot: "bg-teal-400"  },
+  filled: { label: "Filled", color: "text-blue-700", bg: "bg-blue-50", dot: "bg-blue-400" },
+  signed: { label: "Signed", color: "text-teal-700", bg: "bg-teal-50", dot: "bg-teal-400" },
 };
 
 const leadStatusConfig: Record<string, { label: string; color: string }> = {
-  new:       { label: "New",       color: "text-gray-500"   },
-  contacted: { label: "Contacted", color: "text-blue-600"   },
+  new: { label: "New", color: "text-gray-500" },
+  contacted: { label: "Contacted", color: "text-blue-600" },
   qualified: { label: "Qualified", color: "text-violet-600" },
-  interested:{ label: "Interested",color: "text-amber-600"  },
-  converted: { label: "Converted", color: "text-teal-600"   },
-  lost:      { label: "Lost",      color: "text-red-500"    },
+  interested: { label: "Interested", color: "text-amber-600" },
+  converted: { label: "Converted", color: "text-teal-600" },
+  lost: { label: "Lost", color: "text-red-500" },
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -185,6 +185,11 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to submit!"),
   });
+
+  const { data: profileData } = useQuery({
+  queryKey: ["profile"],
+  queryFn: () => getProfile().then((res) => res.data.user),
+});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,9 +328,9 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           <div className="grid grid-cols-2 gap-4">
             {[
               { label: "Full Name", value: contract?.fullName || authUser?.name || "—" },
-              { label: "Email",     value: lead.email || authUser?.email || "—" },
-              { label: "Phone",     value: lead.phone || "—" },
-              { label: "Program",   value: lead.program_id?.name || contract?.programName || "—" },
+              { label: "Email", value: lead.email || authUser?.email || "—" },
+              { label: "Phone", value: lead.phone || "—" },
+              { label: "Program", value: lead.program_id?.name || contract?.programName || "—" },
             ].map(({ label, value }) => (
               <div key={label}>
                 <label className="text-xs font-semibold text-gray-500 block mb-1">{label}</label>
@@ -338,11 +343,11 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
         {/* CNIC Documents */}
         <DocumentsSection
           userId={authUser?._id!}
-          documents={[]}
+          documents={profileData?.documents || []}
           defaultType="cnic"
           showDropdown={false}
           filterType="cnic"
-          queryKey={["my-contract"]}
+          queryKey={["my-contract", "profile"]}
           title="CNIC Documents"
           description="Upload a clear photo or scan of your CNIC (front & back)"
         />
@@ -666,8 +671,8 @@ export default function MyContractsPage() {
         {leads.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Total",    value: leads.length,                                        color: "text-gray-800" },
-              { label: "Signed",   value: leads.filter((l) => l.contractDetails?.status === "signed").length,   color: "text-teal-600" },
+              { label: "Total", value: leads.length, color: "text-gray-800" },
+              { label: "Signed", value: leads.filter((l) => l.contractDetails?.status === "signed").length, color: "text-teal-600" },
               { label: "Editable", value: leads.filter((l) => l.status !== "converted").length, color: "text-blue-600" },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm text-center">

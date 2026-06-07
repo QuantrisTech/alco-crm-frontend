@@ -304,6 +304,7 @@ export default function ProgramsPage() {
 
       {/* Add Modal */}
       <Modal
+        key={isAddOpen ? "open" : "closed"}
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         title="Add New Program"

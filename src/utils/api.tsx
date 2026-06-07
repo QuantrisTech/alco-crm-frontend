@@ -113,7 +113,7 @@ export const convertLead = (id: string, data: any) => API.post(`/api/v1/leads/${
 export const markLostLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/mark-lost`, data);
 export const getActivitiesLead = (id: string) => API.get(`/api/v1/leads/${id}/activities`);
 export const addActivityLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/activities`, data);
-export const getLeadsStats = (userId?: string) => API.get("/api/v1/leads/stats", { params: userId ? { userId } : {},});
+export const getLeadsStats = (userId?: string) => API.get("/api/v1/leads/stats", { params: userId ? { userId } : {}, });
 export const markLeadInterested = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/interested`, data);
 export const updateLeadPaymentPlan = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/payment-plan`, data);
 export const submitLeadContract = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/contract`, data);
@@ -213,11 +213,13 @@ export const rejectPayment = (id: string, data: { reason: string }) => API.patch
 // ─── Finance — Reports ───────────────────────────────────────
 export const getRevenueReport = () => API.get("/api/v1/finance/reports/revenue");
 // export const getMonthlyCollections = (year?: number) => API.get("/api/v1/finance/reports/monthly", { params: { year: year || new Date().getFullYear() } });
-export const getMonthlyCollections = (year?: number) => 
-  API.get("/api/v1/finance/reports/monthly", { 
-    params: { year: year || new Date().getFullYear() } 
+export const getMonthlyCollections = (year?: number) =>
+  API.get("/api/v1/finance/reports/monthly", {
+    params: { year: year || new Date().getFullYear() }
   });
 export const getPendingReport = () => API.get("/api/v1/finance/reports/pending");
+export const searchEnrollments = (q: string) =>
+  API.get(`/api/v1/finance/enrollments/search?q=${encodeURIComponent(q)}`);
 
 // ─── Finance — Extension ─────────────────────────────────────
 export const addFinanceExtension = (data: { enrollmentId: string; days: number; reason: string }) => API.post("/api/v1/finance/extension", data);
@@ -234,12 +236,12 @@ export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", d
 export const assignEnrollment = (id: string, assigned_to: string) =>
   API.patch(`/api/v1/enrollments/${id}/assign`, { assigned_to });
 
-export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);        
+export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);
 export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
 
-export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);        
-export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);          
-export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);  
+export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);
+export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);
+export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);
 
 
 // ─── Access Control ───────────────────────────────────────────
@@ -332,21 +334,22 @@ export const adminCreateLmsResource = (data: any) => API.post("/admin/v1/lms/res
 export const adminUpdateLmsResource = (id: string, data: any) => API.put(`/admin/v1/lms/resources/${id}`, data);
 export const adminDeleteLmsResource = (id: string) => API.delete(`/admin/v1/lms/resources/${id}`);
 
-export const adminGetResources    = (params?: any) => 
+export const adminGetResources = (params?: any) =>
   API.get("/api/v1/lms/resources", { params });
 
-export const adminCreateResource  = (formData: FormData) =>
+export const adminCreateResource = (formData: FormData) =>
   API.post("/api/v1/lms/resources", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-export const adminUpdateResource  = (id: string, formData: FormData) =>
+export const adminUpdateResource = (id: string, formData: FormData) =>
   API.put(`/api/v1/lms/resources/${id}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-export const adminDeleteResource  = (id: string) =>
+export const adminDeleteResource = (id: string) =>
   API.delete(`/api/v1/lms/resources/${id}`);
+
 
 // ─── Website SEO Pages ────────────────────────────────────────
 
@@ -411,7 +414,7 @@ export interface SeoFormData {
   canonical_url: string;
   no_index: boolean;
 }
- 
+
 // Converts frontend form shape → backend model shape
 export const mapToBackend = (slug: string, label: string, form: SeoFormData) => ({
   pageSlug: slug,
@@ -443,7 +446,7 @@ export const mapToBackend = (slug: string, label: string, form: SeoFormData) => 
     follow: true,
   },
 });
- 
+
 // Converts backend response → frontend form shape
 export const mapFromBackend = (data: any): SeoFormData => ({
   title: data.title || "",
@@ -455,16 +458,16 @@ export const mapFromBackend = (data: any): SeoFormData => ({
   canonical_url: data.canonical || "",
   no_index: data.robots?.index === false,
 });
- 
+
 // ── API calls ──
- 
+
 // GET all pages (admin list)
 export const adminGetSeoPages = () => API.get("/api/v1/seo");
- 
+
 // GET single page by slug (public + admin)
 export const adminGetSeoPageBySlug = (slug: string) =>
   API.get(`/api/v1/seo/page/${slug}`);
- 
+
 // PATCH upsert — creates if not exists, updates if exists
 // export const adminUpsertSeoPage = (slug: string, label: string, form: SeoFormData) =>
 //   API.patch("/api/v1/seo/upsert", mapToBackend(slug, label, form));
@@ -476,7 +479,7 @@ export const adminGetSeoPageBySlug = (slug: string) =>
 //   });
 export const adminUpsertSeoPage = (slug: string, label: string, data: any) =>
   API.patch("/api/v1/seo/upsert", { pageSlug: slug, pageLabel: label, ...data });
- 
+
 // DELETE
 export const adminDeleteSeoPage = (slug: string) =>
   API.delete(`/api/v1/seo/${slug}`);

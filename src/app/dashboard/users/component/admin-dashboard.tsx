@@ -181,6 +181,10 @@ export default function AdminPage() {
         data={data?.users || []}
         isLoading={isLoading}
         isError={isError}
+        currentPage={page}
+        pageSize={limit}
+        totalPages={data?.totalPages}
+        onPageChange={(newPage) => setPage(newPage)}
         columns={[
           {
             key: "name",
@@ -243,7 +247,7 @@ export default function AdminPage() {
       />
 
       {/* Pagination */}
-      {(data?.totalPages ?? 0) > 1 && (
+      {/* {(data?.totalPages ?? 0) > 1 && (
         <div className="flex items-center justify-between mt-8">
           <p className="text-xs text-gray-400">
             Page <span className="font-semibold text-gray-700">{page}</span> of{" "}
@@ -266,10 +270,11 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Add User Modal */}
       <Modal
+        key={isAddOpen ? "open" : "closed"}
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         title="Add New User"
@@ -287,7 +292,7 @@ export default function AdminPage() {
           title="Edit User"
           subtitle={editingUser.name}
           fields={[]}
-          onSubmit={() => {}}
+          onSubmit={() => { }}
           isLoading={isUpdating || isAssigningRole}
           mode="edit"
           initialValues={{
