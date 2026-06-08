@@ -34,6 +34,8 @@ import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
 import EnrollmentActionsPopup from "./components/enrollment-actions-popup";
 import AssignLeadModal from "../leads/components/assign-lead-modal";
+import { UserBooksCell } from "./components/user-books-cell";
+import { AddBookPopup } from "./components/add-book-popup";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -120,6 +122,7 @@ function EnrollmentsContent() {
   const [reactivatingEnrollment, setReactivatingEnrollment] = useState<any>(null);
   const [actionsRow, setActionsRow] = useState<any>(null);
   const [assigningEnrollment, setAssigningEnrollment] = useState<any>(null);
+  const [addBookUserId, setAddBookUserId] = useState<string | null>(null);
 
   // ── Dropdown data ────────────────────────────────────────────────────────
   // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
@@ -520,6 +523,11 @@ function EnrollmentsContent() {
             ),
           },
           {
+            key: "books",
+            label: "Books",
+            render: (row) => <UserBooksCell userId={row.user?._id} />,
+          },
+          {
             key: "enrollments",
             label: "Programs",
             render: (row) => (
@@ -783,6 +791,15 @@ function EnrollmentsContent() {
           onDelete={(e) => setDeletingEnrollment(e)}
           onClose={() => setActionsRow(null)}
           onEdit={(e) => setEditingEnrollment(e)}
+          onAddBook={(userId) => setAddBookUserId(userId)}
+        />
+      )}
+
+      {/* Add Book Popup */}
+      {addBookUserId && (
+        <AddBookPopup
+          userId={addBookUserId}
+          onClose={() => setAddBookUserId(null)}
         />
       )}
 

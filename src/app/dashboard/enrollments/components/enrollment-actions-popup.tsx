@@ -1,8 +1,8 @@
 // components/EnrollmentActionsPopup.tsx
-import { GraduationCap, PauseCircle, Pencil, PlayCircle, Trash2, X } from "lucide-react";
+import { GraduationCap, PauseCircle, Pencil, PlayCircle, Trash2, X, BookPlus } from "lucide-react";
 
 interface Props {
-    row: any; // { user, enrollments[] }
+    row: any;
     isAdmin: boolean;
     onGraduate: (enrollment: any) => void;
     onSuspend: (enrollment: any) => void;
@@ -10,6 +10,7 @@ interface Props {
     onDelete: (enrollment: any) => void;
     onClose: () => void;
     onEdit: (enrollment: any) => void;
+    onAddBook: (userId: string) => void; // ✅ new
 }
 
 export default function EnrollmentActionsPopup({
@@ -21,6 +22,7 @@ export default function EnrollmentActionsPopup({
     onDelete,
     onClose,
     onEdit,
+    onAddBook,
 }: Props) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -41,6 +43,16 @@ export default function EnrollmentActionsPopup({
                         <X size={18} />
                     </button>
                 </div>
+
+                {isAdmin && (
+                    <button
+                        onClick={() => { onAddBook(row.user?._id); onClose(); }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition mb-4 border border-yellow-200"
+                    >
+                        <BookPlus size={15} />
+                        Add Book to User
+                    </button>
+                )}
 
                 {/* Enrollments List */}
                 <div className="flex flex-col gap-3">

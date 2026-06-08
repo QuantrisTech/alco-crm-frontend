@@ -262,6 +262,7 @@ export const getAllAuditLogs = (params?: any) => API.get("/api/v1/audit-logs", {
 export const getAuditLogById = (id: string) => API.get(`/api/v1/audit-logs/${id}`);
 
 // ─── LMS — Student ───────────────────────────────────────────
+export const getMyBooks = () => API.get("/api/v1/learn/my-books");
 export const getLearningDashboard = (enrollmentId: string) =>
   API.get(`/api/v1/learn/${enrollmentId}`);
 
@@ -319,6 +320,12 @@ export const gradeSubmission = (id: string, data: { points_earned: number; feedb
   API.put(`/admin/v1/instructor/submissions/${id}/grade`, data);
 
 // ─── Admin LMS Content ────────────────────────────────────────
+export const getUserBooks = (userId: string) =>
+  API.get(`/api/v1/lms/resources/user-books/${userId}`);
+
+// Admin book manually add kare user ko
+export const adminAddBookToUser = (userId: string, resourceId: string) =>
+  API.post(`/api/v1/lms/resources/add-book`, { userId, resourceId });
 export const adminGetLmsSessions = (params?: any) => API.get("/admin/v1/lms/live-sessions", { params });
 export const adminCreateLmsSession = (data: any) => API.post("/admin/v1/lms/live-sessions", data);
 export const adminUpdateLmsSession = (id: string, data: any) => API.put(`/admin/v1/lms/live-sessions/${id}`, data);

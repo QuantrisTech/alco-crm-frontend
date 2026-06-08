@@ -75,6 +75,7 @@ const menuSections: MenuSection[] = [
       { label: "Leads", href: "/dashboard/leads", icon: Users, roles: ["super_admin", "admin", "sales_manager", "sales_rep"] },
       { label: "Programs", href: "/dashboard/programs", icon: GraduationCap, roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"] },
       { label: "Courses", href: "/dashboard/courses", icon: FileVolume, roles: ["user"] },
+      { label: "Books", href: "/dashboard/my-books", icon: BookOpen, roles: ["user"] },
       { label: "Batches", href: "/dashboard/batches", icon: ClipboardList, roles: ["super_admin", "admin", "sales_manager", "sales_rep"] },
       { label: "Audit Logs", href: "/dashboard/audit-logs", icon: ScrollText, roles: ["super_admin", "admin"] },
       { label: "Payments", href: "/dashboard/payments", icon: Receipt, roles: ["user"] },
