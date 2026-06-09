@@ -22,7 +22,7 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
   const { data, isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users-for-assign"],
     queryFn: () =>
-      (authUser.role === "admin" || authUser.role === "super_admin"
+      (authUser.role === "admin" || authUser.role === "super_admin" || authUser.role === "sales_manager"
         ? adminGetAllUsers({
           page: 1,
           limit: 5000,
@@ -49,7 +49,8 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
   }
   if (authUser.role === "sales_manager") {
     // sales_manager → sirf sales_rep
-    return user.role === "sales_rep";
+    // return user.role === "sales_rep";
+     return ["sales_manager", "sales_rep"].includes(user.role);
   }
   return false;
 });

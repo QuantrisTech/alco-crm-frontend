@@ -564,9 +564,9 @@ function EnrollmentsContent() {
                         <p className="py-1 text-[10px]">
                           Assigned To
                         </p>
-                        <p className="px-2 py-1 text-[10px] rounded bg-indigo-100 text-indigo-600">
+                        <button className="px-2 py-1 text-[10px] rounded bg-indigo-100 text-indigo-600" onClick={() => setAssigningEnrollment(e)}>
                           {e.assigned_to.name}
-                        </p>
+                        </button>
                       </div>
                     ) : (
                       <button
