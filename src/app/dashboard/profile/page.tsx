@@ -350,7 +350,7 @@ export default function ProfilePage() {
         />
 
         {/* Danger Zone */}
-        {/* <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
           <h3 className="text-sm font-semibold text-red-500 flex items-center gap-2 mb-2">
             <ShieldAlert size={16} />
             Danger Zone
@@ -386,7 +386,7 @@ export default function ProfilePage() {
             confirmText="Yes, Change Password"
             cancelText="Cancel"
           />
-        </div> */}
+        </div>
 
       </div>
     </ProtectedRoute>
