@@ -4,10 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import PageHeader from "@/app/component/dashboard/page-header";
 import ProtectedRoute from "@/app/component/protected-route";
 import toast from "react-hot-toast";
-import { BookOpen, FileText, ImageIcon } from "lucide-react";
+import { BookOpen, FileText, ImageIcon, Lock } from "lucide-react";
 import { getMyBooks } from "@/utils/api";
 
-// ── Download helper ───────────────────────────────────────────
 const handleDownload = async (url: string, filename: string) => {
   try {
     const toastId = toast.loading("Downloading...");
@@ -31,7 +30,7 @@ const handleDownload = async (url: string, filename: string) => {
 export default function MyBooksPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["my-books"],
-    queryFn:  () => getMyBooks().then((r) => r.data),
+    queryFn: () => getMyBooks().then((r) => r.data),
   });
 
   return (
@@ -42,7 +41,7 @@ export default function MyBooksPage() {
         titleIcon={<BookOpen size={24} />}
         totalCount={data?.data?.length ?? 0}
         filters={{}}
-        setFilters={() => {}}
+        setFilters={() => { }}
         filterFields={[]}
       />
 
@@ -62,55 +61,77 @@ export default function MyBooksPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {data?.data?.map((book: any) => (
-            <div
-              key={book._id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition"
-            >
-              {/* Cover */}
-              <div className="relative w-full h-52 bg-gray-50">
-                {book.cover_image_url ? (
-                  <img
-                    src={book.cover_image_url}
-                    alt={book.title}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-200">
-                    <ImageIcon size={40} />
-                  </div>
-                )}
-              </div>
+          {data?.data?.map((book: any) => {
+            const isAvailable = !!book.file_url;
 
-              {/* Info */}
-              <div className="p-4 border-b border-gray-50">
-                <h3 className="font-semibold text-gray-800 text-sm mb-1 line-clamp-2">
-                  {book.title}
-                </h3>
-                {book.description && (
-                  <p className="text-xs text-gray-400 line-clamp-2">{book.description}</p>
-                )}
-              </div>
+            return (
+              <div
+                key={book._id}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition"
+              >
+                {/* Cover */}
+                <div className="relative w-full h-52 bg-gray-50">
+                  {book.cover_image_url ? (
+                    <img
+                      src={book.cover_image_url}
+                      alt={book.title}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-200">
+                      <ImageIcon size={40} />
+                    </div>
+                  )}
 
-              {/* Actions */}
-              <div className="px-4 py-3 flex items-center gap-2">
-                <a
-                  href={book.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition font-medium"
-                >
-                  <FileText size={12} /> View PDF
-                </a>
-                <button
-                  onClick={() => handleDownload(book.file_url, book.title)}
-                  className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition font-medium"
-                >
-                  <FileText size={12} /> Download
-                </button>
+                  {/* Unavailable overlay badge */}
+                  {!isAvailable && (
+                    <div className="absolute inset-0 bg-black/30 flex items-end p-3">
+                      <span className="flex items-center gap-1 text-xs font-medium bg-gray-800/80 text-gray-100 px-2.5 py-1 rounded-full">
+                        <Lock size={11} />
+                        Unavailable
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="p-4 border-b border-gray-50">
+                  <h3 className="font-semibold text-gray-800 text-sm mb-1 line-clamp-2">
+                    {book.title}
+                  </h3>
+                  {book.description && (
+                    <p className="text-xs text-gray-400 line-clamp-2">{book.description}</p>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="px-4 py-3 flex items-center gap-2">
+                  {isAvailable ? (
+                    <>
+                      <a
+                        href={book.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition font-medium"
+                      >
+                        <FileText size={12} /> View PDF
+                      </a>
+                      <button
+                        onClick={() => handleDownload(book.file_url, book.title)}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition font-medium"
+                      >
+                        <FileText size={12} /> Download
+                      </button>
+                    </>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-gray-50 text-gray-400 font-medium cursor-not-allowed">
+                      <Lock size={12} /> Not available yet
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </ProtectedRoute>

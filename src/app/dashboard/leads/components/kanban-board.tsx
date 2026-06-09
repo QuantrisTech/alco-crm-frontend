@@ -6,10 +6,10 @@ import EnrollmentCard from "./kanban-enrollment-card";
 
 export default function KanbanBoard({
   leads,
-  enrollments,        // <-- alag prop, enrollments API se
+  enrollments,
   programMap,
   actions,
-  onViewEnrollment,   // optional: parent apna custom modal open kar sakta hai
+  onViewEnrollment,
   filters,
 }: any) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -19,9 +19,7 @@ export default function KanbanBoard({
 
   // ── Leads ko pipeline stages mein group karo ──
   const grouped: Record<string, any[]> = {};
-  PIPELINE_STAGES.forEach((s) => {
-    grouped[s.key] = [];
-  });
+  PIPELINE_STAGES.forEach((s) => { grouped[s.key] = []; });
 
   (leads || []).forEach((lead: any) => {
     if (lead.status === "lost") {
@@ -33,49 +31,52 @@ export default function KanbanBoard({
     if (grouped[key]) grouped[key].push(lead);
   });
 
-  // ── Enrollments alag array hai — leads se independent ──
-  // const enrollmentList: any[] = enrollments || [];
-  //   const enrollmentList: any[] = (enrollments || []).filter((e: any) => {
-  //   if (!filters?.search) return true;
-  //   const q = filters.search.toLowerCase();
-  //   const name = (e.leadSnapshot?.contractDetails?.fullName || "").toLowerCase();
-  //   const email = (e.leadSnapshot?.contractDetails?.email || "").toLowerCase();
-  //   const phone = (e.leadSnapshot?.contractDetails?.phone || "").toLowerCase();
-  //   return name.includes(q) || email.includes(q) || phone.includes(q);
-  // });
-  const enrollmentList = (enrollments || [])
-    .flatMap((item: any) =>
-      (item.enrollments || []).map((enr: any) => ({
-        ...enr,
-        user: item.user,
-      }))
-    )
-    .filter((e: any) => {
-      if (!filters?.search) return true;
+  // ── Enrollments: user ke by group karo (1 card per user) ──
+  const userEnrollmentMap = new Map<string, any>();
+
+  (enrollments || []).forEach((item: any) => {
+    const userId = item.user?._id;
+    if (!userId) return;
+
+    // search filter
+    if (filters?.search) {
       const q = filters.search.toLowerCase();
-      const name = (e.user?.name || "").toLowerCase();
-      const email = (e.user?.email || "").toLowerCase();
-      const phone = (e.user?.phone || "").toLowerCase();
-      return name.includes(q) || email.includes(q) || phone.includes(q);
-    });
+      const name = (item.user?.name || "").toLowerCase();
+      const email = (item.user?.email || "").toLowerCase();
+      const phone = (item.user?.phone || "").toLowerCase();
+      if (!name.includes(q) && !email.includes(q) && !phone.includes(q)) return;
+    }
+
+    if (userEnrollmentMap.has(userId)) {
+      // already hai — enrollments merge karo
+      const existing = userEnrollmentMap.get(userId);
+      existing.enrollments = [...existing.enrollments, ...(item.enrollments || [])];
+    } else {
+      userEnrollmentMap.set(userId, {
+        user: item.user,
+        enrollments: [...(item.enrollments || [])],
+      });
+    }
+  });
+
+  const groupedEnrollments = Array.from(userEnrollmentMap.values());
 
   // ── Column value & count ──
   const colValue = (key: string) => {
     if (key === "enrolled") {
-      return enrollmentList.reduce(
-        (sum: number, e: any) =>
-          sum + (Number(e.leadSnapshot?.opportunity_value) || 0),
-        0
+      return groupedEnrollments.reduce((sum: number, item: any) =>
+        sum + item.enrollments.reduce((s: number, e: any) =>
+          s + (Number(e.leadSnapshot?.opportunity_value) || 0), 0
+        ), 0
       );
     }
     return grouped[key]?.reduce(
-      (sum: number, l: any) => sum + (Number(l.opportunity_value) || 0),
-      0
+      (sum: number, l: any) => sum + (Number(l.opportunity_value) || 0), 0
     ) ?? 0;
   };
 
   const colCount = (key: string) => {
-    if (key === "enrolled") return enrollmentList.length;
+    if (key === "enrolled") return groupedEnrollments.length; // user count, not enrollment count
     return grouped[key]?.length ?? 0;
   };
 
@@ -110,15 +111,11 @@ export default function KanbanBoard({
           <div key={stage.key} className="w-64 shrink-0 flex flex-col">
 
             {/* ── Column Header ── */}
-            <div
-              className={`rounded-xl border-t-4 ${stage.color} ${stage.bg} px-3 py-2.5 mb-2`}
-            >
+            <div className={`rounded-xl border-t-4 ${stage.color} ${stage.bg} px-3 py-2.5 mb-2`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   <stage.icon size={13} className="text-gray-500 shrink-0" />
-                  <p className="text-xs font-semibold text-gray-700">
-                    {stage.label}
-                  </p>
+                  <p className="text-xs font-semibold text-gray-700">{stage.label}</p>
                 </div>
                 <span className="text-xs font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full">
                   {colCount(stage.key)}
@@ -132,26 +129,26 @@ export default function KanbanBoard({
             </div>
 
             {/* ── Cards ── */}
-            {/* <div className="flex flex-col gap-2 flex-1 overflow-y-auto h-full pr-1 kanban-mini-scroll"> */}
-            <div className="flex flex-col gap-2 overflow-y-auto pr-1 kanban-mini-scroll" style={{ maxHeight: "calc(100vh - 220px)" }}>
-
+            <div
+              className="flex flex-col gap-2 overflow-y-auto pr-1 kanban-mini-scroll"
+              style={{ maxHeight: "calc(100vh - 220px)" }}
+            >
               {stage.key === "enrolled" ? (
-                // ── Enrolled column: EnrollmentCards render karo ──
-                enrollmentList.length === 0 ? (
+                groupedEnrollments.length === 0 ? (
                   <div className="text-center py-6 text-xs text-gray-400 border-2 border-dashed border-gray-100 rounded-xl">
                     No enrollments yet
                   </div>
                 ) : (
-                  enrollmentList.map((enrollment: any) => (
+                  groupedEnrollments.map((item: any) => (
                     <EnrollmentCard
-                      key={enrollment._id}
-                      enrollment={enrollment}
+                      key={item.user._id}
+                      user={item.user}
+                      enrollments={item.enrollments}
                       onViewEnrollment={onViewEnrollment}
                     />
                   ))
                 )
               ) : (
-                // ── Baaki sab columns: KanbanCards (leads) ──
                 grouped[stage.key]?.length === 0 ? (
                   <div className="text-center py-6 text-xs text-gray-400 border-2 border-dashed border-gray-100 rounded-xl">
                     No leads
@@ -168,7 +165,6 @@ export default function KanbanBoard({
                   ))
                 )
               )}
-
             </div>
           </div>
         ))}

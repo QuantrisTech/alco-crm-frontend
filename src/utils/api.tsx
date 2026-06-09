@@ -321,7 +321,7 @@ export const gradeSubmission = (id: string, data: { points_earned: number; feedb
 
 // ─── Admin LMS Content ────────────────────────────────────────
 export const getUserBooks = (userId: string) =>
-  API.get(`/api/v1/lms/resources/user-books/${userId}`);
+  API.get(`/api/v1/lms/user-books/${userId}`);
 
 // Admin book manually add kare user ko
 export const adminAddBookToUser = (userId: string, resourceId: string) =>

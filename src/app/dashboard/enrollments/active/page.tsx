@@ -20,47 +20,17 @@ import Modal from "@/app/component/ui/model/modal";
 import Popup from "@/app/component/ui/popup/popup";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
-import {
-  BookOpen,
-  Pencil,
-  Trash2,
-  GraduationCap,
-  PauseCircle,
-  PlayCircle,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
-import EnrollmentActionsPopup from "./components/enrollment-actions-popup";
-import AssignLeadModal from "../leads/components/assign-lead-modal";
-import { UserBooksCell } from "./components/user-books-cell";
-import { AddBookPopup } from "./components/add-book-popup";
-import CollapsedCell from "./components/collapsed-cell";
+import EnrollmentActionsPopup from "../components/enrollment-actions-popup";
+import AssignLeadModal from "../../leads/components/assign-lead-modal";
+import { UserBooksCell } from "../components/user-books-cell";
+import { AddBookPopup } from "../components/add-book-popup";
+import CollapsedCell from "../components/collapsed-cell";
+import { statusColor } from "../page";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
-
-export const statusColor = (status: string) => {
-  const map: Record<string, string> = {
-    active: "bg-green-100 text-green-700",
-    completed: "bg-teal-100 text-teal-700",
-    suspended: "bg-yellow-100 text-yellow-700",
-    cancelled: "bg-gray-100 text-gray-600",
-    blocked: "bg-rose-100 text-rose-700",
-  };
-  return map[status] || "bg-gray-100 text-gray-600";
-};
-
-const accessColor = (status: string) => {
-  const map: Record<string, string> = {
-    ACTIVE: "bg-green-100 text-green-700",
-    GRACE: "bg-yellow-100 text-yellow-700",
-    EXTENDED: "bg-indigo-100 text-indigo-700",
-    RESTRICTED: "bg-orange-100 text-orange-700",
-    BLOCKED: "bg-rose-100 text-rose-700",
-  };
-  return map[status] || "bg-gray-100 text-gray-600";
-};
 
 const roleColor = (role: string) => {
   const map: Record<string, string> = {
@@ -73,35 +43,9 @@ const roleColor = (role: string) => {
   return map[role] || "bg-gray-100 text-gray-600";
 };
 
-// ─── Edit Fields (static) ──────────────────────────────────────────────────────
-
-// const editFields: ModalField[] = [
-//   {
-//     name: "progress",
-//     label: "Progress (%)",
-//     type: "input",
-//     inputType: "number",
-//     placeholder: "0-100",
-//   },
-//   {
-//     name: "status",
-//     label: "Status",
-//     type: "select",
-//     options: [
-//       { label: "Active", value: "active" },
-//       { label: "Pending", value: "pending" },
-//       { label: "Completed", value: "completed" },
-//       { label: "Suspended", value: "suspended" },
-//       { label: "Cancelled", value: "cancelled" },
-//       { label: "Blocked", value: "blocked" },
-//     ],
-//   },
-// ];
-
-
 // ─── Main Content ──────────────────────────────────────────────────────────────
 
-function EnrollmentsContent() {
+function ActiveEnrollmentsContent() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
   const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
@@ -110,11 +54,12 @@ function EnrollmentsContent() {
   const canAction = isAdmin || isSalesManager;
 
   const [filters, setFilters] = useState<Record<string, string>>({
-    status: "",
+    status: "active",
     search: "",
     page: "1",
     limit: "10",
   });
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingEnrollment, setEditingEnrollment] = useState<any>(null);
   const [deletingEnrollment, setDeletingEnrollment] = useState<any>(null);
@@ -125,38 +70,30 @@ function EnrollmentsContent() {
   const [assigningEnrollment, setAssigningEnrollment] = useState<any>(null);
   const [addBookUserId, setAddBookUserId] = useState<string | null>(null);
 
-  // ── Dropdown data ────────────────────────────────────────────────────────
-  // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
+  // ── Dropdown data ─────────────────────────────────────────────────────────
   const { data: programs = [] } = useQuery({
     queryKey: ["program-names"],
     queryFn: getNamesPrograms,
-    // staleTime: 1000 * 60 * 5,
   });
 
-  // getAllUsersForRole returns { data: User[] }
   const { data: usersRes } = useQuery({
     queryKey: ["all-users-role"],
     queryFn: () => getAllUsersForRole().then((r) => r.data),
-    // staleTime: 1000 * 60 * 5,
   });
-  // const users = (usersRes?.users ?? []).filter((u: any) => u.role === "user");
+
   const users = (usersRes?.users ?? [])
     .filter((u: any) => u.role === "user")
     .filter((u: any, idx: number, arr: any[]) =>
-      arr.findIndex((x) => x._id === u._id) === idx  // dedupe by _id
+      arr.findIndex((x) => x._id === u._id) === idx
     );
 
-  console.log("Users for dropdown:", users);
-
-  // adminGetBatches — only active batches for dropdown
   const { data: batchesRes } = useQuery({
     queryKey: ["batches-active"],
     queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
-    // staleTime: 1000 * 60 * 2,
   });
   const activeBatches = batchesRes?.data ?? [];
 
-  // ── Dynamic create fields with dropdowns ─────────────────────────────────
+  // ── Fields ────────────────────────────────────────────────────────────────
   const createFields: ModalField[] = [
     {
       name: "user",
@@ -173,10 +110,7 @@ function EnrollmentsContent() {
       label: "Program*",
       type: "select",
       required: true,
-      options: programs.map((p: any) => ({
-        label: p.name,
-        value: p._id,
-      })),
+      options: programs.map((p: any) => ({ label: p.name, value: p._id })),
     },
     {
       name: "batch",
@@ -185,10 +119,7 @@ function EnrollmentsContent() {
       type: "select",
       options: [
         { label: "— None —", value: "" },
-        ...activeBatches.map((b: any) => ({
-          label: b.name,
-          value: b._id,
-        })),
+        ...activeBatches.map((b: any) => ({ label: b.name, value: b._id })),
       ],
     },
   ];
@@ -201,39 +132,11 @@ function EnrollmentsContent() {
       inputType: "number",
       placeholder: "0-100",
     },
-    // {
-    //   name: "status",
-    //   label: "Status",
-    //   type: "select",
-    //   options: [
-    //     { label: "Active", value: "active" },
-    //     { label: "Pending", value: "pending" },
-    //     { label: "Completed", value: "completed" },
-    //     { label: "Suspended", value: "suspended" },
-    //     { label: "Cancelled", value: "cancelled" },
-    //     { label: "Blocked", value: "blocked" },
-    //   ],
-    // },
-    // {
-    //   name: "accessStatus",
-    //   label: "Access Status",
-    //   type: "select",
-    //   options: [
-    //     { label: "Active", value: "ACTIVE" },
-    //     { label: "Grace", value: "GRACE" },
-    //     { label: "Extended", value: "EXTENDED" },
-    //     { label: "Restricted", value: "RESTRICTED" },
-    //     { label: "Blocked", value: "BLOCKED" },
-    //   ],
-    // },
     {
       name: "program_id",
       label: "Program",
       type: "select",
-      options: programs.map((p: any) => ({
-        label: p.name,
-        value: p._id,
-      })),
+      options: programs.map((p: any) => ({ label: p.name, value: p._id })),
     },
     {
       name: "batch_id",
@@ -241,28 +144,13 @@ function EnrollmentsContent() {
       type: "select",
       options: [
         { label: "— None —", value: "" },
-        ...activeBatches.map((b: any) => ({
-          label: b.name,
-          value: b._id,
-        })),
+        ...activeBatches.map((b: any) => ({ label: b.name, value: b._id })),
       ],
     },
   ];
 
-  // ── Filter fields ─────────────────────────────────────────────────────────
   const filterFields: FilterField[] = [
     { type: "input", name: "search", placeholder: "Search..." },
-    {
-      type: "select",
-      name: "status",
-      options: [
-        { label: "Active", value: "active" },
-        { label: "Completed", value: "completed" },
-        { label: "Suspended", value: "suspended" },
-        // { label: "Cancelled", value: "cancelled" },
-        // { label: "Blocked", value: "blocked" },
-      ],
-    },
   ];
 
   // ── Main query ────────────────────────────────────────────────────────────
@@ -284,8 +172,7 @@ function EnrollmentsContent() {
       setIsAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ["enrollments"] });
     },
-    onError: (e: any) =>
-      toast.error(e?.response?.data?.message || "Failed!"),
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
   const { mutate: editEnrollment, isPending: isUpdating } = useMutation({
@@ -339,38 +226,23 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed!"),
   });
 
-  const { mutate: assignEnrollmentMutate, isPending: isAssigning } =
-    useMutation({
-      mutationFn: ({
-        id,
-        assigned_to,
-      }: {
-        id: string;
-        assigned_to: string;
-      }) => assignEnrollment(id, assigned_to),
-
-      onSuccess: () => {
-        toast.success("Enrollment assigned successfully");
-        setAssigningEnrollment(null);
-
-        queryClient.invalidateQueries({
-          queryKey: ["enrollments"],
-        });
-      },
-
-      onError: (err: any) => {
-        toast.error(
-          err?.response?.data?.message || "Failed to assign enrollment"
-        );
-      },
-    });
+  const { mutate: assignEnrollmentMutate, isPending: isAssigning } = useMutation({
+    mutationFn: ({ id, assigned_to }: { id: string; assigned_to: string }) =>
+      assignEnrollment(id, assigned_to),
+    onSuccess: () => {
+      toast.success("Enrollment assigned successfully");
+      setAssigningEnrollment(null);
+      queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message || "Failed to assign enrollment"),
+  });
 
   const currentPage = Number(filters.page);
   const limit = Number(filters.limit);
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = (newPage: number) =>
     setFilters((prev) => ({ ...prev, page: String(newPage) }));
-  };
 
   const enrolledCombinations = new Set(
     (data?.data ?? []).flatMap((row: any) =>
@@ -381,24 +253,26 @@ function EnrollmentsContent() {
   const handleAddEnrollment = (formData: any) => {
     const key = `${formData.user}_${formData.program}`;
     if (enrolledCombinations.has(key)) {
-      toast.error("user is already enrolled in this program!");
+      toast.error("User is already enrolled in this program!");
       return;
     }
     addEnrollment(formData);
   };
-  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <>
       <PageHeader
-        title="Enrollments"
-        subtitle="Manage all student enrollments"
+        title="Active Enrollments"
+        subtitle="Students currently enrolled and active"
         titleIcon={<BookOpen size={24} />}
         totalCount={data?.meta?.total ?? 0}
-        onAdd={canAdd ? () => setIsAddOpen(true) : undefined}
-        filters={filters}
-        setFilters={setFilters}
-        filterFields={filterFields}
+        // onAdd={canAdd ? () => setIsAddOpen(true) : undefined}
+        // filters={filters}
+        // setFilters={(newFilters) =>
+        //   // ✅ FIX: status: "active" preserve karo, search/page properly merge ho
+        //   setFilters((prev) => ({ ...prev, ...newFilters, status: "active" }))
+        // }
+        // filterFields={filterFields}
       />
 
       <DynamicTable
@@ -410,104 +284,12 @@ function EnrollmentsContent() {
         hideToggle={false}
         totalPages={data?.meta?.totalPages}
         onPageChange={handlePageChange}
-        // columns={[
-        //   {
-        //     key: "user",
-        //     label: "Student",
-        //     render: (e) => (
-        //       <div className="flex items-center gap-2">
-        //         <div>
-        //           <p className="font-medium text-gray-800">
-        //             {e.user?.name || "—"}
-        //           </p>
-        //           <p className="text-xs text-gray-400">{e.user?.email}</p>
-        //         </div>
-        //       </div>
-        //     ),
-        //   },
-        //   {
-        //     key: "role",
-        //     label: "Role",
-        //     render: (e) => (
-        //       <span
-        //         className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColor(e.user?.role)}`}
-        //       >
-        //         {e.user?.role || "—"}
-        //       </span>
-        //     ),
-        //   },
-        //   {
-        //     key: "program",
-        //     label: "Program",
-        //     render: (e) => (
-        //       <span className="text-gray-700">{e.program?.name || "—"}</span>
-        //     ),
-        //   },
-        //   {
-        //     key: "batch",
-        //     label: "Batch",
-        //     render: (e) => (
-        //       <span className="text-gray-500 text-sm">
-        //         {e.batch?.name || "—"}
-        //       </span>
-        //     ),
-        //   },
-        //   {
-        //     key: "status",
-        //     label: "Status",
-        //     render: (e) => (
-        //       <span
-        //         className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(e.status)}`}
-        //       >
-        //         {e.status}
-        //       </span>
-        //     ),
-        //   },
-        //   {
-        //     key: "accessStatus",
-        //     label: "Access",
-        //     render: (e) => (
-        //       <span
-        //         className={`px-2.5 py-1 rounded-full text-xs font-medium ${accessColor(e.accessStatus)}`}
-        //       >
-        //         {e.accessStatus || "—"}
-        //       </span>
-        //     ),
-        //   },
-        //   {
-        //     key: "progress",
-        //     label: "Progress",
-        //     render: (e) => (
-        //       <div className="flex items-center gap-2">
-        //         <div className="w-16 bg-gray-100 rounded-full h-1.5">
-        //           <div
-        //             className="h-1.5 rounded-full bg-yellow-400"
-        //             style={{ width: `${e.progress || 0}%` }}
-        //           />
-        //         </div>
-        //         <span className="text-xs text-gray-500">
-        //           {e.progress || 0}%
-        //         </span>
-        //       </div>
-        //     ),
-        //   },
-        //   {
-        //     key: "enrolledAt",
-        //     label: "Enrolled",
-        //     render: (e) => (
-        //       <span className="text-gray-400 text-sm">
-        //         {e.enrolledAt
-        //           ? new Date(e.enrolledAt).toLocaleDateString()
-        //           : "—"}
-        //       </span>
-        //     ),
-        //   },
-        // ]}
         columns={[
           {
             key: "user",
             label: "Student",
-            render: (row) => (   // row = { user, enrollments[] }
+            minWidth: "180px",
+            render: (row) => (
               <div>
                 <p className="font-medium text-gray-800">{row.user?.name || "—"}</p>
                 <p className="text-xs text-gray-400">{row.user?.email}</p>
@@ -526,30 +308,14 @@ function EnrollmentsContent() {
           {
             key: "books",
             label: "Books",
-            render: (row) => <UserBooksCell 
-            
-            userId={row.user?._id} 
-            
-                minWidth="w-[200px]"
-                tooltipWidth="w-64"
-            />,
+            minWidth: "140px",
+            render: (row) => <UserBooksCell userId={row.user?._id} />,
           },
           {
             key: "enrollments",
             label: "Programs",
-            minWidth: "350px",
+            minWidth: "200px",
             render: (row) => (
-              // <div className="flex flex-col gap-1  w-56 ">
-              //   {row.enrollments.map((e: any) => (
-              //     <span key={e._id} className="text-sm text-gray-700 w-56 truncate">
-              //       - {e.program?.name || "—"}
-              //       <br />
-              //       <span className="text-[10px] text-gray-400 ml-2">
-              //         ({e.batch?.name || "No Batch"})
-              //       </span>
-              //     </span>
-              //   ))}
-              // </div>
               <CollapsedCell
                 items={row.enrollments.map((e: any) => (
                   <div key={e._id} className="relative ">
@@ -590,22 +356,6 @@ function EnrollmentsContent() {
               />
             ),
           },
-          // {
-          //   key: "status",
-          //   label: "Status",
-          //   render: (row) => (
-          //     <div className="flex flex-col gap-1">
-          //       {row.enrollments.map((e: any) => (
-          //         <span
-          //           key={e._id}
-          //           className={`px-2.5 py-1 rounded-full text-xs font-medium w-fit ${statusColor(e.status)}`}
-          //         >
-          //           {e.status}
-          //         </span>
-          //       ))}
-          //     </div>
-          //   ),
-          // },
           {
             key: "enrolledAt",
             label: "Enrolled",
@@ -618,67 +368,27 @@ function EnrollmentsContent() {
             ),
           },
         ]}
-
-        // actions={canAction ? [
-        //   {
-        //     icon: <Pencil size={14} />,
-        //     label: "Edit",
-        //     onClick: (e) => setEditingEnrollment(e),
-        //     className: "hover:bg-yellow-50 hover:text-yellow-600",
-        //   },
-        //   {
-        //     icon: <GraduationCap size={14} />,
-        //     label: "Graduate",
-        //     onClick: (e) => setGraduatingEnrollment(e),
-        //     className: "hover:bg-teal-50 hover:text-teal-600",
-        //     hidden: (e) => e.isGraduated || e.status !== "active",
-        //   },
-        //   {
-        //     icon: <PauseCircle size={14} />,
-        //     label: "Suspend",
-        //     onClick: (e) => setSuspendingEnrollment(e),
-        //     className: "hover:bg-yellow-50 hover:text-yellow-600",
-        //     hidden: (e) => e.status !== "active",
-        //   },
-        //   {
-        //     icon: <PlayCircle size={14} />,
-        //     label: "Reactivate",
-        //     onClick: (e) => setReactivatingEnrollment(e),
-        //     className: "hover:bg-green-50 hover:text-green-600",
-        //     hidden: (e) => e.status !== "suspended",
-        //   },
-        //   {
-        //     icon: <Trash2 size={14} />,
-        //     label: "Delete",
-        //     onClick: (e) => setDeletingEnrollment(e),
-        //     className: "hover:bg-rose-50 hover:text-rose-500",
-        //     hidden: () => !isAdmin, // sirf admin delete kar sakta
-        //   },
-        // ] : []}
         actions={canAction ? [
           {
             icon: <BookOpen size={14} />,
             label: "Actions",
-            onClick: (row) => setActionsRow(row), // sirf popup kholo
+            onClick: (row) => setActionsRow(row),
             className: "hover:bg-blue-50 hover:text-blue-600",
           },
         ] : []}
       />
 
-      {/* Add Modal — dropdowns for user, program, batch */}
       <Modal
         key={isAddOpen ? "open" : "closed"}
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         title="Create Enrollment"
         fields={createFields}
-        // onSubmit={addEnrollment}
         onSubmit={handleAddEnrollment}
         isLoading={isAdding}
         mode="add"
       />
 
-      {/* Edit Modal */}
       {editingEnrollment && (
         <Modal
           isOpen={!!editingEnrollment}
@@ -686,27 +396,17 @@ function EnrollmentsContent() {
           title="Edit Enrollment"
           subtitle={editingEnrollment.user?.name}
           fields={editFields}
-          // initialValues={{
-          //   progress: editingEnrollment.progress || 0,
-          //   // status: editingEnrollment.status,
-          //   batch_id: editingEnrollment.batch_id?._id || editingEnrollment.batch_id || "",
-          //   program_id: editingEnrollment.program_id?._id || editingEnrollment.program_id || "",
-          //   // accessStatus: editingEnrollment.accessStatus || "",
-          // }}
           initialValues={{
             progress: editingEnrollment.progress || 0,
             batch_id: editingEnrollment.batch?._id || editingEnrollment.batch || "",
             program_id: editingEnrollment.program?._id || editingEnrollment.program || "",
           }}
-          onSubmit={(data) =>
-            editEnrollment({ id: editingEnrollment._id, data })
-          }
+          onSubmit={(data) => editEnrollment({ id: editingEnrollment._id, data })}
           isLoading={isUpdating}
           mode="edit"
         />
       )}
 
-      {/* Graduate Popup */}
       {graduatingEnrollment && (
         <Popup
           isOpen={!!graduatingEnrollment}
@@ -714,22 +414,13 @@ function EnrollmentsContent() {
           onConfirm={() => graduate(graduatingEnrollment._id)}
           variant="info"
           title="Graduate Student"
-          description={
-            <>
-              Mark{" "}
-              <span className="font-bold text-teal-600">
-                {graduatingEnrollment.user?.name}
-              </span>{" "}
-              as graduated?
-            </>
-          }
+          description={<>Mark <span className="font-bold text-teal-600">{graduatingEnrollment.user?.name}</span> as graduated?</>}
           confirmText="Yes, Graduate 🎓"
           isLoading={isGraduating}
           loadingText="Processing..."
         />
       )}
 
-      {/* Suspend Popup */}
       {suspendingEnrollment && (
         <Popup
           isOpen={!!suspendingEnrollment}
@@ -737,22 +428,13 @@ function EnrollmentsContent() {
           onConfirm={() => suspend(suspendingEnrollment._id)}
           variant="danger"
           title="Suspend Enrollment"
-          description={
-            <>
-              Suspend enrollment of{" "}
-              <span className="font-bold text-yellow-600">
-                {suspendingEnrollment.user?.name}
-              </span>
-              ?
-            </>
-          }
+          description={<>Suspend enrollment of <span className="font-bold text-yellow-600">{suspendingEnrollment.user?.name}</span>?</>}
           confirmText="Yes, Suspend"
           isLoading={isSuspending}
           loadingText="Suspending..."
         />
       )}
 
-      {/* Reactivate Popup */}
       {reactivatingEnrollment && (
         <Popup
           isOpen={!!reactivatingEnrollment}
@@ -760,22 +442,13 @@ function EnrollmentsContent() {
           onConfirm={() => reactivate(reactivatingEnrollment._id)}
           variant="info"
           title="Reactivate Enrollment"
-          description={
-            <>
-              Reactivate enrollment of{" "}
-              <span className="font-bold text-green-600">
-                {reactivatingEnrollment.user?.name}
-              </span>
-              ?
-            </>
-          }
+          description={<>Reactivate enrollment of <span className="font-bold text-green-600">{reactivatingEnrollment.user?.name}</span>?</>}
           confirmText="Yes, Reactivate"
           isLoading={isReactivating}
           loadingText="Reactivating..."
         />
       )}
 
-      {/* Delete Popup */}
       {deletingEnrollment && (
         <Popup
           isOpen={!!deletingEnrollment}
@@ -783,15 +456,7 @@ function EnrollmentsContent() {
           onConfirm={() => deleteEnroll(deletingEnrollment._id)}
           variant="danger"
           title="Delete Enrollment"
-          description={
-            <>
-              Delete enrollment of{" "}
-              <span className="font-bold text-rose-500">
-                {deletingEnrollment.user?.name}
-              </span>
-              ? This cannot be undone.
-            </>
-          }
+          description={<>Delete enrollment of <span className="font-bold text-rose-500">{deletingEnrollment.user?.name}</span>? This cannot be undone.</>}
           confirmText="Yes, Delete"
           isLoading={isDeleting}
           loadingText="Deleting..."
@@ -812,12 +477,8 @@ function EnrollmentsContent() {
         />
       )}
 
-      {/* Add Book Popup */}
       {addBookUserId && (
-        <AddBookPopup
-          userId={addBookUserId}
-          onClose={() => setAddBookUserId(null)}
-        />
+        <AddBookPopup userId={addBookUserId} onClose={() => setAddBookUserId(null)} />
       )}
 
       {assigningEnrollment && (
@@ -831,10 +492,7 @@ function EnrollmentsContent() {
           isLoading={isAssigning}
           onClose={() => setAssigningEnrollment(null)}
           onAssign={(userId) =>
-            assignEnrollmentMutate({
-              id: assigningEnrollment._id,
-              assigned_to: userId,
-            })
+            assignEnrollmentMutate({ id: assigningEnrollment._id, assigned_to: userId })
           }
         />
       )}
@@ -842,10 +500,10 @@ function EnrollmentsContent() {
   );
 }
 
-export default function EnrollmentsPage() {
+export default function ActiveEnrollmentsPage() {
   return (
     <ProtectedRoute allowedRoles={["admin", "super_admin", "finance_manager", "sales_manager", "sales_rep"]}>
-      <EnrollmentsContent />
+      <ActiveEnrollmentsContent />
     </ProtectedRoute>
   );
 }

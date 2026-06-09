@@ -93,7 +93,9 @@ const menuSections: MenuSection[] = [
         roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"],
         children: [
           { label: "All Enrollments", href: "/dashboard/enrollments" },
-          { label: "Pending", href: "/dashboard/enrollments/pending" },
+          { label: "Active", href: "/dashboard/enrollments/active" },
+          { label: "Completed", href: "/dashboard/enrollments/completed" },
+          { label: "Suspended", href: "/dashboard/enrollments/suspended" },
         ],
       },
       {
