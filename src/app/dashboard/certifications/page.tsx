@@ -1,3 +1,4 @@
+"use client"
 import React from 'react'
 import PageHeader from '@/app/component/dashboard/page-header'
 import ProtectedRoute from '@/app/component/protected-route'
