@@ -4,6 +4,7 @@ import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
 // icon
 import { Plus, Trash2, TrendingUp } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 export type FilterField = {
   type: "input" | "select";
@@ -41,11 +42,15 @@ export default function PageHeader({
   filterFields,
   actions, // ✅ new
 }: HeaderProps) {
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  const role = authUser?.role;
+  const isUserForResponsive = role === "user";
+
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}>
       {/* Left Side */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <h1 className={`${isUserForResponsive ? "text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2" : "text-2xl font-bold text-gray-800 flex items-center gap-2"}`}>
           {titleIcon && <span className="flex items-center">{titleIcon}</span>}
           {title}
         </h1>
@@ -53,10 +58,9 @@ export default function PageHeader({
       </div>
 
       {/* Right Side */}
-      <div className="flex items-center gap-3">
+      <div className={isUserForResponsive ? "flex items-center gap-3 mt-2" : "flex items-center gap-3"}>
         {/* ✅ Custom actions slot */}
         {actions}
-
         {onAdd && (
           <button
             onClick={onAdd}

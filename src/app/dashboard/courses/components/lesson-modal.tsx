@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import formatDuration from "@/utils/func";
+import { useAppSelector } from "@/store/hooks";
 
 type Props = {
     enrollmentId: any;
@@ -21,7 +22,7 @@ type Props = {
     onLessonChange?: (lessonId: string) => void;
 };
 
-// ── Custom Audio Player (no download, no seek) ───────────────
+// ── Custom Audio Player ───────────────────────────────────────
 function SecureAudioPlayer({
     src,
     onProgress,
@@ -39,42 +40,28 @@ function SecureAudioPlayer({
     const [duration, setDuration] = useState(0);
     const [loaded, setLoaded] = useState(false);
 
-    // Restore saved position once metadata loaded
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
-
         const onMeta = () => {
             setDuration(audio.duration);
             setLoaded(true);
-            if (savedSeconds && savedSeconds > 0) {
-                audio.currentTime = savedSeconds;
-            }
+            if (savedSeconds && savedSeconds > 0) audio.currentTime = savedSeconds;
         };
         audio.addEventListener("loadedmetadata", onMeta);
         return () => audio.removeEventListener("loadedmetadata", onMeta);
     }, [src]);
 
-    // Time update
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
-
         const onTime = () => {
             const ct = audio.currentTime;
             const dur = audio.duration;
             setCurrentTime(ct);
-            if (dur > 0) {
-                const pct = Math.round((ct / dur) * 100);
-                onProgress(pct, Math.floor(ct));
-            }
+            if (dur > 0) onProgress(Math.round((ct / dur) * 100), Math.floor(ct));
         };
-
-        const onEnd = () => {
-            setIsPlaying(false);
-            onEnded();
-        };
-
+        const onEnd = () => { setIsPlaying(false); onEnded(); };
         audio.addEventListener("timeupdate", onTime);
         audio.addEventListener("ended", onEnd);
         return () => {
@@ -90,14 +77,13 @@ function SecureAudioPlayer({
         else { audio.play(); setIsPlaying(true); }
     };
 
-    const formatTime = (s: number) =>
+    const fmt = (s: number) =>
         `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
     const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-        <div className="bg-gray-50 rounded-2xl p-5 space-y-4">
-            {/* Hidden audio — no controls, no download */}
+        <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4">
             <audio
                 ref={audioRef}
                 src={src}
@@ -106,45 +92,35 @@ function SecureAudioPlayer({
                 onContextMenu={(e) => e.preventDefault()}
                 style={{ display: "none" }}
             />
-
-            {/* Custom player UI */}
-            <div className="flex items-center gap-4">
-                {/* Play/Pause */}
+            <div className="flex items-center gap-3 sm:gap-4">
                 <button
                     onClick={togglePlay}
                     disabled={!loaded}
-                    className="w-12 h-12 rounded-full mb-2 bg-yellow-400 hover:bg-yellow-300 flex items-center justify-center shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-yellow-200"
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-yellow-400 hover:bg-yellow-300 flex items-center justify-center shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-yellow-200"
                 >
                     {isPlaying ? (
-                        // Pause icon
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                             <rect x="3" y="2" width="4" height="12" rx="1" fill="#111827" />
                             <rect x="9" y="2" width="4" height="12" rx="1" fill="#111827" />
                         </svg>
                     ) : (
-                        <Play size={18} className="fill-gray-900 ml-0.5" />
+                        <Play size={16} className="fill-gray-900 ml-0.5" />
                     )}
                 </button>
-
-                {/* Time */}
                 <div className="flex-1">
-                    {/* Non-interactive progress bar (read-only) */}
                     <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-yellow-400 rounded-full transition-all duration-300"
                             style={{ width: `${progressPct}%` }}
                         />
-                        {/* Invisible overlay to block seeking via click */}
                         <div className="absolute inset-0 cursor-not-allowed" />
                     </div>
                     <div className="flex justify-between text-xs text-gray-400 mt-1">
-                        <span>{formatTime(currentTime)}</span>
-                        <span>{loaded ? formatTime(duration) : "--:--"}</span>
+                        <span>{fmt(currentTime)}</span>
+                        <span>{loaded ? fmt(duration) : "--:--"}</span>
                     </div>
                 </div>
             </div>
-
-            {/* Lock notice */}
             <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Lock size={10} />
                 <span>Seeking and downloading are disabled for this lesson</span>
@@ -162,12 +138,13 @@ export default function LessonModal({
     const [progress, setProgress] = useState(0);
     const [comment, setComment] = useState("");
     const [isCompleted, setIsCompleted] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false); // default closed on mobile
     const [currentSeconds, setCurrentSeconds] = useState(0);
     const progressSaveTimer = useRef<NodeJS.Timeout | null>(null);
     const activeRef = useRef<HTMLDivElement>(null);
+    const { user: authUser } = useAppSelector((state) => state.auth);
 
-    const COMPLETE_THRESHOLD = 75; // % required to mark complete
+    const COMPLETE_THRESHOLD = 75;
 
     // ── Fetch lesson ──
     const { data: lessonData, isLoading } = useQuery({
@@ -177,7 +154,6 @@ export default function LessonModal({
 
     const lesson = lessonData?.lesson;
     const savedProgress = lessonData?.progress;
-
     const apiPrev = lessonData?.prev_lesson;
     const apiNext = lessonData?.next_lesson;
 
@@ -192,7 +168,6 @@ export default function LessonModal({
         queryFn: () => getLessonComments(enrollmentId, lessonId).then(r => r.data.data),
     });
 
-    // ── Restore saved progress ──
     useEffect(() => {
         if (savedProgress) {
             setProgress(savedProgress.progress_percentage || 0);
@@ -200,24 +175,20 @@ export default function LessonModal({
         }
     }, [savedProgress]);
 
-    // Reset on lesson change
     useEffect(() => {
         setProgress(0);
         setIsCompleted(false);
         setCurrentSeconds(0);
     }, [lessonId]);
 
-    // Scroll active into view
     useEffect(() => {
         activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, [lessonId]);
 
-    // ── Progress save mutation ──
     const { mutate: saveProgress } = useMutation({
         mutationFn: (data: any) => updateLessonProgress(enrollmentId, lessonId, data),
     });
 
-    // ── Complete mutation ──
     const { mutate: markComplete, isPending: isCompleting } = useMutation({
         mutationFn: () => completeLesson(enrollmentId, lessonId),
         onSuccess: () => {
@@ -231,7 +202,6 @@ export default function LessonModal({
         onError: () => toast.error("Failed to mark complete"),
     });
 
-    // ── Comment mutation ──
     const { mutate: postComment, isPending: isPosting } = useMutation({
         mutationFn: (text: string) => addLessonComment(enrollmentId, lessonId, {
             comment: text,
@@ -244,11 +214,9 @@ export default function LessonModal({
         onError: () => toast.error("Failed to post comment"),
     });
 
-    // Called by SecureAudioPlayer on every timeupdate
     const handleProgress = (pct: number, seconds: number) => {
         setProgress(pct);
         setCurrentSeconds(seconds);
-
         if (progressSaveTimer.current) clearTimeout(progressSaveTimer.current);
         progressSaveTimer.current = setTimeout(() => {
             saveProgress({ progress_percentage: pct, last_position_seconds: seconds });
@@ -267,9 +235,11 @@ export default function LessonModal({
     const formatTime = (s: number) =>
         `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-    const goToLesson = (id: string) => onLessonChange?.(id);
+    const goToLesson = (id: string) => {
+        onLessonChange?.(id);
+        setSidebarOpen(false); // close sidebar on mobile after selection
+    };
 
-    // Group for sidebar
     const groupedModules: { title: string; lessons: any[] }[] = [];
     if (hasSidebar) {
         allLessons.forEach(l => {
@@ -283,17 +253,20 @@ export default function LessonModal({
     const canComplete = progress >= COMPLETE_THRESHOLD && !isCompleted;
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+        // Full screen on mobile, centered modal on desktop
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 sm:p-4">
+            <div className="bg-white w-full sm:rounded-2xl shadow-2xl sm:max-w-4xl h-[95dvh] sm:max-h-[92vh] flex flex-col overflow-hidden rounded-t-2xl">
 
                 {/* ── Header ── */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-                    <div className="flex-1 min-w-0 mr-4">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 shrink-0">
+                    <div className="flex-1 min-w-0 mr-3">
                         {isLoading ? (
                             <div className="h-5 bg-gray-100 rounded animate-pulse w-48" />
                         ) : (
                             <>
-                                <h2 className="font-semibold text-gray-800 truncate">{lesson?.title}</h2>
+                                <h2 className="font-semibold text-gray-800 text-sm sm:text-base truncate">
+                                    {lesson?.title}
+                                </h2>
                                 <p className="text-xs text-gray-400 mt-0.5 capitalize flex items-center gap-1">
                                     <Mic size={11} />
                                     {lesson?.content_type?.replace("_", " ")}
@@ -310,22 +283,26 @@ export default function LessonModal({
                         {hasSidebar && (
                             <button
                                 onClick={() => setSidebarOpen(s => !s)}
-                                className={`p-2 rounded-lg border text-sm transition ${sidebarOpen
-                                    ? "border-yellow-300 bg-yellow-50 text-yellow-600"
-                                    : "border-gray-200 text-gray-400 hover:text-gray-600"
-                                    }`}
+                                className={`p-2 rounded-lg border text-sm transition ${
+                                    sidebarOpen
+                                        ? "border-yellow-300 bg-yellow-50 text-yellow-600"
+                                        : "border-gray-200 text-gray-400 hover:text-gray-600"
+                                }`}
                             >
                                 <List size={15} />
                             </button>
                         )}
-                        <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                        >
                             <X size={18} />
                         </button>
                     </div>
                 </div>
 
                 {/* ── Body ── */}
-                <div className="flex flex-1 overflow-hidden">
+                <div className="flex flex-1 overflow-hidden relative">
 
                     {/* ── Main Content ── */}
                     <div className="flex-1 overflow-y-auto">
@@ -335,9 +312,9 @@ export default function LessonModal({
                             </div>
                         ) : (
                             <>
-                                {/* Secure Audio Player */}
+                                {/* Audio Player */}
                                 {lesson?.content_url && (
-                                    <div className="p-5 border-b border-gray-100">
+                                    <div className="p-4 sm:p-5 border-b border-gray-100">
                                         <SecureAudioPlayer
                                             src={lesson.content_url}
                                             onProgress={handleProgress}
@@ -345,7 +322,7 @@ export default function LessonModal({
                                             savedSeconds={savedProgress?.last_position_seconds || 0}
                                         />
 
-                                        {/* Lesson progress bar */}
+                                        {/* Progress bar */}
                                         <div className="mt-4">
                                             <div className="flex justify-between text-xs text-gray-400 mb-1.5">
                                                 <span>Lesson Progress</span>
@@ -357,7 +334,6 @@ export default function LessonModal({
                                                     style={{ width: `${progress}%` }}
                                                 />
                                             </div>
-                                            {/* Threshold marker */}
                                             <div className="relative mt-1">
                                                 <div
                                                     className="absolute bottom-2 flex flex-col items-center"
@@ -370,7 +346,7 @@ export default function LessonModal({
                                         </div>
 
                                         {/* Mark Complete */}
-                                        <div className="mt-3 flex items-center justify-between">
+                                        <div className="mt-4 flex items-center justify-between">
                                             {isCompleted ? (
                                                 <div className="flex items-center gap-2 text-sm font-medium text-green-600">
                                                     <CheckCircle size={16} /> Completed
@@ -386,7 +362,7 @@ export default function LessonModal({
                                                         {isCompleting ? "Marking..." : "Mark Complete"}
                                                     </button>
                                                     {progress < COMPLETE_THRESHOLD && (
-                                                        <p className="text-xs text-gray-400 mt-2">
+                                                        <p className="text-xs text-gray-400 mt-1 text-right">
                                                             Listen at least {COMPLETE_THRESHOLD}% to mark complete ({COMPLETE_THRESHOLD - progress}% remaining)
                                                         </p>
                                                     )}
@@ -398,30 +374,34 @@ export default function LessonModal({
 
                                 {/* Description */}
                                 {lesson?.description && (
-                                    <div className="px-5 py-4 border-b border-gray-100">
+                                    <div className="px-4 sm:px-5 py-4 border-b border-gray-100">
                                         <h3 className="text-sm font-semibold text-gray-700 mb-2">About this lesson</h3>
                                         <p className="text-sm text-gray-500 leading-relaxed">{lesson.description}</p>
                                     </div>
                                 )}
 
                                 {/* Comments */}
-                                <div className="p-5">
+                                <div className="p-4 sm:p-5">
                                     <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                                         Comments
-                                        <span className="text-xs text-gray-400 font-normal">({commentsData?.length || 0})</span>
+                                        <span className="text-xs text-gray-400 font-normal">
+                                            ({commentsData?.length || 0})
+                                        </span>
                                     </h3>
-                                    <div className="flex gap-3 mb-5">
-                                        <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-yellow-300 bg-gray-50">
+
+                                    {/* Comment input */}
+                                    <div className="flex gap-2 mb-5">
+                                        <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 focus-within:ring-2 focus-within:ring-yellow-300 bg-gray-50">
                                             <input
                                                 type="text"
                                                 value={comment}
                                                 onChange={e => setComment(e.target.value)}
                                                 onKeyDown={e => e.key === "Enter" && comment.trim() && postComment(comment)}
                                                 placeholder="Add a comment..."
-                                                className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+                                                className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400 min-w-0"
                                             />
                                             {currentSeconds > 0 && (
-                                                <span className="text-xs text-gray-300 shrink-0">
+                                                <span className="text-xs text-gray-300 shrink-0 hidden sm:inline">
                                                     @ {formatTime(currentSeconds)}
                                                 </span>
                                             )}
@@ -429,11 +409,13 @@ export default function LessonModal({
                                         <button
                                             onClick={() => comment.trim() && postComment(comment)}
                                             disabled={isPosting || !comment.trim()}
-                                            className="p-2.5 bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-500 transition disabled:opacity-40"
+                                            className="p-2.5 bg-yellow-400 text-gray-900 rounded-xl hover:bg-yellow-500 transition disabled:opacity-40 shrink-0"
                                         >
                                             <Send size={16} />
                                         </button>
                                     </div>
+
+                                    {/* Comment list */}
                                     {isLoadingComments ? (
                                         <div className="text-center py-4 text-sm text-gray-400">Loading comments...</div>
                                     ) : !commentsData?.length ? (
@@ -448,15 +430,19 @@ export default function LessonModal({
                                                     >
                                                         {c.user_id?.name?.charAt(0).toUpperCase()}
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-0.5">
-                                                            <span className="text-xs font-semibold text-gray-800">{c.user_id?.name}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                                                            <span className="text-xs font-semibold text-gray-800 truncate">
+                                                                {c.user_id?.name}
+                                                            </span>
                                                             {c.timestamp_seconds > 0 && (
                                                                 <span className="text-xs text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded font-mono">
                                                                     {formatTime(c.timestamp_seconds)}
                                                                 </span>
                                                             )}
-                                                            <span className="text-xs text-gray-300">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                            <span className="text-xs text-gray-300">
+                                                                {new Date(c.createdAt).toLocaleDateString()}
+                                                            </span>
                                                         </div>
                                                         <p className="text-sm text-gray-600 leading-relaxed">{c.comment}</p>
                                                     </div>
@@ -469,90 +455,127 @@ export default function LessonModal({
                         )}
                     </div>
 
-                    {/* ── Sidebar ── */}
+                    {/* ── Sidebar ──
+                        Mobile: absolute overlay (slide in from right)
+                        Desktop: fixed right panel
+                    ── */}
                     {hasSidebar && sidebarOpen && (
-                        <div className="w-64 shrink-0 border-l border-gray-100 flex flex-col overflow-hidden bg-gray-50">
-                            <div className="px-4 py-3 border-b border-gray-100 shrink-0">
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                                    <List size={12} /> Lessons · {activeIndex + 1}/{allLessons.length}
-                                </p>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                {groupedModules.map((group) => (
-                                    <div key={group.title}>
-                                        {groupedModules.length > 1 && (
-                                            <div className="flex items-center gap-1.5 px-4 py-2 bg-gray-100/80 sticky top-0 z-10">
-                                                <Layers size={10} className="text-gray-400 shrink-0" />
-                                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider truncate">
-                                                    {group.title}
-                                                </p>
-                                            </div>
-                                        )}
-                                        {group.lessons.map((l: any) => {
-                                            const isActive = l._id === lessonId;
-                                            return (
-                                                <div
-                                                    key={l._id}
-                                                    ref={isActive ? activeRef : null}
-                                                    onClick={() => goToLesson(l._id)}
-                                                    className={`flex items-center gap-2.5 px-4 py-3 cursor-pointer border-l-2 border-b border-gray-100 transition ${isActive
-                                                        ? "bg-yellow-50 border-l-yellow-400"
-                                                        : "border-l-transparent hover:bg-white"
-                                                        }`}
-                                                >
-                                                    {isActive ? (
-                                                        <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shrink-0">
-                                                            <Play size={8} className="fill-gray-900 ml-0.5" />
-                                                        </div>
-                                                    ) : l.is_completed ? (
-                                                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                                                            <CheckCircle size={11} className="text-green-500" />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                                                            <Play size={8} className="text-gray-400 ml-0.5" />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-xs font-medium truncate leading-snug ${isActive ? "text-yellow-600" : l.is_completed ? "text-gray-400" : "text-gray-700"}`}>
-                                                            {l.title}
-                                                        </p>
-                                                        {l.duration_minutes > 0 && (
-                                                            <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5">
-                                                                <Clock size={9} /> {formatDuration(l.duration_minutes)}m
-                                                            </p>
-                                                        )}
-                                                    </div>
+                        <>
+                            {/* Mobile backdrop */}
+                            <div
+                                className="absolute inset-0 bg-black/20 z-10 sm:hidden"
+                                onClick={() => setSidebarOpen(false)}
+                            />
+
+                            <div className={`
+                                absolute right-0 top-0 bottom-0 z-20
+                                w-72 sm:w-64
+                                sm:relative sm:z-auto
+                                bg-white sm:bg-gray-50
+                                border-l border-gray-100
+                                flex flex-col overflow-hidden
+                                shadow-xl sm:shadow-none
+                            `}>
+                                <div className="px-4 py-3 border-b border-gray-100 shrink-0 flex items-center justify-between">
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                                        <List size={12} /> Lessons · {activeIndex + 1}/{allLessons.length}
+                                    </p>
+                                    {/* Close on mobile */}
+                                    <button
+                                        onClick={() => setSidebarOpen(false)}
+                                        className="sm:hidden p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    {groupedModules.map((group) => (
+                                        <div key={group.title}>
+                                            {groupedModules.length > 1 && (
+                                                <div className="flex items-center gap-1.5 px-4 py-2 bg-gray-100/80 sticky top-0 z-10">
+                                                    <Layers size={10} className="text-gray-400 shrink-0" />
+                                                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider truncate">
+                                                        {group.title}
+                                                    </p>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                ))}
+                                            )}
+                                            {group.lessons.map((l: any) => {
+                                                const isActive = l._id === lessonId;
+                                                return (
+                                                    <div
+                                                        key={l._id}
+                                                        ref={isActive ? activeRef : null}
+                                                        onClick={() => goToLesson(l._id)}
+                                                        className={`flex items-center gap-2.5 px-4 py-3 cursor-pointer border-l-2 border-b border-gray-100 transition ${
+                                                            isActive
+                                                                ? "bg-yellow-50 border-l-yellow-400"
+                                                                : "border-l-transparent hover:bg-gray-50"
+                                                        }`}
+                                                    >
+                                                        {isActive ? (
+                                                            <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shrink-0">
+                                                                <Play size={8} className="fill-gray-900 ml-0.5" />
+                                                            </div>
+                                                        ) : l.is_completed ? (
+                                                            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                                                <CheckCircle size={11} className="text-green-500" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                                                                <Play size={8} className="text-gray-400 ml-0.5" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className={`text-xs font-medium truncate leading-snug ${
+                                                                isActive ? "text-yellow-600"
+                                                                : l.is_completed ? "text-gray-400"
+                                                                : "text-gray-700"
+                                                            }`}>
+                                                                {l.title}
+                                                            </p>
+                                                            {l.duration_minutes > 0 && (
+                                                                <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5">
+                                                                    <Clock size={9} /> {formatDuration(l.duration_minutes)}m
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
 
                 {/* ── Footer: Prev / Next ── */}
-                <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50 shrink-0 rounded-b-2xl">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-gray-100 bg-gray-50 shrink-0 rounded-b-2xl sm:rounded-b-2xl">
                     <button
                         onClick={() => { const t = hasSidebar ? prevLesson : apiPrev; if (t) goToLesson(t._id); }}
                         disabled={hasSidebar ? !prevLesson : !apiPrev}
-                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-200 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1 sm:gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-200 transition disabled:opacity-30 disabled:cursor-not-allowed max-w-[38%] sm:max-w-none"
                     >
-                        <ChevronLeft size={14} />
-                        {(hasSidebar ? prevLesson?.title : apiPrev?.title) || "Previous"}
+                        <ChevronLeft size={14} className="shrink-0" />
+                        <span className="truncate">
+                            {(hasSidebar ? prevLesson?.title : apiPrev?.title) || "Previous"}
+                        </span>
                     </button>
-                    <span className="text-xs text-gray-300">
+
+                    <span className="text-xs text-gray-300 shrink-0">
                         {activeIndex >= 0 ? `${activeIndex + 1} / ${allLessons.length}` : ""}
                     </span>
+
                     <button
                         onClick={() => { const t = hasSidebar ? nextLesson : apiNext; if (t) goToLesson(t._id); }}
                         disabled={hasSidebar ? !nextLesson : !apiNext}
-                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-200 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1 sm:gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-200 transition disabled:opacity-30 disabled:cursor-not-allowed max-w-[38%] sm:max-w-none"
                     >
-                        {(hasSidebar ? nextLesson?.title : apiNext?.title) || "Next"}
-                        <ChevronRight size={14} />
+                        <span className="truncate">
+                            {(hasSidebar ? nextLesson?.title : apiNext?.title) || "Next"}
+                        </span>
+                        <ChevronRight size={14} className="shrink-0" />
                     </button>
                 </div>
             </div>

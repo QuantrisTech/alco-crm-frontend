@@ -189,7 +189,6 @@
 //     </div>
 //   );
 // }
-
 "use client";
 
 import { BookOpen, CreditCard, DollarSign, TrendingUp, UserCog, AlertCircle, Lock } from "lucide-react";
@@ -243,7 +242,7 @@ const formatDate = (d: string) =>
 // ── Access Guard ─────────────────────────────────────────────────
 function RestrictedCard() {
   return (
-    <div className="col-span-4 flex flex-col items-center justify-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
+    <div className="col-span-2 sm:col-span-2 lg:col-span-4 flex flex-col items-center justify-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-8 text-center">
       <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
         <Lock size={22} className="text-amber-600" />
       </div>
@@ -259,7 +258,6 @@ function RestrictedCard() {
 export default function UserDashboard() {
   const { user: authUser } = useAppSelector((state) => state.auth);
 
-  // ── Enrollments fetch ────────────────────────────────────────
   const {
     data: enrollData,
     isLoading: enrollLoading,
@@ -268,7 +266,6 @@ export default function UserDashboard() {
     queryFn: () => getMyEnrollments().then((r) => r.data),
   });
 
-  // ── Invoices fetch ───────────────────────────────────────────
   const {
     data: invoiceData,
     isLoading: invoiceLoading,
@@ -279,18 +276,12 @@ export default function UserDashboard() {
 
   const isLoading = enrollLoading || invoiceLoading;
 
-  // ── Normalize data ───────────────────────────────────────────
   const enrollments: Enrollment[] = enrollData?.data ?? enrollData ?? [];
   const invoices: Invoice[]       = invoiceData?.data ?? invoiceData ?? [];
 
-  // ── Enrollment Logic ─────────────────────────────────────────
-  // Agar koi bhi enrollment RESTRICTED hai aur advance nahi di
-  const hasActiveEnrollment = enrollments.some(
-    (e) => e.accessStatus === "ACTIVE"
-  );
-  const hasAnyEnrollment = enrollments.length > 0;
+  const hasActiveEnrollment = enrollments.some((e) => e.accessStatus === "ACTIVE");
+  const hasAnyEnrollment    = enrollments.length > 0;
 
-  // ── Invoice Logic ────────────────────────────────────────────
   const latestInvoice: Invoice | undefined = invoices[0];
 
   const pendingInstallments =
@@ -303,72 +294,66 @@ export default function UserDashboard() {
   );
   const advancePaid = advanceInstallment?.status === "PAID";
 
-  // ── Active enrollments count ─────────────────────────────────
-  const activeEnrollments  = enrollments.filter((e) => e.accessStatus === "ACTIVE").length;
-  const restrictedCount    = enrollments.filter((e) => e.accessStatus === "RESTRICTED").length;
+  const activeEnrollments = enrollments.filter((e) => e.accessStatus === "ACTIVE").length;
+  const restrictedCount   = enrollments.filter((e) => e.accessStatus === "RESTRICTED").length;
 
-  // ── Stats data build karo ────────────────────────────────────
   const stats = [
     {
-      title:   "Enrollments",
-      value:   isLoading ? "..." : String(enrollments.length),
-      sub:     isLoading
+      title:     "Enrollments",
+      value:     isLoading ? "..." : String(enrollments.length),
+      sub:       isLoading
         ? "Loading..."
         : activeEnrollments > 0
           ? `${activeEnrollments} active · ${restrictedCount} restricted`
           : hasAnyEnrollment
             ? `${restrictedCount} pending advance payment`
             : "No enrollments yet",
-      icon:    BookOpen,
-      iconBg:  "#EEEDFE",
+      icon:      BookOpen,
+      iconBg:    "#EEEDFE",
       iconColor: "#534AB7",
     },
     {
-      title:   "Pending Installments",
-      value:   isLoading ? "..." : String(pendingInstallments.length),
-      sub:     isLoading
+      title:     "Pending Installments",
+      value:     isLoading ? "..." : String(pendingInstallments.length),
+      sub:       isLoading
         ? "Loading..."
         : nextDueInstallment
           ? `Next: ${nextDueInstallment.label} — ${formatDate(nextDueInstallment.dueDate)}`
           : latestInvoice
             ? "All installments paid"
             : "No invoice found",
-      icon:    CreditCard,
-      iconBg:  "#FAEEDA",
+      icon:      CreditCard,
+      iconBg:    "#FAEEDA",
       iconColor: "#854F0B",
     },
     {
-      title:   "Paid Amount",
-      value:   isLoading
-        ? "..."
-        : formatAmount(latestInvoice?.paidAmount ?? 0),
-      sub:     isLoading
+      title:     "Paid Amount",
+      value:     isLoading ? "..." : formatAmount(latestInvoice?.paidAmount ?? 0),
+      sub:       isLoading
         ? "Loading..."
         : latestInvoice
           ? `Outstanding: ${formatAmount(latestInvoice.remainingAmount ?? 0)}`
           : "No invoice found",
-      icon:    DollarSign,
-      iconBg:  "#E1F5EE",
+      icon:      DollarSign,
+      iconBg:    "#E1F5EE",
       iconColor: "#0F6E56",
     },
     {
-      title:   "Invoice Status",
-      value:   isLoading
-        ? "..."
-        : latestInvoice?.status ?? "N/A",
-      sub:     isLoading
+      title:     "Invoice Status",
+      value:     isLoading ? "..." : latestInvoice?.status ?? "N/A",
+      sub:       isLoading
         ? "Loading..."
         : latestInvoice
           ? `Total: ${formatAmount(latestInvoice.totalAmount)} · ${latestInvoice.invoiceNumber}`
           : "No invoice found",
-      icon:    TrendingUp,
-      iconBg:  "#E6F1FB",
+      icon:      TrendingUp,
+      iconBg:    "#E6F1FB",
       iconColor: "#185FA5",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <PageHeader
@@ -377,7 +362,7 @@ export default function UserDashboard() {
         titleIcon={<UserCog size={24} />}
       />
 
-      {/* ── Advance Payment Warning ──────────────────────────── */}
+      {/* ── Advance Payment Warning ───────────────────────────── */}
       {!isLoading && hasAnyEnrollment && !advancePaid && (
         <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
           <AlertCircle size={18} className="text-rose-500 mt-0.5 flex-shrink-0" />
@@ -398,12 +383,16 @@ export default function UserDashboard() {
         </div>
       )}
 
-      {/* ── Stats Grid ──────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* ── Stats Grid ───────────────────────────────────────── */}
+      {/*
+        Mobile:  2 columns
+        SM:      2 columns
+        LG:      4 columns
+      */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
-        {/* Agar koi enrollment nahi — restricted card dikhao */}
         {!isLoading && !hasAnyEnrollment ? (
-          <div className="col-span-4 flex flex-col items-center justify-center gap-3 bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl p-10 text-center">
+          <div className="col-span-2 lg:col-span-4 flex flex-col items-center justify-center gap-3 bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl p-8 sm:p-10 text-center">
             <BookOpen size={32} className="text-neutral-400" />
             <p className="font-semibold text-neutral-600">No Enrollments Yet</p>
             <p className="text-sm text-neutral-400">
@@ -411,17 +400,14 @@ export default function UserDashboard() {
             </p>
           </div>
 
-        /* Agar enrollment hai lekin RESTRICTED hai (advance nahi di) */
         ) : !isLoading && hasAnyEnrollment && !hasActiveEnrollment ? (
           <>
-            {/* Stats toh dikhao lekin restricted warning bhi */}
             {stats.map((stat) => (
               <StatCarduser key={stat.title} {...stat} />
             ))}
             <RestrictedCard />
           </>
 
-        /* Normal — active enrollment hai */
         ) : (
           stats.map((stat) => (
             <StatCarduser key={stat.title} {...stat} />
@@ -430,10 +416,12 @@ export default function UserDashboard() {
 
       </div>
 
-      {/* ── Installment Schedule Table (Active users ke liye) ── */}
+      {/* ── Installment Schedule Table ────────────────────────── */}
       {!isLoading && hasActiveEnrollment && latestInvoice?.installments?.length > 0 && (
         <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+
+          {/* Card header */}
+          <div className="px-4 sm:px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h3 className="font-semibold text-gray-800 text-sm">Payment Schedule</h3>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -442,7 +430,7 @@ export default function UserDashboard() {
               </p>
             </div>
             <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full ${
+              className={`self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full ${
                 latestInvoice.status === "PAID"
                   ? "bg-green-100 text-green-700"
                   : latestInvoice.status === "PARTIAL"
@@ -454,74 +442,122 @@ export default function UserDashboard() {
             </span>
           </div>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due Date</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {latestInvoice.installments.map((inst, idx) => (
-                <tr
-                  key={idx}
-                  className={`border-t border-gray-50 ${
-                    inst.isAdvance ? "bg-amber-50/40" : ""
-                  }`}
-                >
-                  <td className="px-5 py-3 text-xs font-mono text-gray-400">
-                    {String(idx + 1).padStart(2, "0")}
-                  </td>
-                  <td className="px-5 py-3 font-medium text-gray-700">
-                    {inst.label}
+          {/* ── Mobile: card list ─── */}
+          <div className="sm:hidden divide-y divide-gray-50">
+            {latestInvoice.installments.map((inst, idx) => (
+              <div
+                key={idx}
+                className={`px-4 py-3 flex items-start justify-between gap-3 ${
+                  inst.isAdvance ? "bg-amber-50/40" : ""
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-mono text-gray-400">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
+                    <span className="font-medium text-gray-700 text-sm truncate">
+                      {inst.label}
+                    </span>
                     {inst.isAdvance && (
-                      <span className="ml-2 text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase">
+                      <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase">
                         Advance
                       </span>
                     )}
-                  </td>
-                  <td className="px-5 py-3 text-gray-500 font-mono text-xs">
-                    {formatDate(inst.dueDate)}
-                  </td>
-                  <td className="px-5 py-3 font-semibold text-gray-800 font-mono text-xs">
+                  </div>
+                  <p className="text-xs text-gray-400 font-mono mt-1">
+                    Due: {formatDate(inst.dueDate)}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span className="font-semibold text-gray-800 font-mono text-xs">
                     {formatAmount(inst.amount)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span
-                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                        inst.status === "PAID"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {inst.status}
-                    </span>
-                  </td>
+                  </span>
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                      inst.status === "PAID"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {inst.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Desktop: table ─── */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due Date</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {latestInvoice.installments.map((inst, idx) => (
+                  <tr
+                    key={idx}
+                    className={`border-t border-gray-50 ${
+                      inst.isAdvance ? "bg-amber-50/40" : ""
+                    }`}
+                  >
+                    <td className="px-5 py-3 text-xs font-mono text-gray-400">
+                      {String(idx + 1).padStart(2, "0")}
+                    </td>
+                    <td className="px-5 py-3 font-medium text-gray-700">
+                      {inst.label}
+                      {inst.isAdvance && (
+                        <span className="ml-2 text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase">
+                          Advance
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-gray-500 font-mono text-xs">
+                      {formatDate(inst.dueDate)}
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-gray-800 font-mono text-xs">
+                      {formatAmount(inst.amount)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                          inst.status === "PAID"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {inst.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Totals row */}
-          <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-8 text-sm">
+          <div className="px-4 sm:px-5 py-4 border-t border-gray-100 flex justify-end gap-6 sm:gap-8 text-sm">
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">Paid</p>
-              <p className="font-bold text-green-600 font-mono">
+              <p className="font-bold text-green-600 font-mono text-xs sm:text-sm">
                 {formatAmount(latestInvoice.paidAmount)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">Outstanding</p>
-              <p className="font-bold text-rose-500 font-mono">
+              <p className="font-bold text-rose-500 font-mono text-xs sm:text-sm">
                 {formatAmount(latestInvoice.remainingAmount)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">Total</p>
-              <p className="font-bold text-gray-800 font-mono">
+              <p className="font-bold text-gray-800 font-mono text-xs sm:text-sm">
                 {formatAmount(latestInvoice.totalAmount)}
               </p>
             </div>

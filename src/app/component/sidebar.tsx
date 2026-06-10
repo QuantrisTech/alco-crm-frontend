@@ -28,6 +28,7 @@ import MiniLogo from "@/assets/mini-logo-white.webp";
 import Popup from "@/app/component/ui/popup/popup";
 import { useState } from "react";
 import { useAppSelector } from "@/store/hooks";
+import IconTooltip from "./ui/tooltip";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,6 @@ interface MenuItem {
   href?: string;
   icon: any;
   roles: string[];
-  /** Flat child links (existing behaviour — unchanged) */
   children?: (ChildItem | ChildGroup)[];
 }
 
@@ -127,7 +127,6 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
-
   {
     roles: ["super_admin", "admin", "seo"],
     mode: "website",
@@ -155,20 +154,16 @@ const menuSections: MenuSection[] = [
           { label: "All Pages", href: "/dashboard/seo" },
           { label: "Home", href: "/dashboard/seo/home" },
           { label: "One On One Coaching Sessions", href: "/dashboard/seo/one-on-one-coaching-sessions" },
-          // { label: "Blogs", href: "/dashboard/seo/blogs" },
           { label: "Contact", href: "/dashboard/seo/contact" },
           {
             header: "Blog",
             subChildren: [
               { label: "Main", href: "/dashboard/seo/blogs" },
-              // { label: "Latest News", href: "/dashboard/seo/blogs/latest-news" },
-              // { label: "Industry Trends", href: "/dashboard/seo/blogs/industry-trends" },
             ],
           },
           {
             header: "Programs",
             subChildren: [
-              // { label: "Main", href: "/dashboard/seo/programs" },
               { label: "NLP Practitioner", href: "/dashboard/seo/nlp-practitioner" },
               { label: "NLP Master Practitioner", href: "/dashboard/seo/nlp-master-practitioner" },
               { label: "Advanced Hypnotherapy", href: "/dashboard/seo/advanced-hypnotherapy-training" },
@@ -198,6 +193,9 @@ const menuSections: MenuSection[] = [
   },
 ];
 
+// ── Tooltip wrapper (only for user role collapsed state) ───────────────────────
+
+
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -214,6 +212,7 @@ export default function Sidebar() {
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>("crm");
 
   const isAdmin = role === "super_admin" || role === "admin";
+  const isUserForResponsive = role === "user";
 
   const toggleMenu = (label: string) =>
     setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -242,6 +241,147 @@ export default function Sidebar() {
     return true;
   });
 
+  // ── User role: collapsed icon sidebar on small screens ──────────────────────
+  if (isUserForResponsive) {
+    return (
+      <>
+        {/* ── Small screen: icon-only collapsed sidebar ── */}
+        <div className="
+          lg:hidden
+          w-16 min-h-screen bg-gray-900 text-white flex flex-col
+        ">
+          {/* Logo icon */}
+          <div className="p-3 border-b border-gray-700 flex justify-center">
+            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
+              <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
+            </div>
+          </div>
+
+          {/* Nav icons */}
+          <nav className={`flex-1 flex flex-col items-center gap-1 py-4 h-full`}>
+            {filteredSections.map((section) => {
+              const visibleItems = section.items.filter((item) => item.roles.includes(role));
+              if (visibleItems.length === 0) return null;
+
+              return visibleItems.map((item) => {
+                if (!item.href || item.children) return null;
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+
+                return (
+                  <IconTooltip key={item.href} label={item.label}>
+                    <Link
+                      href={item.href}
+                      className={`
+                        flex items-center justify-center w-10 h-10 rounded-lg transition-all
+                        ${isActive
+                          ? "bg-yellow-400 text-gray-900"
+                          : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                        }
+                      `}
+                    >
+                      <Icon size={20} />
+                    </Link>
+                  </IconTooltip>
+                );
+              });
+            })}
+          </nav>
+
+          {/* Logout icon */}
+          <div className="p-3 border-t border-gray-700 flex justify-center">
+            <IconTooltip label="Logout">
+              <button
+                onClick={() => setShowLogout(true)}
+                className="flex items-center justify-center w-10 h-10 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all"
+              >
+                <LogOut size={20} />
+              </button>
+            </IconTooltip>
+          </div>
+        </div>
+
+        {/* ── Large screen: full sidebar (original behaviour) ── */}
+        <div className="hidden lg:flex w-64 min-h-screen bg-gray-900 text-white flex-col">
+          {/* Logo */}
+          <div className="p-5 border-b border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
+                <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-white font-semibold text-sm truncate">Arslan Larik & Company</span>
+                <span className="text-gray-400 text-xs">CRM of the company</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Nav */}
+          <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+            {filteredSections.map((section) => {
+              const visibleItems = section.items.filter((item) => item.roles.includes(role));
+              if (visibleItems.length === 0) return null;
+
+              return (
+                <div key={section.title ?? section.mode}>
+                  {section.title && (
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">
+                      {section.title}
+                    </p>
+                  )}
+                  <div className="space-y-1">
+                    {visibleItems.map((item) => {
+                      if (!item.href) return null;
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
+                            ? "bg-yellow-400 text-gray-900 font-semibold"
+                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                          }`}
+                        >
+                          <Icon size={18} />
+                          <span className="text-sm">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Logout */}
+          <div className="p-4 border-t border-gray-700">
+            <button
+              onClick={() => setShowLogout(true)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
+            >
+              <LogOut size={18} />
+              <span className="text-sm">Logout</span>
+            </button>
+          </div>
+        </div>
+
+        <Popup
+          isOpen={showLogout}
+          onClose={() => setShowLogout(false)}
+          onConfirm={handleLogout}
+          variant="info"
+          title="Log Out"
+          description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
+          confirmText="Yes, Log Out"
+          cancelText="Stay"
+        />
+      </>
+    );
+  }
+
+  // ── Admin / other roles: original full sidebar (unchanged) ─────────────────
   return (
     <div className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Logo */}
@@ -267,9 +407,9 @@ export default function Sidebar() {
                 key={m}
                 onClick={() => handleModeSwitch(m)}
                 className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${sidebarMode === m
-                    ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
-                    : "border-transparent text-gray-400 hover:bg-gray-800 hover:text-white"
-                  }`}
+                  ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
+                  : "border-transparent text-gray-400 hover:bg-gray-800 hover:text-white"
+                }`}
               >
                 {m === "crm"
                   ? <Monitor size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />
@@ -301,11 +441,9 @@ export default function Sidebar() {
                 {visibleItems.map((item) => {
                   const Icon = item.icon;
 
-                  // ── Has children (flat or grouped) ───────────────
                   if (item.children) {
                     const isOpen = !!openMenus[item.label];
 
-                    // Check active across all child hrefs (flat + grouped)
                     const isChildActive = item.children.some((c) => {
                       if (isChildGroup(c)) {
                         return c.subChildren.some(
@@ -320,9 +458,9 @@ export default function Sidebar() {
                         <button
                           onClick={() => toggleMenu(item.label)}
                           className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${isChildActive
-                              ? "text-yellow-400"
-                              : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                            }`}
+                            ? "text-yellow-400"
+                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                          }`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon size={18} />
@@ -334,7 +472,6 @@ export default function Sidebar() {
                         {isOpen && (
                           <div className="ml-7 mt-1 space-y-1 border-l border-gray-700 pl-3">
                             {item.children.map((child) => {
-                              // ── Grouped child ──────────────────
                               if (isChildGroup(child)) {
                                 const groupKey = `${item.label}::${child.header}`;
                                 const isGroupOpen = !!openGroups[groupKey];
@@ -347,9 +484,9 @@ export default function Sidebar() {
                                     <button
                                       onClick={() => toggleGroup(groupKey)}
                                       className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${isGroupActive
-                                          ? "text-yellow-400"
-                                          : "text-gray-500 hover:text-gray-300"
-                                        }`}
+                                        ? "text-yellow-400"
+                                        : "text-gray-500 hover:text-gray-300"
+                                      }`}
                                     >
                                       <span>{child.header}</span>
                                       {isGroupOpen
@@ -366,9 +503,9 @@ export default function Sidebar() {
                                               key={sc.href}
                                               href={sc.href}
                                               className={`block px-3 py-1.5 rounded-md text-sm transition-all ${isActive
-                                                  ? "bg-yellow-400 text-gray-900 font-semibold"
-                                                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                                }`}
+                                                ? "bg-yellow-400 text-gray-900 font-semibold"
+                                                : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                              }`}
                                             >
                                               {sc.label}
                                             </Link>
@@ -380,16 +517,15 @@ export default function Sidebar() {
                                 );
                               }
 
-                              // ── Flat child ─────────────────────
                               const isActive = pathname === child.href;
                               return (
                                 <Link
                                   key={child.href}
                                   href={child.href}
                                   className={`block px-3 py-2 rounded-md text-sm transition-all ${isActive
-                                      ? "bg-yellow-400 text-gray-900 font-semibold"
-                                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                    }`}
+                                    ? "bg-yellow-400 text-gray-900 font-semibold"
+                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                  }`}
                                 >
                                   {child.label}
                                 </Link>
@@ -401,7 +537,6 @@ export default function Sidebar() {
                     );
                   }
 
-                  // ── Direct link ────────────────────────────────────
                   if (!item.href) return null;
                   const isActive = pathname === item.href;
 
@@ -410,9 +545,9 @@ export default function Sidebar() {
                       key={item.href}
                       href={item.href}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
-                          ? "bg-yellow-400 text-gray-900 font-semibold"
-                          : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                        }`}
+                        ? "bg-yellow-400 text-gray-900 font-semibold"
+                        : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                      }`}
                     >
                       <Icon size={18} />
                       <span className="text-sm">{item.label}</span>

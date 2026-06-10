@@ -16,16 +16,16 @@ export function StatCard({ title, value, change, icon: Icon, bg, text, onClick }
 
 export function StatCarduser({ title, value, icon: Icon, sub, iconBg, progress, iconColor, onClick }: StatCardProps) {
   return (
-        <div key={title} className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col gap-2.5 shadow-sm" onClick={onClick}>
-          <div className="flex items-center justify-between">
+        <div key={title} className="bg-white border border-gray-100 rounded-xl p-3 sm:p-4 flex flex-col sm:gap-2.5 shadow-sm" onClick={onClick}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-gray-500">{title}</span>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: iconBg }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center order-first sm:order-last mb-2 sm:mb-0" style={{ background: iconBg }}>
               <Icon size={16} color={iconColor} />
             </div>
           </div>
           <div>
             <div className="text-2xl font-medium text-gray-900">{value}</div>
-            {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+            {sub && <p className="text-xs text-gray-500 sm:mt-0.5">{sub}</p>}
             {progress !== undefined && (
               <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-teal-600 rounded-full" style={{ width: `${progress}%` }} />

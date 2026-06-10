@@ -11,6 +11,7 @@ import API from "@/utils/api";
 import { useQueryClient } from "@tanstack/react-query";
 import LessonModal from "../components/lesson-modal";
 import formatDuration from "@/utils/func";
+import { useAppSelector } from "@/store/hooks";
 
 const getLearningDashboard = (enrollmentId: string) =>
   API.get(`/api/v1/learn/${enrollmentId}`).then((r) => r.data.data);
@@ -32,6 +33,9 @@ export default function CourseLearningPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const enrollmentId = params?.slug as string;
+ const { user: authUser } = useAppSelector((state) => state.auth);
+  const role = authUser?.role;
+  const isUserForResponsive = role === "user";
 
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
@@ -110,7 +114,7 @@ export default function CourseLearningPage() {
                 onClick={() =>
                   setExpandedCourse(expandedCourse === course._id ? null : course._id)
                 }
-                className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition group"
+                className={ isUserForResponsive ? "flex flex-col md:flex-row md:items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition group" : "flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition group"}
               >
                 <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 text-sm font-bold text-gray-500 group-hover:bg-yellow-100 group-hover:text-yellow-700 transition-colors">
                   {idx + 1}
@@ -146,7 +150,7 @@ export default function CourseLearningPage() {
                       expandedCourse === course._id ? "rotate-90 text-yellow-500" : ""
                     }`}
                   /> */}
-                  <div className="flex gap-2 ">
+                  <div className={isUserForResponsive ? "flex flex-col sm:flex-row gap-2 w-full sm:w-auto" : "flex gap-2 "}>
                     <button
                       onClick={() =>
                         router.push(
