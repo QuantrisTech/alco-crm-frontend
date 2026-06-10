@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle, Play } from "lucide-react";
 import API from "@/utils/api";
 import { useQueryClient } from "@tanstack/react-query";
 import LessonModal from "../../../components/lesson-modal";
+import { useAppSelector } from "@/store/hooks";
 
 const getLearningDashboard = (enrollmentId: string) =>
   API.get(`/api/v1/learn/${enrollmentId}`).then((r) => r.data.data);
@@ -37,6 +38,9 @@ export default function CourseLearningPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const enrollmentId = params?.slug as string;
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  const role = authUser?.role;
+  const isUserForResponsive = role === "user";
 
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
@@ -131,7 +135,7 @@ export default function CourseLearningPage() {
               key={course._id}
               className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm"
             >
-              <div className="flex items-center gap-3 p-4">
+              <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center gap-3 p-4" : "flex items-center gap-3 p-4"}>
                 {/* Number */}
                 <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 text-sm font-bold text-gray-500">
                   {idx + 1}

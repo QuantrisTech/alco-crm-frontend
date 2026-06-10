@@ -48,6 +48,9 @@ function ProgressRing({ pct, size = 48 }: { pct: number; size?: number }) {
 function EnrollmentCard({ enrollment }: { enrollment: any }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user: authUser } = useAppSelector((state) => state.auth); // ← add karo
+  const role = authUser?.role;
+  const isUserForResponsive = role === "user";
   const [open, setOpen] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -70,7 +73,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* ── Card Header ── */}
       <div className="p-5">
-        <div className="flex items-start gap-4">
+        <div className={isUserForResponsive ? "flex flex-col sm:flex-row items-start gap-4" : "flex items-start gap-4"}>
           {/* Progress Ring */}
           <div className="relative shrink-0">
             <ProgressRing pct={pct} size={52} />
@@ -80,7 +83,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
+            <div className={isUserForResponsive ? "flex flex-col sm:flex-row items-start justify-between gap-2" : "flex items-start justify-between gap-2"}>
               <div>
                 <h3 className="font-semibold text-gray-900 text-base leading-tight">
                   {enrollment.program?.name || "Program"}
@@ -163,7 +166,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
           </button>
         </div> */}
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-4 relative">
+        <div className={isUserForResponsive ? "flex flex-col sm:flex-row gap-2 mt-4 relative" : "flex gap-2 mt-4 relative"}>
           <button
             onClick={() => !isRestricted && !isSuspended && hasContent && router.push(`/dashboard/courses/${enrollment._id}`)}
             disabled={isRestricted || isSuspended || !hasContent}
