@@ -24,6 +24,7 @@ type HeaderProps = {
   filters?: Record<string, string>;
   setFilters?: React.Dispatch<React.SetStateAction<any>>;
   filterFields?: FilterField[];
+  actions?: React.ReactNode; // ✅ new
 };
 
 export default function PageHeader({
@@ -38,6 +39,7 @@ export default function PageHeader({
   filters = { search: "", status: "", quality: "", source: "" },
   setFilters,
   filterFields,
+  actions, // ✅ new
 }: HeaderProps) {
   return (
     <div className="flex items-center justify-between mb-6">
@@ -52,6 +54,9 @@ export default function PageHeader({
 
       {/* Right Side */}
       <div className="flex items-center gap-3">
+        {/* ✅ Custom actions slot */}
+        {actions}
+
         {onAdd && (
           <button
             onClick={onAdd}
@@ -81,10 +86,6 @@ export default function PageHeader({
         )}
 
         {coveredCount && coveredCount !== undefined && (
-          // <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
-          //   <span className="font-bold text-gray-900">{coveredCount}</span>
-          //   <span className="ml-1">{coveredLabel || "Items Covered"}</span>
-          // </div>
           <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm">
             <TrendingUp size={15} className="text-yellow-500" />
             <span className="text-sm font-semibold text-gray-700">{coveredCount}/{coveredLabel}</span>

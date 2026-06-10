@@ -67,7 +67,6 @@ API.interceptors.response.use(
 );
 
 // Define your API functions here, ensuring proper types
-// export const loginUser = (data: LoginData) => API.post("/api/auth/login", data);
 // loginUser replace karo
 export const loginUser = (data: { identifier: string; password?: string }) =>
   API.post("/api/auth/login", data);
@@ -225,10 +224,6 @@ export const searchEnrollments = (q: string) =>
 export const addFinanceExtension = (data: { enrollmentId: string; days: number; reason: string }) => API.post("/api/v1/finance/extension", data);
 
 // ─── Enrollments ─────────────────────────────────────────────
-// export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`, data);
-// export const graduateEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/graduate`);
-// export const suspendEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/suspend`);
-// export const reactivateEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/reactivate`);
 export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments", { params });
 export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
 export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
@@ -357,60 +352,111 @@ export const adminUpdateResource = (id: string, formData: FormData) =>
 export const adminDeleteResource = (id: string) =>
   API.delete(`/api/v1/lms/resources/${id}`);
 
+// ─────────────────────────────────────────────────────────────
+// ACCOUNTS MODULE — api.ts mein add karo (end mein, before export default)
+// ─────────────────────────────────────────────────────────────
+ 
+// ─── Chart of Accounts ───────────────────────────────────────
+export const seedAccounts = () =>
+  API.post("/api/v1/accounts/seed");
+ 
+export const getAllAccounts = (params?: { type?: string; isActive?: boolean; search?: string }) =>
+  API.get("/api/v1/accounts", { params });
+ 
+export const getAccountById = (id: string) =>
+  API.get(`/api/v1/accounts/${id}`);
+ 
+export const createAccount = (data: {
+  code: string;
+  name: string;
+  type: "asset" | "liability" | "equity" | "income" | "expense";
+  subType?: string;
+  parent?: string;
+  description?: string;
+  openingBalance?: number;
+}) => API.post("/api/v1/accounts", data);
+ 
+export const updateAccount = (id: string, data: any) =>
+  API.patch(`/api/v1/accounts/${id}`, data);
+ 
+export const deleteAccount = (id: string) =>
+  API.delete(`/api/v1/accounts/${id}`);
+ 
+// ─── Ledger ──────────────────────────────────────────────────
+export const getAccountLedger = (
+  id: string,
+  params?: { from?: string; to?: string; page?: number; limit?: number }
+) => API.get(`/api/v1/accounts/${id}/ledger`, { params });
+ 
+// ─── Journal Entries ─────────────────────────────────────────
+export const getAllJournalEntries = (params?: {
+  sourceType?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}) => API.get("/api/v1/accounts/journal", { params });
+ 
+export const createJournalEntry = (data: {
+  description: string;
+  date?: string;
+  lines: { account: string; type: "debit" | "credit"; amount: number; description?: string }[];
+  notes?: string;
+}) => API.post("/api/v1/accounts/journal", data);
+ 
+// ─── Expenses ────────────────────────────────────────────────
+export const getAllExpenses = (params?: {
+  status?: string;
+  category?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}) => API.get("/api/v1/accounts/expenses", { params });
+ 
+export const createExpense = (data: {
+  title: string;
+  description?: string;
+  amount: number;
+  account: string;
+  category: string;
+  vendor?: { name?: string; contact?: string };
+  paymentMethod: string;
+  referenceNumber?: string;
+  date?: string;
+  isRecurring?: boolean;
+  recurringInterval?: string;
+  notes?: string;
+}) => API.post("/api/v1/accounts/expenses", data);
+ 
+export const approveExpense = (id: string) =>
+  API.patch(`/api/v1/accounts/expenses/${id}/approve`);
+ 
+export const rejectExpense = (id: string, data: { reason: string }) =>
+  API.patch(`/api/v1/accounts/expenses/${id}/reject`, data);
+ 
+// ─── Accounts Dashboard ──────────────────────────────────────
+export const getAccountsDashboard = () =>
+  API.get("/api/v1/accounts/dashboard");
+ 
+// ─── Reports ─────────────────────────────────────────────────
+export const getProfitLoss = (params?: { year?: number; from?: string; to?: string }) =>
+  API.get("/api/v1/reports/profit-loss", { params });
+ 
+export const getBalanceSheet = (params?: { asOf?: string }) =>
+  API.get("/api/v1/reports/balance-sheet", { params });
+ 
+export const getARAgingReport = () =>
+  API.get("/api/v1/reports/ar-aging");
+ 
+export const getCashFlowReport = (params?: { year?: number; from?: string; to?: string }) =>
+  API.get("/api/v1/reports/cash-flow", { params });
+ 
+export const getRevenueByProgram = (params?: { year?: number; from?: string; to?: string }) =>
+  API.get("/api/v1/reports/revenue-by-program", { params });
 
 // ─── Website SEO Pages ────────────────────────────────────────
-
-// // GET all SEO pages
-// export const adminGetSeoPages = (params?: any) =>
-//   API.get("/api/v1/seo/pages", { params });
-
-// // GET a single SEO page by slug (e.g. "home", "programs", "about-us")
-// export const adminGetSeoPageBySlug = (slug: string) =>
-//   API.get(`/api/v1/seo/pages/${slug}`);
-
-// // POST — Create a new SEO page
-// export const adminCreateSeoPage = (data: {
-//   slug: string;
-//   title: string;
-//   description: string;
-//   keywords?: string[];
-//   og_title?: string;
-//   og_description?: string;
-//   og_image?: string;
-//   canonical_url?: string;
-//   no_index?: boolean;
-// }) => API.post("/api/v1/seo/pages", data);
-
-// // PUT — Full update of an SEO page by slug
-// export const adminUpdateSeoPage = (slug: string, data: {
-//   title?: string;
-//   description?: string;
-//   keywords?: string[];
-//   og_title?: string;
-//   og_description?: string;
-//   og_image?: string;
-//   canonical_url?: string;
-//   no_index?: boolean;
-// }) => API.put(`/api/v1/seo/pages/${slug}`, data);
-
-// // PATCH — Upsert (create if not exists, update if exists) by slug
-// export const adminUpsertSeoPage = (slug: string, data: {
-//   title?: string;
-//   description?: string;
-//   keywords?: string[];
-//   og_title?: string;
-//   og_description?: string;
-//   og_image?: string;
-//   canonical_url?: string;
-//   no_index?: boolean;
-// }, exists: boolean) => exists 
-//   ? API.patch(`/api/v1/seo/pages/${slug}`, data)
-//   : API.post(`/api/v1/seo/pages`, { slug, ...data });
-
-// // DELETE — Remove an SEO page by slug
-// export const adminDeleteSeoPage = (slug: string) =>
-//   API.delete(`/api/v1/seo/pages/${slug}`);
-
 export interface SeoFormData {
   title: string;
   description: string;
@@ -475,15 +521,6 @@ export const adminGetSeoPages = () => API.get("/api/v1/seo");
 export const adminGetSeoPageBySlug = (slug: string) =>
   API.get(`/api/v1/seo/page/${slug}`);
 
-// PATCH upsert — creates if not exists, updates if exists
-// export const adminUpsertSeoPage = (slug: string, label: string, form: SeoFormData) =>
-//   API.patch("/api/v1/seo/upsert", mapToBackend(slug, label, form));
-
-// export const adminUpsertSeoPage = (slug: string, payload: any) =>
-//   API.patch("/api/v1/seo/upsert", {
-//     pageSlug: slug,        // ✅ slug yahan inject hoga
-//     ...payload,
-//   });
 export const adminUpsertSeoPage = (slug: string, label: string, data: any) =>
   API.patch("/api/v1/seo/upsert", { pageSlug: slug, pageLabel: label, ...data });
 

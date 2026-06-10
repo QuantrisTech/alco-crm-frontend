@@ -21,6 +21,7 @@ import {
   Monitor,
   FileVolume,
   SearchCheck,
+  Landmark
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
@@ -72,6 +73,7 @@ const menuSections: MenuSection[] = [
     mode: "crm",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager", "seo"] },
+      { label: "Accounts", href: "/dashboard/accounts", icon: Landmark, roles: ["super_admin", "admin", "finance_manager"] },
       { label: "Leads", href: "/dashboard/leads", icon: Users, roles: ["super_admin", "admin", "sales_manager", "sales_rep"] },
       { label: "Programs", href: "/dashboard/programs", icon: GraduationCap, roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"] },
       { label: "Courses", href: "/dashboard/courses", icon: FileVolume, roles: ["user"] },
