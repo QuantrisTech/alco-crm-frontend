@@ -59,7 +59,9 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  // const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [page, setPage] = useState(1);
@@ -132,7 +134,7 @@ export default function UsersPage() {
     onSuccess: () => {
       toast.success("User deleted!");
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      setDeletingId(null);
+      setDeletingUser(null);  // ← setDeletingId(null) se replace karo
     },
     onError: () => toast.error("Failed to delete user!"),
   });
@@ -258,10 +260,7 @@ export default function UsersPage() {
           {
             icon: <Trash2 size={14} />,
             label: "Delete",
-            onClick: (user) => {
-              setDeletingId(user._id);
-              deleteUser(user._id);
-            },
+            onClick: (user) => setDeletingUser(user),
             disabled: (user: User) => user.role === "super_admin",
             className: "hover:bg-red-50 hover:text-red-500",
           },
@@ -390,6 +389,31 @@ export default function UsersPage() {
           }
           confirmText="Yes, Delete All"
           isLoading={isDeletingAll}
+          loadingText="Deleting..."
+        />
+      )}
+
+      {deletingUser && (
+        <Popup
+          isOpen={!!deletingUser}
+          onClose={() => setDeletingUser(null)}
+          onConfirm={() => {
+            deleteUser(deletingUser._id);
+            setDeletingUser(null);
+          }}
+          variant="danger"
+          title="Delete User"
+          description={
+            <>
+              Delete{" "}
+              <span className="font-bold text-red-500">
+                {deletingUser.name}
+              </span>
+              ? This cannot be undone.
+            </>
+          }
+          confirmText="Yes, Delete"
+          isLoading={isDeleting}
           loadingText="Deleting..."
         />
       )}

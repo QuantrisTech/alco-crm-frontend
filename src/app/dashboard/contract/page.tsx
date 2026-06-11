@@ -13,6 +13,37 @@ import { useAppSelector } from "@/store/hooks";
 import PageHeader from "@/app/component/dashboard/page-header";
 import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
 import DocumentsSection from "../profile/component/documents-section";
+import InputField from "@/app/component/ui/inputField";
+
+const formatPhone = (phone?: string) => {
+  if (!phone) return "—";
+
+  // Trim and remove non-digit characters
+  const digits = phone.trim().replace(/\D/g, "");
+
+  // Normalize the number
+  let normalized = digits;
+
+  // Handle leading zeros and international formats
+  if (normalized.startsWith("0")) {
+    normalized = normalized.slice(1); // Remove leading zero
+  } else if (normalized.startsWith("0092")) {
+    normalized = normalized.slice(4); // Remove '0092'
+  } else if (normalized.startsWith("92")) {
+    normalized = normalized.slice(2); // Remove '92'
+  }
+
+  // Ensure it has the correct number of digits
+  if (normalized.length === 10) {
+    return `+92 ${normalized.slice(0, 3)} ${normalized.slice(3)}`;
+  } else if (normalized.length === 11 && normalized.startsWith("3")) {
+    // Handle cases where the number starts with 3 (mobile numbers)
+    return `+92 ${normalized.slice(0, 3)} ${normalized.slice(3)}`;
+  }
+
+  return phone; // Return original if it doesn't match expected patterns
+};
+
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -35,6 +66,7 @@ type ContractDetails = {
   bankAccountNumber?: string;
   currentAddress?: string;
   emergencyContactName?: string;
+  emergencyContactPhone?: string;
   occupation?: string;
   participationAgreement?: boolean;
   photoVideoRelease?: boolean;
@@ -164,6 +196,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     bankAccountNumber: c?.bankAccountNumber || "",
     currentAddress: c?.currentAddress || "",
     emergencyContactName: c?.emergencyContactName || "",
+    emergencyContactPhone: c?.emergencyContactPhone || "",
     occupation: c?.occupation || "",
     participationAgreement: c?.participationAgreement || false,
     photoVideoRelease: c?.photoVideoRelease || false,
@@ -226,20 +259,64 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     queryFn: () => getProfile().then((res) => res.data.user),
   });
 
+  const isValidPhone = (phone: string) => {
+  const digits = phone.trim().replace(/\D/g, "");
+  
+  // Valid Pakistani phone formats:
+  // 1. 03XX-XXXXXXX (11 digits, starts with 0)
+  // 2. +923XX-XXXXXXX (92 prefix, 12 digits)
+  // 3. 923XX-XXXXXXX (92 prefix without +, 12 digits)
+  
+  return (
+    /^03\d{9}$/.test(digits) ||           // 03XX-XXXXXXX (11 digits)
+    /^923\d{9}$/.test(digits) ||          // 923XX-XXXXXXX (12 digits)
+    /^92\d{10}$/.test(digits)             // 92XXXXXXXXXX (12 digits)
+  );
+};
+
+
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // ── Required field validation ──
-    if (!form.fatherHusbandName.trim()) { toast.error("Father / Husband Name is required"); return; }
-    if (!form.cnic.trim()) { toast.error("CNIC Number is required"); return; }
-    if (!form.currentAddress.trim()) { toast.error("Current Address is required"); return; }
-    if (!form.emergencyContactName.trim()) { toast.error("Emergency Contact is required"); return; }
-    if (!form.participationAgreement || !form.photoVideoRelease) {
-      toast.error("Please agree to both agreements"); return;
-    }
-    const signatureData = signatureType === "type" ? typedSignature : drawnSignature;
-    if (!signatureData) { toast.error("Please provide your signature"); return; }
-    submitContract({ ...form, signatureType, signatureData });
-  };
+  e.preventDefault();
+
+  // Required field validation — correct order
+  if (!form.fatherHusbandName.trim()) {
+    toast.error("Father / Husband Name is required");
+    return;
+  }
+  if (!form.cnic.trim()) {
+    toast.error("CNIC Number is required");
+    return;
+  }
+  if (!form.currentAddress.trim()) {
+    toast.error("Current Address is required");
+    return;
+  }
+  if (!form.emergencyContactName.trim()) {
+    toast.error("Emergency Contact Name is required");
+    return;
+  }
+  // ✅ Phone field pe phone validation — name field pe nahi
+  if (!form.emergencyContactPhone.trim()) {
+    toast.error("Emergency Contact Phone is required");
+    return;
+  }
+  if (!isValidPhone(form.emergencyContactPhone)) {
+    toast.error("Please enter a valid phone number (e.g. 03XX-XXXXXXX)");
+    return;
+  }
+  if (!form.participationAgreement || !form.photoVideoRelease) {
+    toast.error("Please agree to both agreements");
+    return;
+  }
+
+  const signatureData = signatureType === "type" ? typedSignature : drawnSignature;
+  if (!signatureData) {
+    toast.error("Please provide your signature");
+    return;
+  }
+
+  submitContract({ ...form, signatureType, signatureData });
+};
 
   const alreadySigned = contract?.status === "signed";
 
@@ -340,7 +417,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
                   type="button"
                   onClick={() => {
                     setShowLeaveModal(false);
-                    router.back();
+                    onBack();
                   }}
                   className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition"
                 >
@@ -469,7 +546,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             {[
               { label: "Full Name", value: displayName },
               { label: "Email", value: lead.email || authUser?.email || "—" },
-              { label: "Phone", value: lead.phone || "—" },
+              { label: "Phone", value: formatPhone(lead.phone) },
               { label: "Program", value: lead.program_id?.name || contract?.programName || "—" },
             ].map(({ label, value }) => (
               <div key={label}>
@@ -493,7 +570,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
         />
 
         {/* Personal Details */}
-        <fieldset disabled={isConverted} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm disabled:opacity-70">
+        {/* <fieldset disabled={isConverted} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm disabled:opacity-70">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Personal Details</p>
           <div className="grid grid-cols-2 gap-4">
 
@@ -552,6 +629,71 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
                 placeholder="e.g. Software Engineer at XYZ, Student at ABC"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400" />
             </div>
+          </div>
+        </fieldset> */}
+        <fieldset disabled={isConverted} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm disabled:opacity-70">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Personal Details</p>
+          <div className="grid grid-cols-2 gap-4">
+
+            <InputField
+              label="Father / Husband Name *"
+              value={form.fatherHusbandName}
+              onChange={(e) => setForm((p) => ({ ...p, fatherHusbandName: e.target.value }))}
+              placeholder="Enter name"
+              disabled={isConverted}
+            />
+
+            <InputField
+              label="CNIC Number *"
+              value={form.cnic}
+              onChange={(e) => setForm((p) => ({ ...p, cnic: e.target.value }))}
+              placeholder="XXXXX-XXXXXXX-X"
+              disabled={isConverted}
+            />
+
+            <div className="col-span-2">
+              <InputField
+                label="Current Address *"
+                value={form.currentAddress}
+                onChange={(e) => setForm((p) => ({ ...p, currentAddress: e.target.value }))}
+                placeholder="Enter your full address"
+                disabled={isConverted}
+              />
+            </div>
+<div className="col-span-2">
+            <InputField
+              label="Bank Account Number"
+              value={form.bankAccountNumber}
+              onChange={(e) => setForm((p) => ({ ...p, bankAccountNumber: e.target.value }))}
+              placeholder="Account number"
+              disabled={isConverted}
+            />
+</div>
+            <InputField
+              label="Emergency Contact Name*"
+              value={form.emergencyContactName}
+              onChange={(e) => setForm((p) => ({ ...p, emergencyContactName: e.target.value }))}
+              placeholder="Name"
+              disabled={isConverted}
+            />
+            <InputField
+              label="Emergency Contact Number*"
+              value={form.emergencyContactPhone}
+              onChange={(e) => setForm((p) => ({ ...p, emergencyContactPhone: e.target.value }))}
+              placeholder="Phone"
+              disabled={isConverted}
+            />
+
+            <div className="col-span-2">
+              <InputField
+                label="Occupation / Company"
+                value={form.occupation}
+                onChange={(e) => setForm((p) => ({ ...p, occupation: e.target.value }))}
+                placeholder="e.g. Software Engineer at XYZ, Student at ABC"
+                disabled={isConverted}
+              />
+            </div>
+
           </div>
         </fieldset>
 
