@@ -84,15 +84,25 @@ export default function SalesManagerLeads() {
     enabled: activeView === "opportunities",
   });
 
+  // const { data: enrollmentsData } = useQuery({
+  //   queryKey: ["enrollments-kanban"],
+  //   queryFn: () =>
+  //     getAllEnrollments({
+  //       page: 1,
+  //       limit: 1000, // saari enrollments
+  //       search: filters.search || "",
+  //     }).then((r) => r.data),
+  // });
   const { data: enrollmentsData } = useQuery({
-    queryKey: ["enrollments-kanban"],
-    queryFn: () =>
-      getAllEnrollments({
-        page: 1,
-        limit: 1000, // saari enrollments
-        search: filters.search || "",
-      }).then((r) => r.data),
-  });
+  queryKey: ["enrollments-kanban", filters.search, viewMode],  // viewMode add
+  queryFn: () =>
+    getAllEnrollments({
+      page: 1,
+      limit: 1000,
+      search: filters.search || "",
+      ...(viewMode === "my" ? { assigned_to: authUser?._id } : {}),  // ← add
+    }).then((r) => r.data),
+});
 
   const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
     queryKey: ["lead-activities", viewActivities?._id],
@@ -262,14 +272,14 @@ export default function SalesManagerLeads() {
         </div>
 
         {/* My / All Leads dropdown */}
-        <div className="w-36">
+        <div className="w-46">
           <Select
             label=""
             bg="bg-white"
             value={viewMode}
             options={[
-              { label: "My Leads", value: "my" },
-              { label: "All Leads", value: "all" },
+              { label: "My Opportunities", value: "my" },
+              { label: "All Opportunities", value: "all" },
             ]}
             onChange={(e) => setViewMode(e.target.value as "my" | "all")}
           />
