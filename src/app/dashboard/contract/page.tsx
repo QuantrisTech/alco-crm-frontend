@@ -1,12 +1,13 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyLeadContract, getProfile, submitLeadContract } from "@/utils/api";
 import toast from "react-hot-toast";
 import {
   FileText, CheckCircle, PenLine, Type, RotateCcw,
   Loader2, Clock, ChevronRight, Lock, AlertCircle,
-  ArrowLeft, Edit3,
+  ArrowLeft, Edit3, Save,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import PageHeader from "@/app/component/dashboard/page-header";
@@ -151,21 +152,25 @@ function SignatureCanvas({ onSave }: { onSave: (data: string) => void }) {
 function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((s) => s.auth);
-
+  const router = useRouter();
   const contract = lead.contractDetails;
   const paymentPlan = lead.paymentPlan;
   const isConverted = lead.status === "converted";
 
-  const [form, setForm] = useState({
-    fatherHusbandName: contract?.fatherHusbandName || "",
-    cnic: contract?.cnic || "",
-    bankAccountNumber: contract?.bankAccountNumber || "",
-    currentAddress: contract?.currentAddress || "",
-    emergencyContactName: contract?.emergencyContactName || "",
-    occupation: contract?.occupation || "",
-    participationAgreement: contract?.participationAgreement || false,
-    photoVideoRelease: contract?.photoVideoRelease || false,
-  });
+  // ── Helper: build fresh form from lead ──
+  const buildForm = useCallback((c: ContractDetails | undefined) => ({
+    fatherHusbandName: c?.fatherHusbandName || "",
+    cnic: c?.cnic || "",
+    bankAccountNumber: c?.bankAccountNumber || "",
+    currentAddress: c?.currentAddress || "",
+    emergencyContactName: c?.emergencyContactName || "",
+    occupation: c?.occupation || "",
+    participationAgreement: c?.participationAgreement || false,
+    photoVideoRelease: c?.photoVideoRelease || false,
+  }), []);
+
+  const [form, setForm] = useState(() => buildForm(contract));
+  const [savedForm, setSavedForm] = useState(() => buildForm(contract));
 
   const [signatureType, setSignatureType] = useState<"draw" | "type">(contract?.signatureType || "draw");
   const [typedSignature, setTypedSignature] = useState(
@@ -175,24 +180,59 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     contract?.signatureType === "draw" ? contract?.signatureData || "" : ""
   );
   const [signatureSaved, setSignatureSaved] = useState(!!contract?.signatureData);
+  const [savedSignatureType, setSavedSignatureType] = useState<"draw" | "type">(contract?.signatureType || "draw");
+  const [savedSignatureData, setSavedSignatureData] = useState(contract?.signatureData || "");
+
+  // ✅ Lead prop update honay par form sync karo (image upload/delete ke baad bhi)
+  useEffect(() => {
+    const fresh = buildForm(lead.contractDetails);
+    setForm(fresh);
+    setSavedForm(fresh);
+    setSignatureType(lead.contractDetails?.signatureType || "draw");
+    setSavedSignatureType(lead.contractDetails?.signatureType || "draw");
+    const sigData = lead.contractDetails?.signatureData || "";
+    setSavedSignatureData(sigData);
+    if (lead.contractDetails?.signatureType === "type") {
+      setTypedSignature(sigData);
+    } else {
+      setDrawnSignature(sigData);
+    }
+    setSignatureSaved(!!sigData);
+  }, [lead, buildForm]);
+
+  // ✅ Dirty check — koi bhi change hua?
+  const currentSignatureData = signatureType === "type" ? typedSignature : drawnSignature;
+  const isDirty =
+    JSON.stringify(form) !== JSON.stringify(savedForm) ||
+    signatureType !== savedSignatureType ||
+    currentSignatureData !== savedSignatureData;
 
   const { mutate: submitContract, isPending: isSubmitting } = useMutation({
     mutationFn: (data: any) => submitLeadContract(lead._id, data),
     onSuccess: () => {
       toast.success("Contract submitted successfully! ✅");
       queryClient.invalidateQueries({ queryKey: ["my-contract"] });
+      // saved state update (optimistic)
+      setSavedForm({ ...form });
+      setSavedSignatureType(signatureType);
+      setSavedSignatureData(currentSignatureData);
       onBack();
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to submit!"),
   });
 
   const { data: profileData } = useQuery({
-  queryKey: ["profile"],
-  queryFn: () => getProfile().then((res) => res.data.user),
-});
+    queryKey: ["profile"],
+    queryFn: () => getProfile().then((res) => res.data.user),
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // ── Required field validation ──
+    if (!form.fatherHusbandName.trim()) { toast.error("Father / Husband Name is required"); return; }
+    if (!form.cnic.trim()) { toast.error("CNIC Number is required"); return; }
+    if (!form.currentAddress.trim()) { toast.error("Current Address is required"); return; }
+    if (!form.emergencyContactName.trim()) { toast.error("Emergency Contact is required"); return; }
     if (!form.participationAgreement || !form.photoVideoRelease) {
       toast.error("Please agree to both agreements"); return;
     }
@@ -203,13 +243,114 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 
   const alreadySigned = contract?.status === "signed";
 
+  // ✅ PDF mein naam — authUser se fallback
+  const displayName = contract?.fullName || `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || authUser?.name || "—";
+
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  const handleBack = () => {
+    if (isDirty) {
+      setShowLeaveModal(true); // popup dikhao
+    } else {
+      onBack();
+    }
+  };
+
+  // useEffect(() => {
+  //   const handler = (e: BeforeUnloadEvent) => {
+  //     if (isDirty) {
+  //       e.preventDefault();
+  //       e.returnValue = ""; // browser apna default popup dikhayega
+  //     }
+  //   };
+  //   window.addEventListener("beforeunload", handler);
+  //   return () => window.removeEventListener("beforeunload", handler);
+  // }, [isDirty]);
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (!isDirty) return;
+
+      // browser ko current page par wapas rakho
+      window.history.pushState(null, "", window.location.href);
+
+      setShowLeaveModal(true);
+    };
+
+    // history entry add karo
+    window.history.pushState(null, "", window.location.href);
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [isDirty]);
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 relative">
       {/* Back button */}
-      <button onClick={onBack}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition font-medium">
-        <ArrowLeft size={16} /> Back to Contracts
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={handleBack}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition font-medium">
+          <ArrowLeft size={16} /> Back to Contracts
+        </button>
+
+        {/* ✅ Floating Save button — top right */}
+        {!isConverted && (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!isDirty || isSubmitting}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm
+              ${isDirty
+                ? "bg-yellow-400 hover:bg-yellow-500 text-gray-900 cursor-pointer"
+                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              } disabled:opacity-60`}
+          >
+            {isSubmitting
+              ? <Loader2 size={14} className="animate-spin" />
+              : <Save size={14} />
+            }
+            {isSubmitting ? "Saving..." : isDirty ? "Save Changes" : "Saved"}
+          </button>
+        )}
+
+        {/* ── Unsaved Changes Modal ── */}
+        {showLeaveModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6 max-w-sm w-full">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                  <AlertCircle size={18} className="text-amber-500" />
+                </div>
+                <p className="font-semibold text-gray-800 text-sm">Unsaved Changes</p>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed mb-5">
+                You have unsaved changes in your contract. If you leave now, your changes will be lost.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 font-medium hover:bg-gray-50 transition"
+                >
+                  Stay on page
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLeaveModal(false);
+                    router.back();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition"
+                >
+                  Leave anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Program + status header */}
       <div className="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm flex items-center justify-between">
@@ -277,7 +418,6 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
               <p className="font-bold text-gray-800 text-sm">{paymentPlan.installments?.length || 0}</p>
             </div>
           </div>
-          {/* Installment table */}
           <div className="bg-white rounded-xl overflow-hidden border border-amber-100">
             <table className="w-full text-xs">
               <thead>
@@ -327,7 +467,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Program Information</p>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: "Full Name", value: contract?.fullName || authUser?.name || "—" },
+              { label: "Full Name", value: displayName },
               { label: "Email", value: lead.email || authUser?.email || "—" },
               { label: "Phone", value: lead.phone || "—" },
               { label: "Program", value: lead.program_id?.name || contract?.programName || "—" },
@@ -340,7 +480,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           </div>
         </div>
 
-        {/* CNIC Documents */}
+        {/* ✅ CNIC Documents — queryKey sirf "profile" rakho taake image upload/delete par sirf yeh section refresh ho, poori form nahi */}
         <DocumentsSection
           userId={authUser?._id!}
           documents={profileData?.documents || []}
@@ -358,7 +498,9 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           <div className="grid grid-cols-2 gap-4">
 
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">Father / Husband Name <span className="text-rose-400">*</span></label>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">
+                Father / Husband Name <span className="text-rose-400">*</span>
+              </label>
               <input type="text" value={form.fatherHusbandName}
                 onChange={(e) => setForm((p) => ({ ...p, fatherHusbandName: e.target.value }))}
                 placeholder="Enter name" required
@@ -366,7 +508,9 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">CNIC Number <span className="text-rose-400">*</span></label>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">
+                CNIC Number <span className="text-rose-400">*</span>
+              </label>
               <input type="text" value={form.cnic}
                 onChange={(e) => setForm((p) => ({ ...p, cnic: e.target.value }))}
                 placeholder="XXXXX-XXXXXXX-X" required
@@ -374,7 +518,9 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             </div>
 
             <div className="col-span-2">
-              <label className="text-xs font-semibold text-gray-600 block mb-1">Current Address <span className="text-rose-400">*</span></label>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">
+                Current Address <span className="text-rose-400">*</span>
+              </label>
               <input type="text" value={form.currentAddress}
                 onChange={(e) => setForm((p) => ({ ...p, currentAddress: e.target.value }))}
                 placeholder="Enter your full address" required
@@ -390,7 +536,9 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">Emergency Contact <span className="text-rose-400">*</span></label>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">
+                Emergency Contact <span className="text-rose-400">*</span>
+              </label>
               <input type="text" value={form.emergencyContactName}
                 onChange={(e) => setForm((p) => ({ ...p, emergencyContactName: e.target.value }))}
                 placeholder="Name (next of kin)" required
@@ -441,7 +589,9 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 
         {/* Signature */}
         <fieldset disabled={isConverted} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm disabled:opacity-70">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Signature</p>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">
+            Signature <span className="text-rose-400">*</span>
+          </p>
 
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-4">
             {(["draw", "type"] as const).map((t) => (
@@ -494,7 +644,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           <ContractPDFGenerator
             mode="preview"
             contractData={{
-              fullName: contract?.fullName,
+              fullName: displayName, // ✅ fixed
               email: lead.email,
               phone: lead.phone,
               programName: lead.program_id?.name || contract?.programName,
@@ -513,7 +663,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           />
         )}
 
-        {/* Submit */}
+        {/* Submit button (bottom) — still kept for convenience */}
         {!isConverted && (
           <>
             <button type="submit"
@@ -534,7 +684,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Contract Card (list item)
+// Contract Card (list item)  — unchanged
 // ─────────────────────────────────────────────────────────────
 function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
   const contract = lead.contractDetails;
@@ -547,13 +697,11 @@ function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
       className="w-full text-left bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 group">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-4 min-w-0">
-          {/* Icon */}
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isConverted ? "bg-teal-50" : "bg-yellow-50"}`}>
             {isConverted
               ? <CheckCircle size={20} className="text-teal-500" />
               : <FileText size={20} className="text-yellow-500" />}
           </div>
-
           <div className="min-w-0">
             <p className="font-semibold text-gray-800 text-sm truncate">
               {lead.program_id?.name || lead.program_name || "Program"}
@@ -562,18 +710,12 @@ function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
               Applied {formatDate(lead.createdAt)}
               {contract?.signedAt && ` · Signed ${formatDate(contract.signedAt)}`}
             </p>
-
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {/* Contract status */}
               <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${cs.bg} ${cs.color}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${cs.dot}`} />
                 {cs.label}
               </span>
-              {/* Lead status */}
-              <span className={`text-[10px] font-semibold ${ls.color}`}>
-                {ls.label}
-              </span>
-              {/* Editable badge */}
+              <span className={`text-[10px] font-semibold ${ls.color}`}>{ls.label}</span>
               {!isConverted && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
                   <Edit3 size={9} /> Editable
@@ -587,12 +729,8 @@ function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
             </div>
           </div>
         </div>
-
-        <ChevronRight size={16}
-          className="text-gray-300 group-hover:text-gray-500 transition shrink-0 mt-1" />
+        <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 transition shrink-0 mt-1" />
       </div>
-
-      {/* Payment plan summary if exists */}
       {lead.paymentPlan && (
         <div className="mt-4 pt-3 border-t border-gray-50 flex items-center gap-4 text-xs text-gray-500">
           <span>Total: <span className="font-semibold text-gray-700">{formatAmount(lead.paymentPlan.totalAmount)}</span></span>
@@ -605,10 +743,11 @@ function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main Page
+// Main Page — unchanged
 // ─────────────────────────────────────────────────────────────
 export default function MyContractsPage() {
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-contract"],
@@ -616,8 +755,10 @@ export default function MyContractsPage() {
   });
 
   const leads: Lead[] = data?.data || [];
+  const selectedLead = selectedLeadId
+    ? leads.find((l) => l._id === selectedLeadId) ?? null
+    : null;
 
-  // ── Loading ──
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -626,7 +767,8 @@ export default function MyContractsPage() {
     );
   }
 
-  // ── Detail view ──
+
+
   if (selectedLead) {
     return (
       <div className="space-y-6">
@@ -636,13 +778,14 @@ export default function MyContractsPage() {
           titleIcon={<FileText size={24} />}
         />
         <div className="max-w-3xl">
-          <ContractForm lead={selectedLead} onBack={() => setSelectedLead(null)} />
+          <ContractForm lead={selectedLead} onBack={() => setSelectedLeadId(null)} />
         </div>
+
+
       </div>
     );
   }
 
-  // ── List view ──
   return (
     <div className="space-y-6">
       <PageHeader
@@ -650,10 +793,7 @@ export default function MyContractsPage() {
         subtitle="Your enrollment agreements across all programs"
         titleIcon={<FileText size={24} />}
       />
-
       <div className="max-w-3xl space-y-4">
-
-        {/* Empty */}
         {leads.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
@@ -666,8 +806,6 @@ export default function MyContractsPage() {
             </p>
           </div>
         )}
-
-        {/* Stats bar */}
         {leads.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {[
@@ -682,8 +820,6 @@ export default function MyContractsPage() {
             ))}
           </div>
         )}
-
-        {/* Info note */}
         {leads.some((l) => l.status !== "converted") && (
           <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
             <AlertCircle size={15} className="text-blue-500 shrink-0 mt-0.5" />
@@ -692,10 +828,8 @@ export default function MyContractsPage() {
             </p>
           </div>
         )}
-
-        {/* Contract cards */}
         {leads.map((lead) => (
-          <ContractCard key={lead._id} lead={lead} onOpen={() => setSelectedLead(lead)} />
+          <ContractCard key={lead._id} lead={lead} onOpen={() => setSelectedLeadId(lead._id)} />
         ))}
       </div>
     </div>
