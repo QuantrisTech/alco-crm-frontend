@@ -27,6 +27,7 @@ import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generat
 import ViewContractModal from "./view-contract-modal";
 import ViewPaymentPlanModal from "./view-payment-plan-modal";
 import SelectProgramModal from "./select-program-modal";
+import Select from "@/app/component/ui/select";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
@@ -45,6 +46,7 @@ export default function SalesManagerLeads() {
   const [filters, setFilters] = useState(defaultLeadFilters);
   const [selectProgramLead, setSelectProgramLead] = useState<any>(null);
   const [viewingPaymentPlan, setViewingPaymentPlan] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<"my" | "all">("my");
   const [filtersPage, setFiltersPage] = useState({
     page: "1",
     limit: "10",
@@ -53,18 +55,33 @@ export default function SalesManagerLeads() {
   const currentPage = Number(filtersPage.page);
   const limit = Number(filtersPage.limit);
 
+  const invalidateLeads = () => {
+    queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
+    queryClient.invalidateQueries({ queryKey: ["sales-leads-kanban"] });
+    queryClient.invalidateQueries({ queryKey: ["sales-leads-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["enrollments-kanban"] });
+  };
+
+
   // ── Queries ──────────────────────────────────────────────────
   const { data: leadsData, isLoading, isError } = useQuery({
-    // queryKey: ["admin-leads", filters],
-    // queryFn: () => getAllLeads(filters).then((r) => r.data),
-    queryKey: ["admin-leads", filters, filtersPage],  // 👈 filtersPage bhi add karo
-    queryFn: () => getAllLeads({ ...filters, ...filtersPage }).then((r) => r.data),
+    queryKey: ["sales-leads", filters, filtersPage, viewMode],
+    queryFn: () => getAllLeads({
+      ...filters,
+      ...filtersPage,
+      ...(viewMode === "my" ? { assigned_to: authUser?._id } : {}),
+    }).then((r) => r.data),
   });
 
-  const { data: allLeadsData, isLoading: isKanbanLoading } = useQuery({
-    queryKey: ["admin-leads-kanban", filters],
-    queryFn: () => getAllLeads({ ...filters, page: "1", limit: "1000" }).then((r) => r.data),
-    enabled: activeView === "opportunities",  // sirf tab fetch karo jab kanban open ho
+  const { data: allLeadsData } = useQuery({
+    queryKey: ["sales-leads-kanban", filters, viewMode],
+    queryFn: () => getAllLeads({
+      ...filters,
+      page: "1",
+      limit: "1000",
+      ...(viewMode === "my" ? { assigned_to: authUser?._id } : {}),
+    }).then((r) => r.data),
+    enabled: activeView === "opportunities",
   });
 
   const { data: enrollmentsData } = useQuery({
@@ -143,37 +160,37 @@ export default function SalesManagerLeads() {
   // ── Mutations ────────────────────────────────────────────────
   const { mutate: addLead, isPending: isAdding } = useMutation({
     mutationFn: createLead,
-    onSuccess: () => { toast.success("Lead created! ✅"); setIsAddOpen(false); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => { toast.success("Lead created! ✅"); setIsAddOpen(false); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
-  const { mutate: updateLeadApi, isPending: isUpdating } = useMutation({
+  const { mutateAsync: updateLeadApi, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => updateLead(id, data),
-    onSuccess: () => { toast.success("Lead updated! ✅"); setEditingLead(null); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => { toast.success("Lead updated! ✅"); setEditingLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed to update!"),
   });
 
   const { mutate: assignLeadApi, isPending: isAssigning } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => assignLead(id, data),
-    onSuccess: () => { toast.success("Lead assigned! ✅"); setAssigningLead(null); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => { toast.success("Lead assigned! ✅"); setAssigningLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed to assign!"),
   });
 
-  const { mutate: convertLeadApi } = useMutation({
+  const { mutateAsync: convertLeadApi } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => convertLead(id, data),
-    onSuccess: () => { toast.success("Lead converted! 🎉"); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => { toast.success("Lead converted! 🎉"); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to convert!"),
   });
 
   const { mutate: markLost, isPending: isMarkingLost } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => markLostLead(id, data),
-    onSuccess: () => { toast.success("Marked as lost!"); setLostLead(null); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => { toast.success("Marked as lost!"); setLostLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed!"),
   });
 
   const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
-    onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); queryClient.invalidateQueries({ queryKey: ["sales-leads"] }); },
+    onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed!"),
   });
 
@@ -182,17 +199,13 @@ export default function SalesManagerLeads() {
     onSuccess: () => {
       toast.success(paymentPlanLead?.paymentPlan ? "Payment plan updated!" : "Payment plan saved!");
       setPaymentPlanLead(null);
-      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
+      invalidateLeads();
     },
   });
 
   const { mutate: markInterested, isPending: isMarkingInterested } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => markLeadInterested(id, data),
-    onSuccess: () => {
-      toast.success("Lead marked as interested! ⭐");
-      setInterestedLead(null);
-      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
-    },
+    onSuccess: () => { toast.success("Lead marked as interested! ⭐"); setInterestedLead(null); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
@@ -216,9 +229,10 @@ export default function SalesManagerLeads() {
     },
     onViewContract: setViewContractLead,
     viewPaymentPlan: setViewingPaymentPlan,
+    currentUser: authUser,
   };
 
-    const handlePageChange = (newPage: number) => {
+  const handlePageChange = (newPage: number) => {
     setFiltersPage((prev) => ({ ...prev, page: String(newPage) }));
   };
 
@@ -231,19 +245,35 @@ export default function SalesManagerLeads() {
       />
 
       {/* ── View Toggle ── */}
-      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-5">
-        <button
-          onClick={() => setActiveView("opportunities")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "opportunities" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          <LayoutGrid size={14} /> Opportunities
-        </button>
-        <button
-          onClick={() => setActiveView("list")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          <List size={14} /> List View
-        </button>
+      <div className="flex items-center justify-between gap-2 mb-5">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+          <button
+            onClick={() => setActiveView("opportunities")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "opportunities" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            <LayoutGrid size={14} /> Opportunities
+          </button>
+          <button
+            onClick={() => setActiveView("list")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            <List size={14} /> List View
+          </button>
+        </div>
+
+        {/* My / All Leads dropdown */}
+        <div className="w-36">
+          <Select
+            label=""
+            bg="bg-white"
+            value={viewMode}
+            options={[
+              { label: "My Leads", value: "my" },
+              { label: "All Leads", value: "all" },
+            ]}
+            onChange={(e) => setViewMode(e.target.value as "my" | "all")}
+          />
+        </div>
       </div>
 
       {/* ── Kanban View ── */}
@@ -253,7 +283,7 @@ export default function SalesManagerLeads() {
             <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <KanbanBoard 
+          <KanbanBoard
             leads={allLeadsData?.data || []}
             enrollments={enrollmentsData?.data || []}
             programMap={programMap}

@@ -30,10 +30,13 @@ import Select from "@/app/component/ui/select";
 import ViewContractModal from "./view-contract-modal";
 import ViewPaymentPlanModal from "./view-payment-plan-modal";
 import SelectProgramModal from "./select-program-modal";
+import { useAppSelector } from "@/store/hooks";
+
 
 // ── Main Component ────────────────────────────────────────────
 export default function AdminLeads() {
   const queryClient = useQueryClient();
+    const { user: authUser } = useAppSelector((state) => state.auth);
   const [activeView, setActiveView] = useState<"opportunities" | "list">("opportunities");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
@@ -56,6 +59,13 @@ export default function AdminLeads() {
   const currentPage = Number(filtersPage.page);
   const limit = Number(filtersPage.limit);
 
+  const invalidateLeads = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-leads-kanban"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-leads-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["enrollments-kanban"] });
+  };
+
   // ── Queries ──────────────────────────────────────────────────
   const { data: leadsData, isLoading, isError } = useQuery({
     // queryKey: ["admin-leads", filters],
@@ -65,10 +75,10 @@ export default function AdminLeads() {
   });
 
   const { data: allLeadsData, isLoading: isKanbanLoading } = useQuery({
-  queryKey: ["admin-leads-kanban", filters],
-  queryFn: () => getAllLeads({ ...filters, page: "1", limit: "1000" }).then((r) => r.data),
-  enabled: activeView === "opportunities",  // sirf tab fetch karo jab kanban open ho
-});
+    queryKey: ["admin-leads-kanban", filters],
+    queryFn: () => getAllLeads({ ...filters, page: "1", limit: "1000" }).then((r) => r.data),
+    enabled: activeView === "opportunities",  // sirf tab fetch karo jab kanban open ho
+  });
 
 
   const { data: enrollmentsData } = useQuery({
@@ -154,68 +164,58 @@ export default function AdminLeads() {
   // ── Mutations ────────────────────────────────────────────────
   const { mutate: addLead, isPending: isAdding } = useMutation({
     mutationFn: createLead,
-    onSuccess: () => { toast.success("Lead created! ✅"); setIsAddOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Lead created! ✅"); setIsAddOpen(false); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
-  const { mutate: updateLeadApi, isPending: isUpdating } = useMutation({
+  const { mutateAsync: updateLeadApi, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => updateLead(id, data),
-    onSuccess: () => { toast.success("Lead updated! ✅"); setEditingLead(null); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Lead updated! ✅"); setEditingLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed to update!"),
   });
 
   const { mutate: deleteLeadApi, isPending: isDeleting } = useMutation({
     mutationFn: (id: string) => deleteLead(id),
-    onSuccess: () => { toast.success("Lead deleted! 🗑️"); setDeletingLead(null); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Lead deleted! 🗑️"); setDeletingLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed to delete!"),
   });
 
   const { mutate: assignLeadApi, isPending: isAssigning } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => assignLead(id, data),
-    onSuccess: () => { toast.success("Lead assigned! ✅"); setAssigningLead(null); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Lead assigned! ✅"); setAssigningLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed to assign!"),
   });
 
-  const { mutate: convertLeadApi } = useMutation({
+  const { mutateAsync: convertLeadApi } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => convertLead(id, data),
-    onSuccess: () => { toast.success("Lead converted! 🎉"); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Lead converted! 🎉"); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to convert!"),
   });
 
   const { mutate: markLost, isPending: isMarkingLost } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => markLostLead(id, data),
-    onSuccess: () => { toast.success("Marked as lost!"); setLostLead(null); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Marked as lost!"); setLostLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed!"),
   });
 
   const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
-    onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); queryClient.invalidateQueries({ queryKey: ["admin-leads"] }); },
+    onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); invalidateLeads(); },
     onError: () => toast.error("Failed!"),
   });
 
   const { mutate: savePaymentPlan, isPending: isSavingPlan } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      updateLeadPaymentPlan(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateLeadPaymentPlan(id, data),
     onSuccess: () => {
-      toast.success(
-        paymentPlanLead?.paymentPlan
-          ? "Payment plan updated!"
-          : "Payment plan saved!"
-      );
+      toast.success(paymentPlanLead?.paymentPlan ? "Payment plan updated!" : "Payment plan saved!");
       setPaymentPlanLead(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+      invalidateLeads();
     },
   });
 
   const { mutate: markInterested, isPending: isMarkingInterested } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      markLeadInterested(id, data),
-    onSuccess: () => {
-      toast.success("Lead marked as interested! ⭐");
-      setInterestedLead(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
-    },
+    mutationFn: ({ id, data }: { id: string; data: any }) => markLeadInterested(id, data),
+    onSuccess: () => { toast.success("Lead marked as interested! ⭐"); setInterestedLead(null); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
@@ -226,21 +226,30 @@ export default function AdminLeads() {
     onAssign: setAssigningLead,
     onActivity: setActivityLead,
     onViewActivities: setViewActivities,
-    onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
+
+    // ── yeh sab async karo ──
+    onConvert: (lead: any) =>
+      convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
+
     onMarkLost: setLostLead,
     onDelete: setDeletingLead,
     onPaymentPlan: setPaymentPlanLead,
     onInterested: setInterestedLead,
-    onQualified: (lead: any) => updateLeadApi({ id: lead._id, data: { status: "qualified" } }),
+
+    onQualified: (lead: any) =>
+      updateLeadApi({ id: lead._id, data: { status: "qualified" } }),
+
     onContacted: (lead: any) => {
       if (!lead.program_id) {
-        setSelectProgramLead(lead); // modal open
+        setSelectProgramLead(lead);
       } else {
-        updateLeadApi({ id: lead._id, data: { status: "contacted" } });
+        return updateLeadApi({ id: lead._id, data: { status: "contacted" } });
       }
     },
+
     onViewContract: setViewContractLead,
     viewPaymentPlan: setViewingPaymentPlan,
+    currentUser: authUser,
   };
 
   const handlePageChange = (newPage: number) => {

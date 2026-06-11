@@ -87,8 +87,8 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
           {/* Info box */}
           <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3">
             <p className="text-xs text-yellow-700 font-medium">
-              Lead ka status <strong>Interested</strong> ho jayega aur user ko email + notification milegi.
-              Payment plan bhi automatically attach hogi.
+              The lead status will be updated to <strong>Interested</strong>, and the user will receive an email and notification.
+              The payment plan will also be attached automatically.
             </p>
           </div>
 
@@ -129,16 +129,15 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
           </div>
 
           {/* Remaining badge */}
-          <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-            remaining < 0 ? "bg-rose-50 text-rose-600" :
-            remaining === 0 ? "bg-teal-50 text-teal-600" :
-            "bg-yellow-50 text-yellow-600"
-          }`}>
+          <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${remaining < 0 ? "bg-rose-50 text-rose-600" :
+              remaining === 0 ? "bg-teal-50 text-teal-600" :
+                "bg-yellow-50 text-yellow-600"
+            }`}>
             {remaining < 0
               ? `Over-allocated by Rs ${Math.abs(remaining).toLocaleString()}`
               : remaining === 0
-              ? "✓ Fully allocated"
-              : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
+                ? "✓ Fully allocated"
+                : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
           </div>
 
           {/* Installments */}
@@ -199,7 +198,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
               rows={2}
               value={form.notes}
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-              placeholder="Koi special instructions..."
+              placeholder="Any special instructions..."
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-none text-gray-900 placeholder:text-gray-400"
             />
           </div>
@@ -215,7 +214,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
             disabled={isSubmitting || remaining < 0}
             className="flex-1 py-2 rounded-xl bg-yellow-400 text-gray-900 text-sm font-semibold hover:bg-yellow-500 disabled:opacity-50"
           >
-            {isSubmitting ? "Saving..." : "Mark Interested & Save Plan"}
+            {isSubmitting ? "Saving..." : "Mark as Interested & Save Payment Plan"}
           </button>
         </div>
       </div>

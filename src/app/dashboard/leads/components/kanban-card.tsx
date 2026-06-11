@@ -14,10 +14,10 @@ import {
 
 const cardStyle = (status: string) => {
   switch (status) {
-    case "lost":      return "bg-rose-50/70 border-rose-200";
+    case "lost": return "bg-rose-50/70 border-rose-200";
     case "converted": return "bg-blue-50/70 border-blue-200";
-    case "enrolled":  return "bg-green-50/70 border-green-200";
-    default:          return "bg-white border-gray-100";
+    case "enrolled": return "bg-green-50/70 border-green-200";
+    default: return "bg-white border-gray-100";
   }
 };
 
@@ -32,12 +32,12 @@ function BatchSelectModal({ lead, onConfirm, onClose }: {
   // const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-   const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-batches", { status: "active" }],
     queryFn: () => adminGetBatches({ status: "active" }).then((res) => res.data),
   });
 
-console.log("Batch query error:", data)
+  console.log("Batch query error:", data)
   // useEffect(() => {
   //   const fetchBatches = async () => {
   //     try {
@@ -133,7 +133,7 @@ function EnrollModal({ lead, onConfirm, onClose, isLoading }: {
   isLoading: boolean;
 }) {
   const [advancePaid, setAdvancePaid] = useState(false);
-  const [method, setMethod]           = useState("cash");
+  const [method, setMethod] = useState("cash");
   const pp = lead.paymentPlan;
 
   return (
@@ -280,11 +280,37 @@ export default function KanbanCard({
   onEdit, onViewContract, onActivity, onContacted, onQualified,
   onPaymentPlan, onInterested, onConvert, onMarkLost, onDelete,
   onAssign, onViewActivities, viewPaymentPlan, onEnroll,
+  // ── naye props ──
+  loadingLeadId,       // currently loading lead ka _id
+  loadingAction,       // konsa action chal raha hai
+  currentUser,
 }: any) {
+  const isThisLoading = loadingLeadId === lead._id;
+
+  const withLoader = (action: string, fn: () => void) => () => {
+    fn();
+  };
+
+  // ── Permission check ──────────────────────────────────────────
+  const isAdminOrSuper = ["admin", "super_admin"].includes(currentUser?.role);
+  const isOwner = lead.assigned_to?._id === currentUser?._id || lead.created_by === currentUser?._id;
+  const canAct = isAdminOrSuper || isOwner;
 
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
-  const [enrollLoading, setEnrollLoading]   = useState(false);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+
+  const runAction = async (actionKey: string, fn: () => void | Promise<void>) => {
+    setPendingAction(actionKey);
+    try {
+      await fn();
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const isLoading = (key: string) => pendingAction === key;
 
   // ── Convert: contract + batch validation ─────────────────────
   const handleConvertClick = () => {
@@ -350,6 +376,17 @@ export default function KanbanCard({
 
       <div className={`rounded-xl border shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer group relative ${cardStyle(lead.status)}`}>
 
+        {/* ── Loading Overlay ── */}
+        {pendingAction && (
+          <div className="absolute inset-0 z-10 rounded-xl bg-olive-100/80 backdrop-blur-[1px] flex flex-col items-center justify-center gap-1.5">
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-olive-400 animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-olive-400 animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-olive-400 animate-bounce [animation-delay:300ms]" />
+            </div>
+            <p className="text-[10px] font-medium text-gray-400">Applying changes...</p>
+          </div>
+        )}
         {/* Top row */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <p className="font-semibold text-gray-800 text-sm leading-tight">
@@ -413,77 +450,121 @@ export default function KanbanCard({
 
         {/* Action buttons (visible on hover) */}
         <div className="flex items-center gap-1 pt-2 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity">
+          {canAct ? (
+            <>
+              {onAssign && (
+                <button
+                  onClick={() => runAction("assign", () => onAssign(lead))}
+                  disabled={!!pendingAction}
+                  title="Assign"
+                  className="p-1 rounded hover:bg-blue-50 hover:text-blue-600 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("assign")
+                    ? <div className="w-2.5 h-2.5 border border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    : <UserPlus size={11} />}
+                </button>
+              )}
+              {onActivity && (
+                <button
+                  onClick={() => runAction("activity", () => onActivity(lead))}
+                  disabled={!!pendingAction}
+                  title="Activity"
+                  className="p-1 rounded hover:bg-indigo-50 hover:text-indigo-600 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("activity")
+                    ? <div className="w-2.5 h-2.5 border border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                    : <Activity size={11} />}
+                </button>
+              )}
+              {onViewActivities && lead.activities?.length > 0 && (
+                <button onClick={() => onViewActivities(lead)} title="View Activities"
+                  className="p-1 rounded hover:bg-indigo-50 hover:text-indigo-600 text-gray-400">
+                  <MdOutlineRemoveRedEye size={11} />
+                </button>
+              )}
+              {onContacted && lead.status === "new" && (
+                <button
+                  onClick={() => runAction("contacted", () => onContacted(lead))}
+                  disabled={!!pendingAction}
+                  title="Mark Contacted"
+                  className="p-1 rounded transition-colors bg-sky-50 hover:text-sky-600 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("contacted")
+                    ? <div className="w-2.5 h-2.5 border border-sky-400 border-t-transparent rounded-full animate-spin" />
+                    : <ArrowLeftRight size={11} />}
+                </button>
+              )}
+              {onPaymentPlan && lead.status === "interested" && (
+                <button onClick={() => onPaymentPlan(lead)} title="Set Payment Plan"
+                  className="p-1 rounded hover:bg-green-50 hover:text-green-500 text-gray-400">
+                  <CreditCard size={11} />
+                </button>
+              )}
+              {onQualified && !["interested", "qualified", "new", "converted", "lost"].includes(lead.status) && (
+                <button
+                  onClick={() => runAction("qualified", () => onQualified(lead))}
+                  disabled={!!pendingAction}
+                  title="Mark Qualified"
+                  className="p-1 rounded hover:bg-yellow-50 hover:text-yellow-500 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("qualified")
+                    ? <div className="w-2.5 h-2.5 border border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                    : <ShieldCheck size={11} />}
+                </button>
+              )}
+              {onInterested && !["interested", "new", "converted", "lost"].includes(lead.status) && (
+                <button
+                  onClick={() => runAction("interested", () => onInterested(lead))}
+                  disabled={!!pendingAction}
+                  title="Mark Interested"
+                  className="p-1 rounded hover:bg-orange-50 hover:text-orange-500 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("interested")
+                    ? <div className="w-2.5 h-2.5 border border-orange-400 border-t-transparent rounded-full animate-spin" />
+                    : <Flame size={11} />}
+                </button>
+              )}
 
-          {onAssign && (
-            <button onClick={() => onAssign(lead)} title="Assign"
-              className="p-1 rounded hover:bg-blue-50 hover:text-blue-600 text-gray-400">
-              <UserPlus size={11} />
-            </button>
-          )}
-          {onActivity && (
-            <button onClick={() => onActivity(lead)} title="Activity"
-              className="p-1 rounded hover:bg-indigo-50 hover:text-indigo-600 text-gray-400">
-              <Activity size={11} />
-            </button>
-          )}
-          {onViewActivities && lead.activities?.length > 0 && (
-            <button onClick={() => onViewActivities(lead)} title="View Activities"
-              className="p-1 rounded hover:bg-indigo-50 hover:text-indigo-600 text-gray-400">
-              <MdOutlineRemoveRedEye size={11} />
-            </button>
-          )}
-          {onContacted && lead.status === "new" && (
-            <button onClick={() => onContacted(lead)} title="Mark Contacted"
-              className="p-1 rounded transition-colors bg-sky-50 hover:text-sky-600 text-gray-400">
-              <ArrowLeftRight size={11} />
-            </button>
-          )}
-          {onPaymentPlan && lead.status === "interested" && (
-            <button onClick={() => onPaymentPlan(lead)} title="Set Payment Plan"
-              className="p-1 rounded hover:bg-green-50 hover:text-green-500 text-gray-400">
-              <CreditCard size={11} />
-            </button>
-          )}
-          {onQualified &&
-            !["interested", "qualified", "new", "converted", "lost"].includes(lead.status) && (
-              <button onClick={() => onQualified(lead)} title="Mark Qualified"
-                className="p-1 rounded hover:bg-yellow-50 hover:text-yellow-500 text-gray-400">
-                <ShieldCheck size={11} />
-              </button>
-            )}
-          {onInterested &&
-            !["interested", "new", "converted", "lost"].includes(lead.status) && (
-              <button onClick={() => onInterested(lead)} title="Mark Interested"
-                className="p-1 rounded hover:bg-orange-50 hover:text-orange-500 text-gray-400">
-                <Flame size={11} />
-              </button>
-            )}
+              {/* Convert button (interested stage) */}
+              {onConvert && lead.status === "interested" && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); runAction("convert", handleConvertClick); }}
+                  disabled={!!pendingAction}
+                  title={!lead.batch_id ? "Select a batch to convert" : "Convert"}
+                  className={`p-1 rounded transition-colors text-gray-400 disabled:opacity-40
+      ${!lead.batch_id ? "hover:bg-gray-50 hover:text-gray-500" : "hover:bg-teal-50 hover:text-teal-600"}`}
+                >
+                  {isLoading("convert")
+                    ? <div className="w-2.5 h-2.5 border border-teal-400 border-t-transparent rounded-full animate-spin" />
+                    : <UserCheck size={11} />}
+                </button>
+              )}
 
-          {/* Convert button (interested stage) */}
-          {onConvert && lead.status === "interested" && (
-            <button onClick={(e) => { e.stopPropagation(); handleConvertClick(); }}
-              title={!lead.batch_id ? "Select a batch to convert" : "Convert"}
-              className={`p-1 rounded transition-colors text-gray-400
-                ${!lead.batch_id ? "hover:bg-gray-50 hover:text-gray-500" : "hover:bg-teal-50 hover:text-teal-600"}`}>
-              <UserCheck size={11} />
-            </button>
-          )}
+              {/* ── Enroll button (converted stage only) ── */}
+              {lead.status === "converted" && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowEnrollModal(true); }}
+                  title="Enroll Student"
+                  className="p-1 rounded hover:bg-green-50 hover:text-green-600 text-gray-400">
+                  <GraduationCap size={11} />
+                </button>
+              )}
 
-          {/* ── Enroll button (converted stage only) ── */}
-          {lead.status === "converted" && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowEnrollModal(true); }}
-              title="Enroll Student"
-              className="p-1 rounded hover:bg-green-50 hover:text-green-600 text-gray-400">
-              <GraduationCap size={11} />
-            </button>
-          )}
-
-          {onMarkLost && !["converted", "lost"].includes(lead.status) && (
-            <button onClick={() => onMarkLost(lead)} title="Lost"
-              className="p-1 rounded hover:bg-rose-50 hover:text-rose-500 text-gray-400">
-              <XCircle size={11} />
-            </button>
+              {onMarkLost && !["converted", "lost"].includes(lead.status) && (
+                <button
+                  onClick={() => runAction("lost", () => onMarkLost(lead))}
+                  disabled={!!pendingAction}
+                  title="Lost"
+                  className="p-1 rounded hover:bg-rose-50 hover:text-rose-500 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("lost")
+                    ? <div className="w-2.5 h-2.5 border border-rose-400 border-t-transparent rounded-full animate-spin" />
+                    : <XCircle size={11} />}
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="text-[10px] text-gray-300 py-1">no access action</p>
           )}
         </div>
 

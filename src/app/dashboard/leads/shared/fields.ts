@@ -72,15 +72,26 @@ export const simpleAddLeadFields: ModalField[] = [
 
 // ── Edit Lead Fields (Admin / Sales Manager) ─────────────────
 export const editLeadFields: ModalField[] = [
-{ name: "first_name", label: "First Name*", type: "input", inputType: "text", required: true },
+  { name: "first_name", label: "First Name*", type: "input", inputType: "text", required: true },
   { name: "last_name", label: "Last Name*", type: "input", inputType: "text", required: true },
   { name: "email", label: "Email*", type: "input", inputType: "email", required: true },
   { name: "phone", label: "Phone*", type: "input", inputType: "text", required: true },
-  { name: "nationality", label: "Nationality", type: "input", inputType: "text"},
+  { name: "nationality", label: "Nationality", type: "input", inputType: "text" },
   { name: "profession", label: "Profession*", type: "input", inputType: "text", required: true },
   {
     name: "program_id", label: "Program*", type: "select", required: true,
     options: [],
+  },
+  {
+    name: "status", label: "status*", type: "select", required: true,
+    options: [
+      { label: "new", value: "new" },
+      { label: "contacted", value: "Contacted" },
+      { label: "qualified", value: "Qualified" },
+      { label: "interested", value: "Interested" },
+      { label: "converted", value: "Converted" },
+      { label: "lost", value: "Lost", }
+    ]
   },
   {
     name: "source", label: "Source*", type: "select", required: true,
@@ -126,6 +137,17 @@ export const editLeadFieldsReadonly: ModalField[] = [
       { label: "Cold", value: "cold" },
     ],
   },
+ {
+    name: "status", label: "status*", type: "select", required: true,
+    options: [
+      { label: "new", value: "new" },
+      { label: "contacted", value: "Contacted" },
+      { label: "qualified", value: "Qualified" },
+      { label: "interested", value: "Interested" },
+      { label: "converted", value: "Converted" },
+      { label: "lost", value: "Lost", }
+    ]
+  },
   {
     name: "source", label: "Source", type: "select", disabled: true,
     options: [
@@ -135,14 +157,6 @@ export const editLeadFieldsReadonly: ModalField[] = [
       { label: "Referral", value: "referral" },
       { label: "Enroll", value: "enroll" },
       { label: "Contact", value: "contact" },
-    ],
-  },
-  {
-    name: "status", label: "Status", type: "select",
-    options: [
-      { label: "New", value: "new" },
-      { label: "Contacted", value: "contacted" },
-      { label: "Qualified", value: "qualified" },
     ],
   },
   { name: "notes", label: "Notes", type: "textarea", placeholder: "Notes...", disabled: true },
