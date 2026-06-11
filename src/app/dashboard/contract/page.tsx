@@ -487,7 +487,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           defaultType="cnic"
           showDropdown={false}
           filterType="cnic"
-          queryKey={["my-contract", "profile"]}
+          queryKey={["profile"]}
           title="CNIC Documents"
           description="Upload a clear photo or scan of your CNIC (front & back)"
         />
