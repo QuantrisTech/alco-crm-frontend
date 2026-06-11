@@ -9,15 +9,16 @@ import {
 } from "@/utils/api";
 import {
   Landmark, TrendingUp, TrendingDown, DollarSign,
-  BookOpen, Receipt, ChevronRight, Plus, Loader2,
+  BookOpen, Receipt, ChevronRight, Plus, Loader2, NotepadText
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
 import AccountsList from "./components/accounts-list";
 import ExpenseList from "./components/expense-list";
 import JournalList from "./components/journal-list";
+import ReportsPage from "./reports/page";
 
 // ── Tab type ──────────────────────────────────────────────────
-type Tab = "overview" | "accounts" | "expenses" | "journal";
+type Tab = "overview" | "accounts" | "expenses" | "journal" | "reports";
 
 // ── KPI Card ──────────────────────────────────────────────────
 function KpiCard({
@@ -186,6 +187,7 @@ export default function AccountsPage() {
     { key: "accounts", label: "Accounts", icon: BookOpen },
     { key: "expenses", label: "Expenses", icon: Receipt },
     { key: "journal", label: "Journal", icon: TrendingUp },
+    { key: "reports", label: "Reports", icon: NotepadText},
   ];
 
   return (
@@ -228,6 +230,7 @@ export default function AccountsPage() {
       {activeTab === "accounts" && <AccountsList />}
       {activeTab === "expenses"  && <ExpenseList />}
       {activeTab === "journal"   && <JournalList />}
+      {activeTab === "reports" && <ReportsPage />}
     </>
   );
 }
