@@ -9,6 +9,8 @@ interface ViewContractModalProps {
 export default function ViewContractModal({ lead, onClose }: ViewContractModalProps) {
   if (!lead) return null;
 
+  console.log(lead, "leadleadleadleadleadlead")
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -29,7 +31,10 @@ export default function ViewContractModal({ lead, onClose }: ViewContractModalPr
             fullName: lead.contractDetails?.fullName,
             email: lead.email,
             phone: lead.phone,
-            programName: lead.program_id?.name || lead.program_name,
+            programName: lead.contractDetails?.programName ||
+              lead.program_id?.name ||
+              lead.program_name ||
+              "",
             fatherHusbandName: lead.contractDetails?.fatherHusbandName,
             cnic: lead.contractDetails?.cnic,
             bankAccountNumber: lead.contractDetails?.bankAccountNumber,
@@ -41,6 +46,7 @@ export default function ViewContractModal({ lead, onClose }: ViewContractModalPr
             signatureData: lead.contractDetails?.signatureData,
             signedAt: lead.contractDetails?.signedAt,
             paymentPlan: lead.paymentPlan,
+            invoiceNumber: lead.invoiceNumber || "",
           }}
         />
       </div>

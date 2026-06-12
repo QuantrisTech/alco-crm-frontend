@@ -24,6 +24,7 @@ import DynamicTable from "@/app/component/dashboard/dynamic-table";
 const addUserFields: ModalField[] = [
   { name: "name", label: "Name", type: "input", inputType: "text", placeholder: "Enter name" },
   { name: "email", label: "Email", type: "input", inputType: "email", placeholder: "Enter email" },
+  { name: "phone", label: "Phone", type: "input", inputType: "text", placeholder: "Enter phone" },
   { name: "password", label: "Password", type: "input", inputType: "password", placeholder: "Enter password" },
   {
     name: "role", label: "Role", type: "select",
@@ -329,8 +330,14 @@ export default function UsersPage() {
               fields: [
                 { name: "name", label: "Name", type: "input", inputType: "text" },
                 { name: "email", label: "Email", type: "input", inputType: "email", disabled: true },
+                { name: "phone", label: "Phone", type: "input", inputType: "text", placeholder: "Enter phone" },
               ],
-              onSubmit: (data) => updateUser({ id: editingUser._id, data: { name: data.name as string } }),
+              onSubmit: (data) => updateUser({
+                id: editingUser._id, data: {
+                  name: data.name as string,
+                  phone: data.phone as string,
+                },
+              }),
             },
             {
               key: "role",

@@ -89,6 +89,7 @@ type Lead = {
   status: string;
   updatedAt: string;
   createdAt: string;
+  invoiceNumber?: string;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -260,63 +261,63 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   });
 
   const isValidPhone = (phone: string) => {
-  const digits = phone.trim().replace(/\D/g, "");
-  
-  // Valid Pakistani phone formats:
-  // 1. 03XX-XXXXXXX (11 digits, starts with 0)
-  // 2. +923XX-XXXXXXX (92 prefix, 12 digits)
-  // 3. 923XX-XXXXXXX (92 prefix without +, 12 digits)
-  
-  return (
-    /^03\d{9}$/.test(digits) ||           // 03XX-XXXXXXX (11 digits)
-    /^923\d{9}$/.test(digits) ||          // 923XX-XXXXXXX (12 digits)
-    /^92\d{10}$/.test(digits)             // 92XXXXXXXXXX (12 digits)
-  );
-};
+    const digits = phone.trim().replace(/\D/g, "");
+
+    // Valid Pakistani phone formats:
+    // 1. 03XX-XXXXXXX (11 digits, starts with 0)
+    // 2. +923XX-XXXXXXX (92 prefix, 12 digits)
+    // 3. 923XX-XXXXXXX (92 prefix without +, 12 digits)
+
+    return (
+      /^03\d{9}$/.test(digits) ||           // 03XX-XXXXXXX (11 digits)
+      /^923\d{9}$/.test(digits) ||          // 923XX-XXXXXXX (12 digits)
+      /^92\d{10}$/.test(digits)             // 92XXXXXXXXXX (12 digits)
+    );
+  };
 
 
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  // Required field validation — correct order
-  if (!form.fatherHusbandName.trim()) {
-    toast.error("Father / Husband Name is required");
-    return;
-  }
-  if (!form.cnic.trim()) {
-    toast.error("CNIC Number is required");
-    return;
-  }
-  if (!form.currentAddress.trim()) {
-    toast.error("Current Address is required");
-    return;
-  }
-  if (!form.emergencyContactName.trim()) {
-    toast.error("Emergency Contact Name is required");
-    return;
-  }
-  // ✅ Phone field pe phone validation — name field pe nahi
-  if (!form.emergencyContactPhone.trim()) {
-    toast.error("Emergency Contact Phone is required");
-    return;
-  }
-  if (!isValidPhone(form.emergencyContactPhone)) {
-    toast.error("Please enter a valid phone number (e.g. 03XX-XXXXXXX)");
-    return;
-  }
-  if (!form.participationAgreement || !form.photoVideoRelease) {
-    toast.error("Please agree to both agreements");
-    return;
-  }
+    // Required field validation — correct order
+    if (!form.fatherHusbandName.trim()) {
+      toast.error("Father / Husband Name is required");
+      return;
+    }
+    if (!form.cnic.trim()) {
+      toast.error("CNIC Number is required");
+      return;
+    }
+    if (!form.currentAddress.trim()) {
+      toast.error("Current Address is required");
+      return;
+    }
+    if (!form.emergencyContactName.trim()) {
+      toast.error("Emergency Contact Name is required");
+      return;
+    }
+    // ✅ Phone field pe phone validation — name field pe nahi
+    if (!form.emergencyContactPhone.trim()) {
+      toast.error("Emergency Contact Phone is required");
+      return;
+    }
+    if (!isValidPhone(form.emergencyContactPhone)) {
+      toast.error("Please enter a valid phone number (e.g. 03XX-XXXXXXX)");
+      return;
+    }
+    if (!form.participationAgreement || !form.photoVideoRelease) {
+      toast.error("Please agree to both agreements");
+      return;
+    }
 
-  const signatureData = signatureType === "type" ? typedSignature : drawnSignature;
-  if (!signatureData) {
-    toast.error("Please provide your signature");
-    return;
-  }
+    const signatureData = signatureType === "type" ? typedSignature : drawnSignature;
+    if (!signatureData) {
+      toast.error("Please provide your signature");
+      return;
+    }
 
-  submitContract({ ...form, signatureType, signatureData });
-};
+    submitContract({ ...form, signatureType, signatureData });
+  };
 
   const alreadySigned = contract?.status === "signed";
 
@@ -660,15 +661,15 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
                 disabled={isConverted}
               />
             </div>
-<div className="col-span-2">
-            <InputField
-              label="Bank Account Number"
-              value={form.bankAccountNumber}
-              onChange={(e) => setForm((p) => ({ ...p, bankAccountNumber: e.target.value }))}
-              placeholder="Account number"
-              disabled={isConverted}
-            />
-</div>
+            <div className="col-span-2">
+              <InputField
+                label="Bank Account Number"
+                value={form.bankAccountNumber}
+                onChange={(e) => setForm((p) => ({ ...p, bankAccountNumber: e.target.value }))}
+                placeholder="Account number"
+                disabled={isConverted}
+              />
+            </div>
             <InputField
               label="Emergency Contact Name*"
               value={form.emergencyContactName}
@@ -801,6 +802,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
               signatureData: contract?.signatureData,
               signedAt: contract?.signedAt,
               paymentPlan,
+              invoiceNumber: lead.invoiceNumber || "",
             }}
           />
         )}
@@ -828,7 +830,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 // ─────────────────────────────────────────────────────────────
 // Contract Card (list item)  — unchanged
 // ─────────────────────────────────────────────────────────────
-function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
+function ContractCard({ lead, onOpen, onViewPDF }: { lead: Lead; onOpen: () => void, onViewPDF: () => void; }) {
   const contract = lead.contractDetails;
   const isConverted = lead.status === "converted";
   const cs = statusConfig[contract?.status || "pending"];
@@ -880,7 +882,79 @@ function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
           <span>{lead.paymentPlan.installments?.length || 0} installments</span>
         </div>
       )}
+
+      {contract?.status === "signed" && (
+        <div className="mt-3 pt-3 border-t border-gray-50 flex gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onViewPDF(); }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-teal-600 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition"
+          >
+            <FileText size={12} /> View Contract
+          </button>
+        </div>
+      )}
     </button>
+  );
+}
+
+function ContractPDFModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
+  const contract = lead.contractDetails;
+  const paymentPlan = lead.paymentPlan;
+  const displayName = contract?.fullName ||
+    `${lead.first_name || ""} ${lead.last_name || ""}`.trim();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+              <FileText size={18} className="text-teal-500" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">
+                {lead.program_id?.name || lead.program_name || "Contract"}
+              </p>
+              <p className="text-xs text-gray-400">
+                Signed {formatDate(contract?.signedAt)}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition text-gray-500 font-bold text-sm"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* PDF Generator */}
+        <div className="p-5">
+          <ContractPDFGenerator
+            mode="preview"
+            contractData={{
+              fullName: displayName,
+              email: lead.email,
+              phone: lead.phone,
+              programName: lead.program_id?.name || contract?.programName,
+              fatherHusbandName: contract?.fatherHusbandName,
+              cnic: contract?.cnic,
+              bankAccountNumber: contract?.bankAccountNumber,
+              currentAddress: contract?.currentAddress,
+              emergencyContactName: contract?.emergencyContactName,
+              occupation: contract?.occupation,
+              participationAgreement: contract?.participationAgreement,
+              photoVideoRelease: contract?.photoVideoRelease,
+              signatureData: contract?.signatureData,
+              signedAt: contract?.signedAt,
+              paymentPlan,
+              invoiceNumber: lead.invoiceNumber || "",
+            }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -889,6 +963,7 @@ function ContractCard({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
 // ─────────────────────────────────────────────────────────────
 export default function MyContractsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [pdfLeadId, setPdfLeadId] = useState<string | null>(null);
 
 
   const { data, isLoading } = useQuery({
@@ -900,6 +975,8 @@ export default function MyContractsPage() {
   const selectedLead = selectedLeadId
     ? leads.find((l) => l._id === selectedLeadId) ?? null
     : null;
+
+  const pdfLead = pdfLeadId ? leads.find((l) => l._id === pdfLeadId) ?? null : null;
 
   if (isLoading) {
     return (
@@ -930,6 +1007,13 @@ export default function MyContractsPage() {
 
   return (
     <div className="space-y-6">
+      {pdfLead && (
+        <ContractPDFModal
+          lead={pdfLead}
+          onClose={() => setPdfLeadId(null)}
+        />
+      )}
+
       <PageHeader
         title="My Contracts"
         subtitle="Your enrollment agreements across all programs"
@@ -971,7 +1055,7 @@ export default function MyContractsPage() {
           </div>
         )}
         {leads.map((lead) => (
-          <ContractCard key={lead._id} lead={lead} onOpen={() => setSelectedLeadId(lead._id)} />
+          <ContractCard key={lead._id} lead={lead} onOpen={() => setSelectedLeadId(lead._id)} onViewPDF={() => setPdfLeadId(lead._id)} />
         ))}
       </div>
     </div>

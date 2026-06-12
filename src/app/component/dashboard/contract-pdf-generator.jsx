@@ -213,10 +213,10 @@ async function generateContractPDF(data) {
     pg.drawRectangle({ x: W - 140, y: H - 41, width: 140, height: 4, color: C.gold });
 
     // Footer stripes (bottom LEFT, bilkul bottom se)
-    pg.drawRectangle({ x: 0, y:  0, width: 140, height: 4, color: C.gold });
-    pg.drawRectangle({ x: 0, y:  9, width: 170, height: 4, color: C.gold });
-    pg.drawRectangle({ x: 0, y:  18, width: 190, height: 4, color: C.blue });
-    pg.drawRectangle({ x: 0, y:  27, width: 210, height: 4, color: C.blue });
+    pg.drawRectangle({ x: 0, y: 0, width: 140, height: 4, color: C.gold });
+    pg.drawRectangle({ x: 0, y: 9, width: 170, height: 4, color: C.gold });
+    pg.drawRectangle({ x: 0, y: 18, width: 190, height: 4, color: C.blue });
+    pg.drawRectangle({ x: 0, y: 27, width: 210, height: 4, color: C.blue });
 
     // Footer right text
     pg.drawText("Arslan Larik & Company", {
@@ -457,18 +457,43 @@ async function generateContractPDF(data) {
   const totalAmt = pp?.totalAmount || 0;
   const numInst = pp?.installments?.length || 0;
   const instAmt = numInst > 0 ? Math.round((totalAmt - (pp?.advanceAmount || 0)) / numInst) : 0;
+  const advAmt = pp?.advanceAmount || 0;
+  const remainingAmt = totalAmt - advAmt;
 
+  // p3.drawText("1.2 The Client agrees to pay the total fee of", { x: ML, y, size: 9, font, color: C.black });
+  // p3.drawText(fmt(totalAmt), { x: ML + 215, y, size: 9, font, color: C.black });
+  // hLine(p3, ML + 213, y - 3, 100);
+  // p3.drawText("[Total Fee] in", { x: ML + 318, y, size: 9, font, color: C.black });
+  // y -= 14;
+
+  // p3.drawText(`[Number] installments of`, { x: ML, y, size: 9, font, color: C.black });
+  // p3.drawText(String(numInst), { x: ML + 116, y, size: 9, font, color: C.black });
+  // hLine(p3, ML + 114, y - 3, 105);
+  // p3.drawText("[Amount per Installment Approximately] each. Details of the", { x: ML + 224, y, size: 9, font, color: C.black });
+  // Line 2 — advance
+  // Line 1
   p3.drawText("1.2 The Client agrees to pay the total fee of", { x: ML, y, size: 9, font, color: C.black });
   p3.drawText(fmt(totalAmt), { x: ML + 215, y, size: 9, font, color: C.black });
   hLine(p3, ML + 213, y - 3, 100);
-  p3.drawText("[Total Fee] in", { x: ML + 318, y, size: 9, font, color: C.black });
+  p3.drawText("in advance of", { x: ML + 318, y, size: 9, font, color: C.black });
   y -= 14;
 
-  p3.drawText(`[Number] installments of`, { x: ML, y, size: 9, font, color: C.black });
-  p3.drawText(String(numInst), { x: ML + 116, y, size: 9, font, color: C.black });
-  hLine(p3, ML + 114, y - 3, 105);
-  p3.drawText("[Amount per Installment Approximately] each. Details of the", { x: ML + 224, y, size: 9, font, color: C.black });
+  // Line 2
+  p3.drawText(fmt(advAmt), { x: ML, y, size: 9, font, color: C.black });
+  hLine(p3, ML - 2, y - 3, 90);
+  p3.drawText("and remaining", { x: ML + 94, y, size: 9, font, color: C.black });
+  p3.drawText(fmt(remainingAmt), { x: ML + 168, y, size: 9, font, color: C.black });
+  hLine(p3, ML + 166, y - 3, 90);
+  p3.drawText("Details on INVOICE NO#", { x: ML + 262, y, size: 9, font, color: C.black });
   y -= 14;
+
+  // Line 3 — invoice blank
+  if (data.invoiceNumber) {
+    p3.drawText(data.invoiceNumber, { x: ML, y, size: 9, font: boldFont, color: C.black });
+  }
+  hLine(p3, ML, y - 3, 160);
+  y -= 30;
+  // y -= 14;
 
   p3.drawText("same are on INVOICE NO#", { x: ML, y, size: 9, font, color: C.black });
   hLine(p3, ML + 118, y - 3, 140);
