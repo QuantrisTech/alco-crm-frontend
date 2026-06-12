@@ -29,7 +29,7 @@ function CollapsedList({
 
     return (
         <div className="flex flex-col ">
-            <span className={`text-[10px] px-2 py-0.5  font-medium truncate max-w-[230px] border ${colorClass}`}>
+            <span className={`text-[10px] px-2 py-0.5  font-medium truncate max-w-[230px]  ${colorClass}`}>
                 {renderItem(first)}
             </span>
 

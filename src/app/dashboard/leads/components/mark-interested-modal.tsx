@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { X, Plus, Trash2, Star } from "lucide-react";
+import InputField from "@/app/component/ui/inputField";
 
 interface Installment {
   dueDate: string;
@@ -8,10 +9,24 @@ interface Installment {
   label: string;
 }
 
+interface FormState {
+  totalAmount: number;
+  advanceAmount: number;
+  advanceDueDate: string;
+  installments: Installment[];
+  notes: string;
+}
+
+interface FormErrors {
+  advanceAmount?: string;
+  advanceDueDate?: string;
+  installments?: { amount?: string; dueDate?: string }[];
+}
+
 interface Props {
   lead: any;
   onClose: () => void;
-  onSubmit: (data: { paymentPlan: any }) => void;
+  onSubmit: (data: { paymentPlan: FormState }) => void;
   isSubmitting?: boolean;
 }
 
@@ -21,18 +36,55 @@ const toDateInput = (dateStr?: string) => {
 };
 
 export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitting }: Props) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     totalAmount: lead?.opportunity_value ?? 0,
     advanceAmount: 0,
     advanceDueDate: "",
-    installments: [{ label: "Installment 1", amount: 0, dueDate: "" }] as Installment[],
+    installments: [{ label: "Installment 1", amount: 0, dueDate: "" }],
     notes: "",
   });
+
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // ── Advance fill check ──────────────────────────────────────────
+  const isAdvanceFilled = form.advanceAmount > 0 && form.advanceDueDate !== "";
 
   const remaining =
     form.totalAmount -
     form.advanceAmount -
     form.installments.reduce((s, i) => s + Number(i.amount), 0);
+
+  // ── Validation ─────────────────────────────────────────────────
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!form.advanceAmount || form.advanceAmount <= 0) {
+      newErrors.advanceAmount = "Advance amount is required";
+    }
+    if (!form.advanceDueDate) {
+      newErrors.advanceDueDate = "Advance due date is required";
+    }
+
+    const instErrors = form.installments.map((inst) => ({
+      amount: !inst.amount || inst.amount <= 0 ? "Amount is required" : undefined,
+      dueDate: !inst.dueDate ? "Due date is required" : undefined,
+    }));
+
+    const hasInstErrors = instErrors.some((e) => e.amount || e.dueDate);
+    if (hasInstErrors) newErrors.installments = instErrors;
+
+    if (remaining < 0) {
+      // over-allocation — block submit (badge already shows the warning)
+    }
+
+    setErrors(newErrors);
+    return (
+      !newErrors.advanceAmount &&
+      !newErrors.advanceDueDate &&
+      !hasInstErrors &&
+      remaining >= 0
+    );
+  };
 
   const addInstallment = () =>
     setForm((p) => ({
@@ -46,16 +98,24 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
   const removeInstallment = (idx: number) =>
     setForm((p) => ({ ...p, installments: p.installments.filter((_, i) => i !== idx) }));
 
-  const updateInstallment = (idx: number, field: keyof Installment, value: any) =>
+  const updateInstallment = (idx: number, field: keyof Installment, value: any) => {
     setForm((p) => ({
       ...p,
       installments: p.installments.map((inst, i) =>
         i === idx ? { ...inst, [field]: value } : inst
       ),
     }));
+    // clear that installment's error on change
+    setErrors((prev) => {
+      const instErrors = [...(prev.installments ?? [])];
+      if (instErrors[idx]) instErrors[idx] = { ...instErrors[idx], [field === "amount" ? "amount" : "dueDate"]: undefined };
+      return { ...prev, installments: instErrors };
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     onSubmit({ paymentPlan: form });
   };
 
@@ -87,64 +147,94 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
           {/* Info box */}
           <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3">
             <p className="text-xs text-yellow-700 font-medium">
-              Lead ka status <strong>Interested</strong> ho jayega aur user ko email + notification milegi.
-              Payment plan bhi automatically attach hogi.
+              The lead status will be updated to <strong>Interested</strong>, and the user will receive
+              an email and notification. The payment plan will also be attached automatically.
             </p>
           </div>
 
-          {/* Total Amount */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Total Program Fee (Rs)</label>
-            <input
-              type="number"
-              value={form.totalAmount}
-              onChange={(e) => setForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900"
-              required
-            />
-          </div>
+          {/* Total Amount — disabled, read-only */}
+          <InputField
+            label="Total Program Fee (Rs)"
+            type="number"
+            value={String(form.totalAmount)}
+            onChange={() => {}}
+            disabled
+            className="bg-gray-50 cursor-not-allowed opacity-70"
+          />
 
           {/* Advance */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Amount (Rs)</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Advance Amount (Rs) <span className="text-rose-400">*</span>
+              </label>
               <input
                 type="number"
-                value={form.advanceAmount}
-                onChange={(e) => setForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900"
-                required
+                value={form.advanceAmount || ""}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }));
+                  setErrors((p) => ({ ...p, advanceAmount: undefined }));
+                }}
+                placeholder="e.g. 5000"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 placeholder:text-gray-400 ${
+                  errors.advanceAmount
+                    ? "border-rose-400 focus:border-rose-400"
+                    : "border-gray-200 focus:border-yellow-400"
+                }`}
               />
+              {errors.advanceAmount && (
+                <p className="text-xs text-rose-500 mt-1">{errors.advanceAmount}</p>
+              )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Due Date</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Advance Due Date <span className="text-rose-400">*</span>
+              </label>
               <input
                 type="date"
                 value={form.advanceDueDate}
-                onChange={(e) => setForm((p) => ({ ...p, advanceDueDate: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900"
-                required
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, advanceDueDate: e.target.value }));
+                  setErrors((p) => ({ ...p, advanceDueDate: undefined }));
+                }}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 ${
+                  errors.advanceDueDate
+                    ? "border-rose-400 focus:border-rose-400"
+                    : "border-gray-200 focus:border-yellow-400"
+                }`}
               />
+              {errors.advanceDueDate && (
+                <p className="text-xs text-rose-500 mt-1">{errors.advanceDueDate}</p>
+              )}
             </div>
           </div>
 
           {/* Remaining badge */}
-          <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-            remaining < 0 ? "bg-rose-50 text-rose-600" :
-            remaining === 0 ? "bg-teal-50 text-teal-600" :
-            "bg-yellow-50 text-yellow-600"
-          }`}>
-            {remaining < 0
-              ? `Over-allocated by Rs ${Math.abs(remaining).toLocaleString()}`
-              : remaining === 0
-              ? "✓ Fully allocated"
-              : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
-          </div>
+          {isAdvanceFilled && (
+            <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${
+              remaining < 0
+                ? "bg-rose-50 text-rose-600"
+                : remaining === 0
+                ? "bg-teal-50 text-teal-600"
+                : "bg-yellow-50 text-yellow-600"
+            }`}>
+              {remaining < 0
+                ? `Over-allocated by Rs ${Math.abs(remaining).toLocaleString()}`
+                : remaining === 0
+                ? "✓ Fully allocated"
+                : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
+            </div>
+          )}
 
-          {/* Installments */}
-          <div>
+          {/* Installments — locked until advance is filled */}
+          <div className={!isAdvanceFilled ? "opacity-50 pointer-events-none select-none" : ""}>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-gray-600">Installments</label>
+              <label className="text-xs font-semibold text-gray-600">
+                Installments
+                {!isAdvanceFilled && (
+                  <span className="ml-2 text-[10px] text-gray-400 font-normal">(Fill advance first)</span>
+                )}
+              </label>
               <button
                 type="button"
                 onClick={addInstallment}
@@ -165,27 +255,47 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                       placeholder="Label e.g. Month 1"
                     />
                     {form.installments.length > 1 && (
-                      <button type="button" onClick={() => removeInstallment(idx)} className="text-rose-400 hover:text-rose-600 ml-2">
+                      <button
+                        type="button"
+                        onClick={() => removeInstallment(idx)}
+                        className="text-rose-400 hover:text-rose-600 ml-2"
+                      >
                         <Trash2 size={11} />
                       </button>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      placeholder="Amount (Rs)"
-                      value={inst.amount || ""}
-                      onChange={(e) => updateInstallment(idx, "amount", Number(e.target.value))}
-                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-yellow-400 bg-white text-gray-900 placeholder:text-gray-400"
-                      required
-                    />
-                    <input
-                      type="date"
-                      value={inst.dueDate}
-                      onChange={(e) => updateInstallment(idx, "dueDate", e.target.value)}
-                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-yellow-400 bg-white text-gray-900"
-                      required
-                    />
+                    <div>
+                      <input
+                        type="number"
+                        placeholder="Amount (Rs)"
+                        value={inst.amount || ""}
+                        onChange={(e) => updateInstallment(idx, "amount", Number(e.target.value))}
+                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 placeholder:text-gray-400 ${
+                          errors.installments?.[idx]?.amount
+                            ? "border-rose-400"
+                            : "border-gray-200 focus:border-yellow-400"
+                        }`}
+                      />
+                      {errors.installments?.[idx]?.amount && (
+                        <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].amount}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="date"
+                        value={inst.dueDate}
+                        onChange={(e) => updateInstallment(idx, "dueDate", e.target.value)}
+                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 ${
+                          errors.installments?.[idx]?.dueDate
+                            ? "border-rose-400"
+                            : "border-gray-200 focus:border-yellow-400"
+                        }`}
+                      />
+                      {errors.installments?.[idx]?.dueDate && (
+                        <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].dueDate}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -199,7 +309,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
               rows={2}
               value={form.notes}
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-              placeholder="Koi special instructions..."
+              placeholder="Any special instructions..."
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-none text-gray-900 placeholder:text-gray-400"
             />
           </div>
@@ -207,15 +317,18 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-          <button onClick={onClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50"
+          >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || remaining < 0}
+            disabled={isSubmitting || remaining < 0 || !isAdvanceFilled}
             className="flex-1 py-2 rounded-xl bg-yellow-400 text-gray-900 text-sm font-semibold hover:bg-yellow-500 disabled:opacity-50"
           >
-            {isSubmitting ? "Saving..." : "Mark Interested & Save Plan"}
+            {isSubmitting ? "Saving..." : "Mark as Interested & Save Payment Plan"}
           </button>
         </div>
       </div>

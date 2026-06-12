@@ -132,7 +132,7 @@ export default function LoginClient() {
         <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-4">
 
           <InputField
-            label="Email, Phone or Username"
+            label="Email Address (Login with Email Only)"
             type="text"
             placeholder="you@example.com / 03001234567 / john_doe"
             error={errors.identifier}
