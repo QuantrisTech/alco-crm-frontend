@@ -21,7 +21,9 @@ import {
   Monitor,
   FileVolume,
   SearchCheck,
-  Landmark
+  Landmark,
+  BarChart3,
+  BadgeDollarSign
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
@@ -125,7 +127,10 @@ const menuSections: MenuSection[] = [
           { label: "Upcoming Dues", href: "/dashboard/finance/invoices/upcoming" },
         ],
       },
-    ],
+       { label: "Payments", href: "/dashboard/finance/payments", icon: BadgeDollarSign, roles: ["super_admin", "admin", "finance_manager"] },
+  // { label: "Accounts", href: "/dashboard/finance/accounts", icon: Landmark, roles: ["super_admin", "admin", "finance_manager"] },
+{ label: "Reports", href: "/dashboard/finance/reports", icon: BarChart3, roles: ["super_admin", "admin", "finance_manager"] },
+      ],
   },
   {
     roles: ["super_admin", "admin", "seo"],

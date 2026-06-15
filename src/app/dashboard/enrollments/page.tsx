@@ -37,6 +37,7 @@ import AssignLeadModal from "../leads/components/assign-lead-modal";
 import { UserBooksCell } from "./components/user-books-cell";
 import { AddBookPopup } from "./components/add-book-popup";
 import CollapsedCell from "./components/collapsed-cell";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -399,6 +400,27 @@ function EnrollmentsContent() {
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
+        exportBtn={
+          <ExportButton
+            filename="enrollments-all"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllEnrollments({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Student", key: "user.name" },
+              { header: "Email", key: "user.email" },
+              { header: "Phone", key: "user.phone" },
+              { header: "Program", key: "program.name" },
+              { header: "Batch", key: "batch.name" },
+              { header: "Batch Start", key: "batch.start_date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              { header: "Status", key: "status" },
+              { header: "Access Status", key: "accessStatus" },
+              { header: "Enrolled At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
       />
 
       <DynamicTable
@@ -526,12 +548,12 @@ function EnrollmentsContent() {
           {
             key: "books",
             label: "Books",
-            render: (row) => <UserBooksCell 
-            
-            userId={row.user?._id} 
-            
-                minWidth="w-[200px]"
-                tooltipWidth="w-64"
+            render: (row) => <UserBooksCell
+
+              userId={row.user?._id}
+
+              minWidth="w-[200px]"
+              tooltipWidth="w-64"
             />,
           },
           {

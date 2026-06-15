@@ -22,6 +22,7 @@ import EditInstallmentsModal from "../component/edit-installments-modal";
 import { InvoiceViewModal } from "../component/invoice-receiving-list";
 import SendReceiptModal from "../component/send-receipt-modal";
 import CreateInvoiceModal from "../component/create-invoice-modal";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -171,6 +172,28 @@ export default function InvoicesPage() {
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
+        exportBtn={
+          <ExportButton
+            filename="invoices"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllInvoices({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Invoice #", key: "invoiceNumber" },
+              { header: "Student", key: "user.name" },
+              { header: "Email", key: "user.email" },
+              { header: "Program", key: "enrollment.program.name" },
+              { header: "Total (Rs)", key: "totalAmount", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Paid (Rs)", key: "paidAmount", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Remaining (Rs)", key: "remainingAmount", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Status", key: "status" },
+              { header: "Due Date", key: "dueDate", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
       />
 
       <DynamicTable

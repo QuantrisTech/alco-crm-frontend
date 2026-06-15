@@ -20,6 +20,7 @@ import {
 import PageHeader from "@/app/component/dashboard/page-header";
 import CreateExpenseModal from "./create-expense-modal";
 import RejectModal from "./reject-modal";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ── Constants ─────────────────────────────────────────────────
 const CATEGORIES = [
@@ -31,16 +32,16 @@ const PAYMENT_METHODS = ["cash", "bank", "cheque", "online"];
 
 const STATUS_STYLES: Record<string, string> = {
   pending_approval: "bg-yellow-50 text-yellow-700",
-  approved:         "bg-green-50 text-green-700",
-  rejected:         "bg-rose-50 text-rose-700",
-  draft:            "bg-gray-100 text-gray-500",
+  approved: "bg-green-50 text-green-700",
+  rejected: "bg-rose-50 text-rose-700",
+  draft: "bg-gray-100 text-gray-500",
 };
 
 const STATUS_ICONS: Record<string, any> = {
   pending_approval: Clock,
-  approved:         CheckCircle,
-  rejected:         XCircle,
-  draft:            Clock,
+  approved: CheckCircle,
+  rejected: XCircle,
+  draft: Clock,
 };
 
 const fmt = (n: number) =>
@@ -60,7 +61,7 @@ export default function ExpenseList() {
     queryKey: ["expenses-list", filters],
     queryFn: () =>
       getAllExpenses({
-        status:   filters.status   || undefined,
+        status: filters.status || undefined,
         category: filters.category || undefined,
       }).then((r) => r.data),
   });
@@ -71,14 +72,14 @@ export default function ExpenseList() {
     onError: (err: any) => alert(err?.response?.data?.message || "Error"),
   });
 
-  const expenses      = data?.data || [];
+  const expenses = data?.data || [];
   const totalApproved = data?.meta?.totalApprovedAmount || 0;
-  const pendingCount  = expenses.filter((e: any) => e.status === "pending_approval").length;
+  const pendingCount = expenses.filter((e: any) => e.status === "pending_approval").length;
 
   return (
     <>
       {showCreate && <CreateExpenseModal onClose={() => setShowCreate(false)} />}
-      {rejectId   && <RejectModal expenseId={rejectId} onClose={() => setRejectId(null)} />}
+      {rejectId && <RejectModal expenseId={rejectId} onClose={() => setRejectId(null)} />}
 
       <PageHeader
         title="Expenses"
@@ -94,7 +95,7 @@ export default function ExpenseList() {
             name: "status",
             placeholder: "All Status",
             options: [
-              { label: "Pending",  value: "pending_approval" },
+              { label: "Pending", value: "pending_approval" },
               { label: "Approved", value: "approved" },
               { label: "Rejected", value: "rejected" },
             ],
@@ -109,6 +110,28 @@ export default function ExpenseList() {
             })),
           },
         ]}
+        exportBtn={
+          <ExportButton
+            filename="expenses"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllExpenses({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Expense #", key: "expenseNumber" },
+              { header: "Title", key: "title" },
+              { header: "Category", key: "category" },
+              { header: "Amount (Rs)", key: "amount", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Method", key: "paymentMethod" },
+              { header: "Vendor", key: "vendor.name" },
+              { header: "Status", key: "status" },
+              { header: "Date", key: "date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              { header: "Created By", key: "createdBy.name" },
+              { header: "Reference #", key: "referenceNumber" },
+            ]}
+          />
+        }
       />
 
       {/* Summary bar */}

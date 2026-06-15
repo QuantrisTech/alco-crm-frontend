@@ -25,7 +25,8 @@ type HeaderProps = {
   filters?: Record<string, string>;
   setFilters?: React.Dispatch<React.SetStateAction<any>>;
   filterFields?: FilterField[];
-  actions?: React.ReactNode; // ✅ new
+  actions?: React.ReactNode; 
+  exportBtn?: React.ReactNode; 
 };
 
 export default function PageHeader({
@@ -40,7 +41,8 @@ export default function PageHeader({
   filters = { search: "", status: "", quality: "", source: "" },
   setFilters,
   filterFields,
-  actions, // ✅ new
+  actions, 
+  exportBtn 
 }: HeaderProps) {
   const { user: authUser } = useAppSelector((state) => state.auth);
   const role = authUser?.role;
@@ -150,6 +152,7 @@ export default function PageHeader({
             )}
           </div>
         )}
+        {/* {exportBtn} */}
       </div>
     </div>
   );

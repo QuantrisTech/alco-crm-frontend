@@ -421,7 +421,9 @@ export default function KanbanCard({
           <div className="flex items-center gap-1 mb-2">
             <Tag size={10} className="text-gray-400" />
             <span className="text-[11px] text-gray-500 truncate">
-              {programMap?.[lead.program_id] || "Program"}
+              {typeof lead.program_id === "object"
+                ? lead.program_id?.name
+                : programMap?.[lead.program_id]}
             </span>
           </div>
         )}

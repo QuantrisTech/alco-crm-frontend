@@ -9,6 +9,7 @@ import Popup from "@/app/component/ui/popup/popup";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { Receipt, CheckCircle, XCircle, Pencil } from "lucide-react";
+import ExportButton from "@/app/component/ui/export-button";
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
@@ -134,6 +135,24 @@ export default function PaymentsPage() {
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
+        exportBtn={<ExportButton
+          filename="payments"
+          label="Export Excel"
+          fetchData={async () => {
+            const res = await getAllPayments({ limit: 10000 });
+            return res.data.data;
+          }}
+          columns={[
+            { header: "Student", key: "user.name" },
+            { header: "Email", key: "user.email" },
+            { header: "Amount (Rs)", key: "amount", format: (v) => Number(v || 0).toLocaleString() },
+            { header: "Method", key: "method" },
+            { header: "Reference #", key: "referenceNumber" },
+            { header: "Status", key: "status" },
+            { header: "Approved By", key: "approvedBy.name" },
+            { header: "Date", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+          ]}
+        />}
       />
 
       <DynamicTable

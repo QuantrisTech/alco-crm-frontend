@@ -8,6 +8,7 @@ import ProtectedRoute from "@/app/component/protected-route";
 import { UserCog, ChevronLeft, ChevronRight } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
+import ExportButton from "@/app/component/ui/export-button";
 
 export default function SalesManagerDashboard() {
   const [page, setPage] = useState(1);
@@ -62,6 +63,28 @@ export default function SalesManagerDashboard() {
             placeholder: "Search by name or email...",
           },
         ]}
+        exportBtn={
+          <ExportButton
+            filename="users"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllUsersForRole();
+              return res?.data?.users;
+            }}
+            columns={[
+              { header: "Name", key: "name" },
+              { header: "Email", key: "email" },
+              { header: "Phone", key: "phone" },
+              { header: "Role", key: "role" },
+              { header: "Source", key: "source" },
+              { header: "Verified", key: "isVerified", format: (v) => v ? "Yes" : "No" },
+              { header: "Active", key: "isActive", format: (v) => v ? "Yes" : "No" },
+              { header: "Paid", key: "isPaid", format: (v) => v ? "Yes" : "No" },
+              { header: "Last Login", key: "lastLogin", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
       />
 
       {/* Table */}
@@ -69,8 +92,8 @@ export default function SalesManagerDashboard() {
         data={paginated}
         isLoading={isLoading}
         isError={isError}
-        currentPage={page}       
-        pageSize={limit}         
+        currentPage={page}
+        pageSize={limit}
         totalPages={data?.totalPages}
         onPageChange={(newPage) => setPage(newPage)}
         columns={[

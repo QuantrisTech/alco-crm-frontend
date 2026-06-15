@@ -19,6 +19,7 @@ import { ModalField } from "@/types/ui";
 import Popup from "@/app/component/ui/popup/popup";
 import PageHeader from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ── Add User Fields ──
 const addUserFields: ModalField[] = [
@@ -194,6 +195,28 @@ export default function UsersPage() {
           //   ],
           // },
         ]}
+        exportBtn={
+          <ExportButton
+            filename="users"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await adminGetAllUsers({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Name", key: "name" },
+              { header: "Email", key: "email" },
+              { header: "Phone", key: "phone" },
+              { header: "Role", key: "role" },
+              { header: "Source", key: "source" },
+              { header: "Verified", key: "isVerified", format: (v) => v ? "Yes" : "No" },
+              { header: "Active", key: "isActive", format: (v) => v ? "Yes" : "No" },
+              { header: "Paid", key: "isPaid", format: (v) => v ? "Yes" : "No" },
+              { header: "Last Login", key: "lastLogin", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
       />
 
       {/* Table */}

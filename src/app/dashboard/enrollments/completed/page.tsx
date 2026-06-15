@@ -29,6 +29,7 @@ import { UserBooksCell } from "../components/user-books-cell";
 import { AddBookPopup } from "../components/add-book-popup";
 import CollapsedCell from "../components/collapsed-cell";
 import { statusColor } from "../page";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -266,13 +267,31 @@ function ActiveEnrollmentsContent() {
         subtitle="Students who have completed their programs"
         titleIcon={<BookOpen size={24} />}
         totalCount={data?.meta?.total ?? 0}
-        // onAdd={canAdd ? () => setIsAddOpen(true) : undefined}
-        // filters={filters}
-        // setFilters={(newFilters) =>
-        //   // ✅ FIX: status: "active" preserve karo, search/page properly merge ho
-        //   setFilters((prev) => ({ ...prev, ...newFilters, status: "active" }))
-        // }
-        // filterFields={filterFields}
+        exportBtn={
+          <ExportButton
+            filename="enrollments-completed"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllEnrollments({ limit: 10000, status: "completed" });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Student", key: "user.name" },
+              { header: "Email", key: "user.email" },
+              { header: "Phone", key: "user.phone" },
+              { header: "Program", key: "program.name" },
+              { header: "Batch", key: "batch.name" },
+              { header: "Completed At", key: "updatedAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
+      // onAdd={canAdd ? () => setIsAddOpen(true) : undefined}
+      // filters={filters}
+      // setFilters={(newFilters) =>
+      //   // ✅ FIX: status: "active" preserve karo, search/page properly merge ho
+      //   setFilters((prev) => ({ ...prev, ...newFilters, status: "active" }))
+      // }
+      // filterFields={filterFields}
       />
 
       <DynamicTable

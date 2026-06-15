@@ -17,6 +17,7 @@ import { simpleAddLeadFields, editLeadFieldsReadonly } from "../shared/fields";
 import { statusColor, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { useAppSelector } from "@/store/hooks";
 import KanbanBoard from "./kanban-board";
+import ExportButton from "@/app/component/ui/export-button";
 
 export default function SalesRepLeads() {
   const queryClient = useQueryClient();
@@ -122,6 +123,32 @@ export default function SalesRepLeads() {
         title="Leads" subtitle="Manage all leads" titleIcon={<Users size={24} />}
         totalCount={leadsData?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
         filters={filters} setFilters={setFilters} filterFields={leadFilterFields}
+        exportBtn={
+          <ExportButton
+            filename="leads"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllLeads({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "First Name", key: "first_name" },
+              { header: "Last Name", key: "last_name" },
+              { header: "Email", key: "email" },
+              { header: "Phone", key: "phone" },
+              { header: "Nationality", key: "nationality" },
+              { header: "Profession", key: "profession" },
+              { header: "Program", key: "program_name" },
+              { header: "Status", key: "status" },
+              { header: "Quality", key: "quality" },
+              { header: "Source", key: "source" },
+              // { header: "Assigned To", key: "assigned_to.name" },
+              { header: "Opportunity", key: "opportunity_value", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Lead Score", key: "lead_score" },
+              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
       />
 
       {/* ── View Toggle ── */}

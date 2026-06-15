@@ -28,6 +28,7 @@ import ViewContractModal from "./view-contract-modal";
 import ViewPaymentPlanModal from "./view-payment-plan-modal";
 import SelectProgramModal from "./select-program-modal";
 import Select from "@/app/component/ui/select";
+import ExportButton from "@/app/component/ui/export-button";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
@@ -94,15 +95,15 @@ export default function SalesManagerLeads() {
   //     }).then((r) => r.data),
   // });
   const { data: enrollmentsData } = useQuery({
-  queryKey: ["enrollments-kanban", filters.search, viewMode],  // viewMode add
-  queryFn: () =>
-    getAllEnrollments({
-      page: 1,
-      limit: 1000,
-      search: filters.search || "",
-      ...(viewMode === "my" ? { assigned_to: authUser?._id } : {}),  // ← add
-    }).then((r) => r.data),
-});
+    queryKey: ["enrollments-kanban", filters.search, viewMode],  // viewMode add
+    queryFn: () =>
+      getAllEnrollments({
+        page: 1,
+        limit: 1000,
+        search: filters.search || "",
+        ...(viewMode === "my" ? { assigned_to: authUser?._id } : {}),  // ← add
+      }).then((r) => r.data),
+  });
 
   const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
     queryKey: ["lead-activities", viewActivities?._id],
@@ -252,6 +253,32 @@ export default function SalesManagerLeads() {
         title="Leads" subtitle="Manage all leads" titleIcon={<Users size={24} />}
         totalCount={leadsData?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
         filters={filters} setFilters={setFilters} filterFields={leadFilterFields}
+        exportBtn={
+          <ExportButton
+            filename="leads"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllLeads({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "First Name", key: "first_name" },
+              { header: "Last Name", key: "last_name" },
+              { header: "Email", key: "email" },
+              { header: "Phone", key: "phone" },
+              { header: "Nationality", key: "nationality" },
+              { header: "Profession", key: "profession" },
+              { header: "Program", key: "program_name" },
+              { header: "Status", key: "status" },
+              { header: "Quality", key: "quality" },
+              { header: "Source", key: "source" },
+              { header: "Assigned To", key: "assigned_to.name" },
+              { header: "Opportunity", key: "opportunity_value", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Lead Score", key: "lead_score" },
+              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+            ]}
+          />
+        }
       />
 
       {/* ── View Toggle ── */}

@@ -5,10 +5,11 @@ import ProtectedRoute from "@/app/component/protected-route";
 import PageHeader from "@/app/component/dashboard/page-header";
 import { CreditCard, CheckCircle, Clock, AlertCircle, ChevronDown, ChevronUp, Download, FileText } from "lucide-react";
 import { useState } from "react";
-import { getMyInvoices } from "@/utils/api";
+import { getMe, getMyInvoices } from "@/utils/api";
 import DownloadInvoice from "./component/download-invoice";
 import DocumentsGalleryModal from "../profile/component/documents-gallery-modal";
 import DocumentsSection from "../profile/component/documents-section";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ── API ───────────────────────────────────────────────────────
 
@@ -409,6 +410,13 @@ function PaymentsContent() {
     queryFn: getMyInvoices,
   });
 
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getMe().then((r) => r.data.data),
+  });
+
+  const isStudent = me?.role === "user";
+
   const invoices = data?.data?.data || [];
   const active = invoices.filter((i: any) => i.status !== "PAID");
   const paid = invoices.filter((i: any) => i.status === "PAID");
@@ -420,6 +428,26 @@ function PaymentsContent() {
         subtitle="View your invoices and payment history"
         titleIcon={<CreditCard size={24} />}
         totalCount={invoices.length}
+        exportBtn={
+          invoices.length > 0 ? (
+            <ExportButton
+              filename="my-payments"
+              label="Export Excel"
+              fetchData={async () => invoices}
+              columns={[
+                { header: "Invoice #", key: "invoiceNumber" },
+                { header: "Program", key: "enrollment.program.name" },
+                { header: "Total (Rs)", key: "totalAmount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Paid (Rs)", key: "paidAmount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Remaining (Rs)", key: "remainingAmount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Status", key: "status" },
+                { header: "Due Date", key: "dueDate", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Batch", key: "enrollment.batch.name" },
+                { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              ]}
+            />
+          ) : undefined
+        }
       />
 
       {isLoading ? (

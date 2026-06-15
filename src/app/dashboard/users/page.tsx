@@ -5,7 +5,6 @@ import UserDashboard from "@/app/dashboard/users/component/user-dashboard";
 import SalesManagerDashboard from "@/app/dashboard/users/component/sales-manager-dashboard";
 import SuperAdminDashboard from "@/app/dashboard/users/component/super-admin-dashboard";
 import SalesRepDashboard from "@/app/dashboard/users/component/sales-rep-dashboard";
-import FinanceManagerDashboard from "@/app/dashboard/users/component/finance-manager";
 import SupportDashboard from "@/app/dashboard/users/component/support-dashboard";
 
 export default function DashboardPage() {
@@ -23,8 +22,6 @@ export default function DashboardPage() {
         return <SalesRepDashboard />;
       case "support":
         return <SupportDashboard />;
-      case "finance_manager":
-        return <FinanceManagerDashboard />;
       default:
         return <UserDashboard />;
     }

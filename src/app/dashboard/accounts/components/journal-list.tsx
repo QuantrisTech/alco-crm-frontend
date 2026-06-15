@@ -17,6 +17,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
+import ExportButton from "@/app/component/ui/export-button";
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -360,6 +361,25 @@ export default function JournalList() {
           { type: "input", name: "from", placeholder: "From (YYYY-MM-DD)" },
           { type: "input", name: "to", placeholder: "To (YYYY-MM-DD)" },
         ]}
+        exportBtn={
+          <ExportButton
+            filename="journal-entries"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllJournalEntries({ limit: 10000 });
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Entry #", key: "entryNumber" },
+              { header: "Description", key: "description" },
+              { header: "Source", key: "sourceType" },
+              { header: "Type", key: "entryType" },
+              { header: "Status", key: "status" },
+              { header: "Date", key: "date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              { header: "Created By", key: "createdBy.name" },
+            ]}
+          />
+        }
       />
 
       {/* Date range — PageHeader filterFields don't support date inputs,

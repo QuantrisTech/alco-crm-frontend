@@ -363,6 +363,7 @@ import { getAllAccounts, createAccount, updateAccount, deleteAccount, getAccount
 import { Plus, Search, ChevronDown, ChevronRight, Loader2, X, BookOpen, Eye, Wallet } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
 import { useRouter } from "next/navigation";
+import ExportButton from "@/app/component/ui/export-button";
 
 const TYPE_COLORS: Record<string, string> = {
   asset: "bg-sky-100 text-sky-700",
@@ -630,6 +631,26 @@ export default function AccountsList() {
             })),
           },
         ]}
+        exportBtn={
+          <ExportButton
+            filename="chart-of-accounts"
+            label="Export Excel"
+            fetchData={async () => {
+              const res = await getAllAccounts();
+              return res.data.data;
+            }}
+            columns={[
+              { header: "Code", key: "code" },
+              { header: "Name", key: "name" },
+              { header: "Type", key: "type" },
+              { header: "Sub Type", key: "subType" },
+              { header: "Balance (Rs)", key: "currentBalance", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Opening (Rs)", key: "openingBalance", format: (v) => Number(v || 0).toLocaleString() },
+              { header: "Status", key: "isActive", format: (v) => v ? "Active" : "Inactive" },
+              { header: "System", key: "isSystem", format: (v) => v ? "Yes" : "No" },
+            ]}
+          />
+        }
       />
 
       {isLoading ? (
