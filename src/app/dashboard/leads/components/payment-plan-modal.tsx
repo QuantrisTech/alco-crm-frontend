@@ -13,6 +13,7 @@ interface Installment {
 
 interface PaymentPlanData {
   totalAmount: number;
+  discount: number;
   advanceAmount: number;
   advanceDueDate: string;
   installments: Installment[];
@@ -40,20 +41,32 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
   const existingPlan = lead?.paymentPlan;
   const isEditMode = !!existingPlan;
 
+  const baseAmount = lead?.opportunity_value ?? 0;
+
   const [form, setForm] = useState<PaymentPlanData>({
     totalAmount: existingPlan?.totalAmount ?? lead?.opportunity_value ?? 0,
+    discount: existingPlan?.discount ?? 0,
     advanceAmount: existingPlan?.advanceAmount ?? 0,
     advanceDueDate: toDateInput(existingPlan?.advanceDueDate) ?? "",
     installments: existingPlan?.installments?.length
       ? existingPlan.installments.map((inst: any) => ({
-          label: inst.label || "Installment",
-          amount: inst.amount || 0,
-          dueDate: toDateInput(inst.dueDate),
-          status: inst.status || "pending",
-        }))
+        label: inst.label || "Installment",
+        amount: inst.amount || 0,
+        dueDate: toDateInput(inst.dueDate),
+        status: inst.status || "pending",
+      }))
       : [{ dueDate: "", amount: 0, label: "Installment 1" }],
     notes: existingPlan?.notes ?? "",
   });
+
+  const handleDiscountChange = (value: number) => {
+    const safeValue = Math.max(0, value);
+    setForm((p) => ({
+      ...p,
+      discount: safeValue,
+      totalAmount: Math.max(0, baseAmount - safeValue),
+    }));
+  };
 
   // ── Advance fill check ──────────────────────────────────────────
   const isAdvanceFilled = form.advanceAmount > 0 && form.advanceDueDate !== "";
@@ -134,14 +147,34 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* ── Total Amount (disabled) ── */}
-          <InputField
+          {/* <InputField
             label="Total Program Fee (Rs)"
             type="number"
             value={String(form.totalAmount)}
             onChange={() => {}}
             disabled
             className="bg-gray-50 cursor-not-allowed opacity-70"
-          />
+          /> */}
+          {/* ── Total Amount + Discount ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <InputField
+              label="Total Program Fee (Rs)"
+              type="number"
+              value={String(form.totalAmount)}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))
+              }
+              placeholder="e.g. 50000"
+            />
+            <InputField
+              label="Discount (Rs) — optional"
+              type="number"
+              value={String(form.discount || "")}
+              onChange={(e) => handleDiscountChange(Number(e.target.value))}
+              placeholder="0"
+            />
+          </div>
+
 
           {/* ── Advance ── */}
           <div className="grid grid-cols-2 gap-3">
@@ -179,19 +212,18 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
           {/* ── Remaining badge ── */}
           {isAdvanceFilled && (
             <div
-              className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-                remaining < 0
+              className={`text-xs font-semibold px-3 py-2 rounded-lg ${remaining < 0
                   ? "bg-rose-50 text-rose-600"
                   : remaining === 0
-                  ? "bg-teal-50 text-teal-600"
-                  : "bg-orange-50 text-orange-600"
-              }`}
+                    ? "bg-teal-50 text-teal-600"
+                    : "bg-orange-50 text-orange-600"
+                }`}
             >
               {remaining < 0
                 ? `Over-allocated by Rs ${Math.abs(remaining).toLocaleString()}`
                 : remaining === 0
-                ? "Fully allocated"
-                : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
+                  ? "Fully allocated"
+                  : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
             </div>
           )}
 
@@ -229,11 +261,10 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
                       />
                       {isEditMode && inst.status && (
                         <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                            inst.status === "paid"
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${inst.status === "paid"
                               ? "bg-teal-100 text-teal-600"
                               : "bg-yellow-100 text-yellow-600"
-                          }`}
+                            }`}
                         >
                           {inst.status}
                         </span>

@@ -11,6 +11,7 @@ interface Installment {
 
 interface FormState {
   totalAmount: number;
+  discount: number;
   advanceAmount: number;
   advanceDueDate: string;
   installments: Installment[];
@@ -36,8 +37,11 @@ const toDateInput = (dateStr?: string) => {
 };
 
 export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitting }: Props) {
+  const baseAmount = lead?.opportunity_value ?? 0;
+
   const [form, setForm] = useState<FormState>({
-    totalAmount: lead?.opportunity_value ?? 0,
+    totalAmount: baseAmount,
+    discount: 0,
     advanceAmount: 0,
     advanceDueDate: "",
     installments: [{ label: "Installment 1", amount: 0, dueDate: "" }],
@@ -45,6 +49,15 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const handleDiscountChange = (value: number) => {
+    const safeValue = Math.max(0, value);
+    setForm((p) => ({
+      ...p,
+      discount: safeValue,
+      totalAmount: Math.max(0, baseAmount - safeValue),
+    }));
+  };
 
   // ── Advance fill check ──────────────────────────────────────────
   const isAdvanceFilled = form.advanceAmount > 0 && form.advanceDueDate !== "";
@@ -153,14 +166,33 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
           </div>
 
           {/* Total Amount — disabled, read-only */}
-          <InputField
+          {/* <InputField
             label="Total Program Fee (Rs)"
             type="number"
             value={String(form.totalAmount)}
-            onChange={() => {}}
+            onChange={() => { }}
             disabled
             className="bg-gray-50 cursor-not-allowed opacity-70"
-          />
+          /> */}
+          {/* Total Amount + Discount */}
+          <div className="grid grid-cols-2 gap-3">
+            <InputField
+              label="Total Program Fee (Rs)"
+              type="number"
+              value={String(form.totalAmount)}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))
+              }
+              placeholder="e.g. 50000"
+            />
+            <InputField
+              label="Discount (Rs) — optional"
+              type="number"
+              value={String(form.discount || "")}
+              onChange={(e) => handleDiscountChange(Number(e.target.value))}
+              placeholder="0"
+            />
+          </div>
 
           {/* Advance */}
           <div className="grid grid-cols-2 gap-3">
@@ -176,11 +208,10 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                   setErrors((p) => ({ ...p, advanceAmount: undefined }));
                 }}
                 placeholder="e.g. 5000"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 placeholder:text-gray-400 ${
-                  errors.advanceAmount
-                    ? "border-rose-400 focus:border-rose-400"
-                    : "border-gray-200 focus:border-yellow-400"
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 placeholder:text-gray-400 ${errors.advanceAmount
+                  ? "border-rose-400 focus:border-rose-400"
+                  : "border-gray-200 focus:border-yellow-400"
+                  }`}
               />
               {errors.advanceAmount && (
                 <p className="text-xs text-rose-500 mt-1">{errors.advanceAmount}</p>
@@ -197,11 +228,10 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                   setForm((p) => ({ ...p, advanceDueDate: e.target.value }));
                   setErrors((p) => ({ ...p, advanceDueDate: undefined }));
                 }}
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 ${
-                  errors.advanceDueDate
-                    ? "border-rose-400 focus:border-rose-400"
-                    : "border-gray-200 focus:border-yellow-400"
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 ${errors.advanceDueDate
+                  ? "border-rose-400 focus:border-rose-400"
+                  : "border-gray-200 focus:border-yellow-400"
+                  }`}
               />
               {errors.advanceDueDate && (
                 <p className="text-xs text-rose-500 mt-1">{errors.advanceDueDate}</p>
@@ -211,18 +241,17 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
 
           {/* Remaining badge */}
           {isAdvanceFilled && (
-            <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-              remaining < 0
-                ? "bg-rose-50 text-rose-600"
-                : remaining === 0
+            <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${remaining < 0
+              ? "bg-rose-50 text-rose-600"
+              : remaining === 0
                 ? "bg-teal-50 text-teal-600"
                 : "bg-yellow-50 text-yellow-600"
-            }`}>
+              }`}>
               {remaining < 0
                 ? `Over-allocated by Rs ${Math.abs(remaining).toLocaleString()}`
                 : remaining === 0
-                ? "✓ Fully allocated"
-                : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
+                  ? "✓ Fully allocated"
+                  : `Remaining to allocate: Rs ${remaining.toLocaleString()}`}
             </div>
           )}
 
@@ -271,11 +300,10 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                         placeholder="Amount (Rs)"
                         value={inst.amount || ""}
                         onChange={(e) => updateInstallment(idx, "amount", Number(e.target.value))}
-                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 placeholder:text-gray-400 ${
-                          errors.installments?.[idx]?.amount
-                            ? "border-rose-400"
-                            : "border-gray-200 focus:border-yellow-400"
-                        }`}
+                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 placeholder:text-gray-400 ${errors.installments?.[idx]?.amount
+                          ? "border-rose-400"
+                          : "border-gray-200 focus:border-yellow-400"
+                          }`}
                       />
                       {errors.installments?.[idx]?.amount && (
                         <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].amount}</p>
@@ -286,11 +314,10 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                         type="date"
                         value={inst.dueDate}
                         onChange={(e) => updateInstallment(idx, "dueDate", e.target.value)}
-                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 ${
-                          errors.installments?.[idx]?.dueDate
-                            ? "border-rose-400"
-                            : "border-gray-200 focus:border-yellow-400"
-                        }`}
+                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 ${errors.installments?.[idx]?.dueDate
+                          ? "border-rose-400"
+                          : "border-gray-200 focus:border-yellow-400"
+                          }`}
                       />
                       {errors.installments?.[idx]?.dueDate && (
                         <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].dueDate}</p>

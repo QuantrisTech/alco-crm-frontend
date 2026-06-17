@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAllEnrollments,
-  createEnrollment,
   updateEnrollment,
   deleteEnrollment,
   graduateEnrollment,
@@ -13,6 +12,7 @@ import {
   getAllUsersForRole,
   adminGetBatches,
   assignEnrollment,
+  createEnrollmentDirect,
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
@@ -279,7 +279,7 @@ function EnrollmentsContent() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const { mutate: addEnrollment, isPending: isAdding } = useMutation({
-    mutationFn: createEnrollment,
+    mutationFn: createEnrollmentDirect,
     onSuccess: () => {
       toast.success("Enrollment created! ✅");
       setIsAddOpen(false);

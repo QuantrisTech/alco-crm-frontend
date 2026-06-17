@@ -228,6 +228,7 @@ export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments"
 export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
 export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
 export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
+export const createEnrollmentDirect = (data: any) => API.post("/api/v1/enrollments/direct", data);
 export const assignEnrollment = (id: string, assigned_to: string) =>
   API.patch(`/api/v1/enrollments/${id}/assign`, { assigned_to });
 

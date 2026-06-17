@@ -84,6 +84,7 @@ const menuSections: MenuSection[] = [
       { label: "Audit Logs", href: "/dashboard/audit-logs", icon: ScrollText, roles: ["super_admin", "admin"] },
       { label: "Payments", href: "/dashboard/payments", icon: Receipt, roles: ["user"] },
       { label: "Contract", href: "/dashboard/contract", icon: FileText, roles: ["user"] },
+      { label: "Setting", href: "/dashboard/settings", icon: Settings, roles: ["user"] },
     ],
   },
   {
@@ -127,10 +128,10 @@ const menuSections: MenuSection[] = [
           { label: "Upcoming Dues", href: "/dashboard/finance/invoices/upcoming" },
         ],
       },
-       { label: "Payments", href: "/dashboard/finance/payments", icon: BadgeDollarSign, roles: ["super_admin", "admin", "finance_manager"] },
-  // { label: "Accounts", href: "/dashboard/finance/accounts", icon: Landmark, roles: ["super_admin", "admin", "finance_manager"] },
-{ label: "Reports", href: "/dashboard/finance/reports", icon: BarChart3, roles: ["super_admin", "admin", "finance_manager"] },
-      ],
+      { label: "Payments", href: "/dashboard/finance/payments", icon: BadgeDollarSign, roles: ["super_admin", "admin", "finance_manager"] },
+      // { label: "Accounts", href: "/dashboard/finance/accounts", icon: Landmark, roles: ["super_admin", "admin", "finance_manager"] },
+      { label: "Reports", href: "/dashboard/finance/reports", icon: BarChart3, roles: ["super_admin", "admin", "finance_manager"] },
+    ],
   },
   {
     roles: ["super_admin", "admin", "seo"],
@@ -347,7 +348,7 @@ export default function Sidebar() {
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
                             ? "bg-yellow-400 text-gray-900 font-semibold"
                             : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                          }`}
+                            }`}
                         >
                           <Icon size={18} />
                           <span className="text-sm">{item.label}</span>
@@ -414,7 +415,7 @@ export default function Sidebar() {
                 className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${sidebarMode === m
                   ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
                   : "border-transparent text-gray-400 hover:bg-gray-800 hover:text-white"
-                }`}
+                  }`}
               >
                 {m === "crm"
                   ? <Monitor size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />
@@ -465,7 +466,7 @@ export default function Sidebar() {
                           className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${isChildActive
                             ? "text-yellow-400"
                             : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-3">
                             <Icon size={18} />
@@ -491,7 +492,7 @@ export default function Sidebar() {
                                       className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${isGroupActive
                                         ? "text-yellow-400"
                                         : "text-gray-500 hover:text-gray-300"
-                                      }`}
+                                        }`}
                                     >
                                       <span>{child.header}</span>
                                       {isGroupOpen
@@ -510,7 +511,7 @@ export default function Sidebar() {
                                               className={`block px-3 py-1.5 rounded-md text-sm transition-all ${isActive
                                                 ? "bg-yellow-400 text-gray-900 font-semibold"
                                                 : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                              }`}
+                                                }`}
                                             >
                                               {sc.label}
                                             </Link>
@@ -530,7 +531,7 @@ export default function Sidebar() {
                                   className={`block px-3 py-2 rounded-md text-sm transition-all ${isActive
                                     ? "bg-yellow-400 text-gray-900 font-semibold"
                                     : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                  }`}
+                                    }`}
                                 >
                                   {child.label}
                                 </Link>
@@ -552,7 +553,7 @@ export default function Sidebar() {
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
                         ? "bg-yellow-400 text-gray-900 font-semibold"
                         : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Icon size={18} />
                       <span className="text-sm">{item.label}</span>

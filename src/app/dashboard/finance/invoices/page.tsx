@@ -23,6 +23,7 @@ import { InvoiceViewModal } from "../component/invoice-receiving-list";
 import SendReceiptModal from "../component/send-receipt-modal";
 import CreateInvoiceModal from "../component/create-invoice-modal";
 import ExportButton from "@/app/component/ui/export-button";
+import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -70,7 +71,7 @@ export default function InvoicesPage() {
   const isSalesManager = authUser?.role === "sales_manager";
   const isSalesRep = authUser?.role === "sales_rep";
 
-  const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10" });
+  const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10", dateFrom: "", dateTo: "" });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [installmentInvoice, setInstallmentInvoice] = useState<any>(null);
@@ -172,27 +173,44 @@ export default function InvoicesPage() {
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
+
         exportBtn={
-          <ExportButton
-            filename="invoices"
-            label="Export Excel"
-            fetchData={async () => {
-              const res = await getAllInvoices({ limit: 10000 });
-              return res.data.data;
-            }}
-            columns={[
-              { header: "Invoice #", key: "invoiceNumber" },
-              { header: "Student", key: "user.name" },
-              { header: "Email", key: "user.email" },
-              { header: "Program", key: "enrollment.program.name" },
-              { header: "Total (Rs)", key: "totalAmount", format: (v) => Number(v || 0).toLocaleString() },
-              { header: "Paid (Rs)", key: "paidAmount", format: (v) => Number(v || 0).toLocaleString() },
-              { header: "Remaining (Rs)", key: "remainingAmount", format: (v) => Number(v || 0).toLocaleString() },
-              { header: "Status", key: "status" },
-              { header: "Due Date", key: "dueDate", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-            ]}
-          />
+          <div className="flex items-center gap-2">
+            <DateRangeFilter
+              from={filters.dateFrom}
+              to={filters.dateTo}
+              onChange={(from, to) =>
+                setFilters((f) => ({ ...f, dateFrom: from, dateTo: to, page: "1" }))
+              }
+            />
+            <ExportButton
+              filename="invoices"
+              label="Export Excel"
+              fetchData={async () => {
+                const res = await getAllInvoices({
+                  limit: 10000,
+                  status: filters.status,      
+                  search: filters.search,      
+                  dateFrom: filters.dateFrom,
+                  dateTo: filters.dateTo,
+                });
+                return res.data.data;
+              }}
+
+              columns={[
+                { header: "Invoice #", key: "invoiceNumber" },
+                { header: "Student", key: "user.name" },
+                { header: "Email", key: "user.email" },
+                { header: "Program", key: "enrollment.program.name" },
+                { header: "Total (Rs)", key: "totalAmount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Paid (Rs)", key: "paidAmount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Remaining (Rs)", key: "remainingAmount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Status", key: "status" },
+                { header: "Due Date", key: "dueDate", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              ]}
+            />
+          </div>
         }
       />
 

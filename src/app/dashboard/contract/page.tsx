@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyLeadContract, getProfile, submitLeadContract } from "@/utils/api";
+import { getMyLeadContract, getProfile, submitLeadContract, updateProfile } from "@/utils/api";
 import toast from "react-hot-toast";
 import {
   FileText, CheckCircle, PenLine, Type, RotateCcw,
@@ -51,6 +51,7 @@ const formatPhone = (phone?: string) => {
 type Installment = { label: string; amount: number; dueDate: string; status: string };
 type PaymentPlan = {
   totalAmount: number;
+  discount?: number;
   advanceAmount: number;
   advanceDueDate: string;
   installments: Installment[];
@@ -188,6 +189,11 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   const router = useRouter();
   const contract = lead.contractDetails;
   const paymentPlan = lead.paymentPlan;
+  const personalFieldKeys = [
+    "fatherHusbandName", "cnic", "bankAccountNumber",
+    "currentAddress", "emergencyContactName", "emergencyContactPhone", "occupation",
+  ] as const;
+
   const isConverted = lead.status === "converted";
 
   // ── Helper: build fresh form from lead ──
@@ -246,10 +252,16 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     onSuccess: () => {
       toast.success("Contract submitted successfully! ✅");
       queryClient.invalidateQueries({ queryKey: ["my-contract"] });
-      // saved state update (optimistic)
       setSavedForm({ ...form });
       setSavedSignatureType(signatureType);
       setSavedSignatureData(currentSignatureData);
+
+      // ✅ profile mein details nahi thi, ab contract se sync kar do
+      if (!hasProfileDetails) {
+        syncProfileDetails(
+          Object.fromEntries(personalFieldKeys.map((k) => [k, getFieldValue(k)]))
+        );
+      }
       onBack();
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to submit!"),
@@ -275,33 +287,65 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     );
   };
 
+  // ── Profile (settings) personal details ──────────────────────
+
+
+  const profilePersonal = {
+    fatherHusbandName: profileData?.fatherHusbandName || "",
+    cnic: profileData?.cnic || "",
+    bankAccountNumber: profileData?.bankAccountNumber || "",
+    currentAddress: profileData?.currentAddress || "",
+    emergencyContactName: profileData?.emergencyContactName || "",
+    emergencyContactPhone: profileData?.emergencyContactPhone || "",
+    occupation: profileData?.occupation || "",
+  };
+
+  const hasProfileDetails = Object.values(profilePersonal).some((v) => v.trim() !== "");
+
+  const [useSavedDetails, setUseSavedDetails] = useState(false);
+
+  useEffect(() => {
+    if (hasProfileDetails) setUseSavedDetails(true);
+  }, [hasProfileDetails]);
+
+  const getFieldValue = (key: typeof personalFieldKeys[number]) =>
+    useSavedDetails ? profilePersonal[key] : form[key];
+
+  // ── Profile sync (jab profile mein details na ho aur contract se fill ho) ──
+  const { mutate: syncProfileDetails } = useMutation({
+    mutationFn: (data: any) => updateProfile(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile"] }),
+  });
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Required field validation — correct order
-    if (!form.fatherHusbandName.trim()) {
+    const personalPayload = Object.fromEntries(
+      personalFieldKeys.map((k) => [k, getFieldValue(k)])
+    ) as Record<typeof personalFieldKeys[number], string>;
+
+    if (!personalPayload.fatherHusbandName.trim()) {
       toast.error("Father / Husband Name is required");
       return;
     }
-    if (!form.cnic.trim()) {
+    if (!personalPayload.cnic.trim()) {
       toast.error("CNIC Number is required");
       return;
     }
-    if (!form.currentAddress.trim()) {
+    if (!personalPayload.currentAddress.trim()) {
       toast.error("Current Address is required");
       return;
     }
-    if (!form.emergencyContactName.trim()) {
+    if (!personalPayload.emergencyContactName.trim()) {
       toast.error("Emergency Contact Name is required");
       return;
     }
-    // ✅ Phone field pe phone validation — name field pe nahi
-    if (!form.emergencyContactPhone.trim()) {
+    if (!personalPayload.emergencyContactPhone.trim()) {
       toast.error("Emergency Contact Phone is required");
       return;
     }
-    if (!isValidPhone(form.emergencyContactPhone)) {
+    if (!isValidPhone(personalPayload.emergencyContactPhone)) {
       toast.error("Please enter a valid phone number (e.g. 03XX-XXXXXXX)");
       return;
     }
@@ -316,7 +360,13 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
       return;
     }
 
-    submitContract({ ...form, signatureType, signatureData });
+    submitContract({
+      ...personalPayload,
+      participationAgreement: form.participationAgreement,
+      photoVideoRelease: form.photoVideoRelease,
+      signatureType,
+      signatureData,
+    });
   };
 
   const alreadySigned = contract?.status === "signed";
@@ -486,6 +536,11 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             <div className="bg-white rounded-xl py-3 px-2">
               <p className="text-xs text-gray-400 mb-1">Total Fee</p>
               <p className="font-bold text-gray-800 text-sm">{formatAmount(paymentPlan.totalAmount)}</p>
+              {!!paymentPlan.discount && (
+                <p className="text-[10px] text-teal-600 font-semibold mt-1">
+                  − {formatAmount(paymentPlan.discount)} discount
+                </p>
+              )}
             </div>
             <div className="bg-white rounded-xl py-3 px-2">
               <p className="text-xs text-gray-400 mb-1">Advance</p>
@@ -633,65 +688,78 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           </div>
         </fieldset> */}
         <fieldset disabled={isConverted} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm disabled:opacity-70">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Personal Details</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Personal Details</p>
+            {hasProfileDetails && !isConverted && (
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useSavedDetails}
+                  onChange={(e) => setUseSavedDetails(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-yellow-500"
+                />
+                Use my saved profile details
+              </label>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
 
             <InputField
               label="Father / Husband Name *"
-              value={form.fatherHusbandName}
+              value={getFieldValue("fatherHusbandName")}
               onChange={(e) => setForm((p) => ({ ...p, fatherHusbandName: e.target.value }))}
               placeholder="Enter name"
-              disabled={isConverted}
+              disabled={isConverted || useSavedDetails}
             />
 
             <InputField
               label="CNIC Number *"
-              value={form.cnic}
+              value={getFieldValue("cnic")}
               onChange={(e) => setForm((p) => ({ ...p, cnic: e.target.value }))}
               placeholder="XXXXX-XXXXXXX-X"
-              disabled={isConverted}
+              disabled={isConverted || useSavedDetails}
             />
 
             <div className="col-span-2">
               <InputField
                 label="Current Address *"
-                value={form.currentAddress}
+                value={getFieldValue("currentAddress")}
                 onChange={(e) => setForm((p) => ({ ...p, currentAddress: e.target.value }))}
                 placeholder="Enter your full address"
-                disabled={isConverted}
+                disabled={isConverted || useSavedDetails}
               />
             </div>
             <div className="col-span-2">
               <InputField
                 label="Bank Account Number"
-                value={form.bankAccountNumber}
+                value={getFieldValue("bankAccountNumber")}
                 onChange={(e) => setForm((p) => ({ ...p, bankAccountNumber: e.target.value }))}
                 placeholder="Account number"
-                disabled={isConverted}
+                disabled={isConverted || useSavedDetails}
               />
             </div>
             <InputField
               label="Emergency Contact Name*"
-              value={form.emergencyContactName}
+              value={getFieldValue("emergencyContactName")}
               onChange={(e) => setForm((p) => ({ ...p, emergencyContactName: e.target.value }))}
               placeholder="Name"
-              disabled={isConverted}
+              disabled={isConverted || useSavedDetails}
             />
             <InputField
               label="Emergency Contact Number*"
-              value={form.emergencyContactPhone}
+              value={getFieldValue("emergencyContactPhone")}
               onChange={(e) => setForm((p) => ({ ...p, emergencyContactPhone: e.target.value }))}
               placeholder="Phone"
-              disabled={isConverted}
+              disabled={isConverted || useSavedDetails}
             />
 
             <div className="col-span-2">
               <InputField
                 label="Occupation / Company"
-                value={form.occupation}
+                value={getFieldValue("occupation")}
                 onChange={(e) => setForm((p) => ({ ...p, occupation: e.target.value }))}
                 placeholder="e.g. Software Engineer at XYZ, Student at ABC"
-                disabled={isConverted}
+                disabled={isConverted || useSavedDetails}
               />
             </div>
 

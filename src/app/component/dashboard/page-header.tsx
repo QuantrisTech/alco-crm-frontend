@@ -3,7 +3,7 @@ import React from "react";
 import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
 // icon
-import { Plus, Trash2, TrendingUp } from "lucide-react";
+import { Plus, Trash2, TrendingUp, RotateCcw } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 
 export type FilterField = {
@@ -141,18 +141,20 @@ export default function PageHeader({
               return null;
             })}
 
-            {/* Reset button */}
-            {Object.values(filters || {}).some((v) => v) && (
-              <button
-                onClick={() => setFilters?.({})}
-                className="bg-red-50 rounded-lg px-4 py-2 my-auto text-sm text-red-600"
-              >
-                Reset
-              </button>
-            )}
+            
           </div>
         )}
         {/* {exportBtn} */}
+        {/* Reset button */}
+            {Object.values(filters || {}).some((v) => v) && (
+              <button
+                onClick={() => setFilters?.({})}
+                className=" py-2 my-auto text-sm text-red-600/70"
+                title="Reset"
+              >
+                <RotateCcw size={20}/>
+              </button>
+            )}
       </div>
     </div>
   );
