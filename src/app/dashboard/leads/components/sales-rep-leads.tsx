@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getAllLeads, createLead, updateLead,
+  getAllLeads, createLeadAdmin, updateLead,
   addActivityLead, getActivitiesLead,
   getNamesPrograms,
   getAllEnrollments,
@@ -77,7 +77,7 @@ export default function SalesRepLeads() {
 
   // ── Mutations ────────────────────────────────────────────────
   const { mutate: addLead, isPending: isAdding } = useMutation({
-    mutationFn: createLead,
+    mutationFn: createLeadAdmin,
     onSuccess: () => {
       toast.success("Lead created! ✅");
       setIsAddOpen(false);

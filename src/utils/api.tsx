@@ -105,6 +105,7 @@ export const deleteUserDocument = (userId: string, docId: string) =>
 // Lead APIs
 export const getAllLeads = (params?: any) => API.get("/api/v1/leads", { params });
 export const createLead = (data: any) => API.post("/api/v1/leads", data);
+export const createLeadAdmin = (data: any) => API.post("/api/v1/leads/admin", data);
 export const updateLead = (id: string, data: any) => API.put(`/api/v1/leads/${id}`, data);
 export const deleteLead = (id: string) => API.delete(`/api/v1/leads/${id}`);
 export const assignLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/assign`, data);

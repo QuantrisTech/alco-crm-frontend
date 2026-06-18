@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getAllLeads, createLead, updateLead,
+  getAllLeads, createLeadAdmin, updateLead,
   assignLead, convertLead, markLostLead, addActivityLead,
   getActivitiesLead, getLeadsStats, getNamesPrograms,
   markLeadInterested, updateLeadPaymentPlan, adminGetBatches,
@@ -16,7 +16,7 @@ import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
 import QuickStats from "@/app/component/dashboard/quick-stats";
 import LeadsModals from "../shared/leads-modals";
-import { simpleAddLeadFields, editLeadFields } from "../shared/fields";
+import { addLeadFields, editLeadFields } from "../shared/fields";
 import { statusColor, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { useAppSelector } from "@/store/hooks";
 import { ModalField } from "@/types/ui";
@@ -170,7 +170,7 @@ export default function SalesManagerLeads() {
 
   // ── Mutations ────────────────────────────────────────────────
   const { mutate: addLead, isPending: isAdding } = useMutation({
-    mutationFn: createLead,
+    mutationFn: createLeadAdmin,
     onSuccess: () => { toast.success("Lead created! ✅"); setIsAddOpen(false); invalidateLeads(); },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
@@ -366,7 +366,7 @@ export default function SalesManagerLeads() {
       {/* ── All Modals ── */}
       <LeadsModals
         isAddOpen={isAddOpen} onAddClose={() => setIsAddOpen(false)}
-        onAddSubmit={addLead} isAdding={isAdding} addFields={injectAll(simpleAddLeadFields)}
+        onAddSubmit={addLead} isAdding={isAdding} addFields={injectAll(addLeadFields)}
 
         editingLead={editingLead} onEditClose={() => setEditingLead(null)}
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
