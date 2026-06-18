@@ -238,7 +238,7 @@ export default function AddActivityModal({
           {form.activity_type === "note" && (
             <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3">
               <p className="text-xs text-yellow-700">
-                📝 Note activity sirf title aur description save karega.
+                📝 Note activity will only save the title and description.
               </p>
             </div>
           )}

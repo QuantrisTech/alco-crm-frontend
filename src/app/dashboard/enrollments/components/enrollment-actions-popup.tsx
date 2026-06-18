@@ -44,7 +44,7 @@ export default function EnrollmentActionsPopup({
                     </button>
                 </div>
 
-                {isAdmin && (
+                {/* {isAdmin && ( */}
                     <button
                         onClick={() => { onAddBook(row.user?._id); onClose(); }}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition mb-4 border border-yellow-200"
@@ -52,7 +52,7 @@ export default function EnrollmentActionsPopup({
                         <BookPlus size={15} />
                         Add Book to User
                     </button>
-                )}
+                {/* )} */}
 
                 {/* Enrollments List */}
                 <div className="flex flex-col gap-3">
