@@ -366,7 +366,9 @@ export default function SalesManagerLeads() {
       {/* ── All Modals ── */}
       <LeadsModals
         isAddOpen={isAddOpen} onAddClose={() => setIsAddOpen(false)}
-        onAddSubmit={addLead} isAdding={isAdding} addFields={injectAll(addLeadFields)}
+        // onAddSubmit={addLead}
+        onAddSubmit={(data) => addLead({ ...data, assigned_to: authUser?._id })}
+        isAdding={isAdding} addFields={injectAll(addLeadFields)}
 
         editingLead={editingLead} onEditClose={() => setEditingLead(null)}
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
