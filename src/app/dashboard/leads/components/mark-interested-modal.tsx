@@ -68,36 +68,23 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
     form.installments.reduce((s, i) => s + Number(i.amount), 0);
 
   // ── Validation ─────────────────────────────────────────────────
-  const validate = (): boolean => {
-    const newErrors: FormErrors = {};
+ const validate = (): boolean => {
+  const newErrors: FormErrors = {};
 
-    if (!form.advanceAmount || form.advanceAmount <= 0) {
-      newErrors.advanceAmount = "Advance amount is required";
-    }
-    if (!form.advanceDueDate) {
-      newErrors.advanceDueDate = "Advance due date is required";
-    }
+  if (!form.advanceAmount || form.advanceAmount <= 0) {
+    newErrors.advanceAmount = "Advance amount is required";
+  }
+  if (!form.advanceDueDate) {
+    newErrors.advanceDueDate = "Advance due date is required";
+  }
 
-    const instErrors = form.installments.map((inst) => ({
-      amount: !inst.amount || inst.amount <= 0 ? "Amount is required" : undefined,
-      dueDate: !inst.dueDate ? "Due date is required" : undefined,
-    }));
-
-    const hasInstErrors = instErrors.some((e) => e.amount || e.dueDate);
-    if (hasInstErrors) newErrors.installments = instErrors;
-
-    if (remaining < 0) {
-      // over-allocation — block submit (badge already shows the warning)
-    }
-
-    setErrors(newErrors);
-    return (
-      !newErrors.advanceAmount &&
-      !newErrors.advanceDueDate &&
-      !hasInstErrors &&
-      remaining >= 0
-    );
-  };
+  setErrors(newErrors);
+  return (
+    !newErrors.advanceAmount &&
+    !newErrors.advanceDueDate &&
+    remaining >= 0
+  );
+};
 
   const addInstallment = () =>
     setForm((p) => ({
@@ -129,9 +116,13 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    onSubmit({ paymentPlan: form });
-  };
 
+    const filledInstallments = form.installments.filter(
+      (inst) => inst.amount > 0 || inst.dueDate !== ""
+    );
+
+    onSubmit({ paymentPlan: { ...form, installments: filledInstallments } });
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
@@ -309,16 +300,25 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                         <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].amount}</p>
                       )}
                     </div>
-                    <div>
+                    <div className="relative">
                       <input
                         type="date"
                         value={inst.dueDate}
                         onChange={(e) => updateInstallment(idx, "dueDate", e.target.value)}
-                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 ${errors.installments?.[idx]?.dueDate
+                        className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-xs focus:outline-none bg-white text-gray-900 ${errors.installments?.[idx]?.dueDate
                           ? "border-rose-400"
                           : "border-gray-200 focus:border-yellow-400"
                           }`}
                       />
+                      {inst.dueDate && (
+                        <button
+                          type="button"
+                          onClick={() => updateInstallment(idx, "dueDate", "")}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rose-500"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
                       {errors.installments?.[idx]?.dueDate && (
                         <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].dueDate}</p>
                       )}
