@@ -72,7 +72,8 @@ export default function LoginClient({ onSwitchMode }: { onSwitchMode?: () => voi
       if (userData.is_old_user || userData.needsAccountSetup) {
         router.push("/dashboard/profile?setup=true");
       } else if (userData.isTemporaryPassword) {
-        router.push(`/dashboard/profile?password=${passwordParam}`);
+        // router.push(`/dashboard/profile?password=${passwordParam}`);
+        router.push(`/dashboard/profile?setup=true`);
       } else {
         router.push("/dashboard");
       }
