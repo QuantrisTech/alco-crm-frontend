@@ -96,6 +96,7 @@ export default function SignupClient({ onSwitchMode }: { onSwitchMode?: () => vo
           <Turnstile
             ref={turnstileRef}
             siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            options={{ appearance: "always" }}
             onSuccess={(token) => setTurnstileToken(token)}
             onExpire={() => setTurnstileToken("")}
             onError={() => setTurnstileToken("")}
