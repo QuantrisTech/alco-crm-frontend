@@ -28,7 +28,7 @@ API.interceptors.response.use(
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("refresh_token");
-        window.location.href = "/login";
+        window.location.href = "/auth";
         return Promise.reject(error);
       }
 
@@ -57,7 +57,7 @@ API.interceptors.response.use(
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("refresh_token");
-        window.location.href = "/login";
+        window.location.href = "/auth";
         return Promise.reject(refreshError);
       }
     }

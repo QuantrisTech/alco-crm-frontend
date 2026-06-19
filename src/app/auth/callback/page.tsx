@@ -21,7 +21,7 @@ function AuthCallbackInner() {
 
     if (!token || !userStr) {
       toast.error("Auth failed!");
-      router.replace("/login");
+      router.replace("/auth");
       return;
     }
 

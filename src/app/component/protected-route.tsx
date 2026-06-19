@@ -37,7 +37,8 @@ export default function ProtectedRoute({
     const token = localStorage.getItem("token");
 
     if (!token) {
-      router.push("/login");
+      // router.push("/login");
+      router.push("/auth");
       return;
     }
 
@@ -67,7 +68,8 @@ export default function ProtectedRoute({
       .catch(() => {
         dispatch(logout());
         localStorage.removeItem("isTemporaryPassword");
-        router.push("/login");
+        // router.push("/login");
+        router.push("/auth");
       });
   }, [pathname]);
 

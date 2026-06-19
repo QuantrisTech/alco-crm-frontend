@@ -695,7 +695,8 @@ function EnrollmentsContent() {
         title="Create Enrollment"
         fields={createFields}
         // onSubmit={addEnrollment}
-        onSubmit={handleAddEnrollment}
+        // onSubmit={handleAddEnrollment}
+        onSubmit={(data) => handleAddEnrollment({ ...data, assigned_to: authUser?._id })}
         isLoading={isAdding}
         mode="add"
       />

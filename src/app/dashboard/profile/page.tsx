@@ -72,7 +72,7 @@ export default function ProfilePage() {
   // Delete Account
   const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteMyAccount(),
-    onSuccess: () => { toast.success("Account deleted!"); dispatch(logout()); router.push("/login"); },
+    onSuccess: () => { toast.success("Account deleted!"); dispatch(logout()); router.push("/auth"); },
     onError: () => toast.error("Failed to delete account!"),
   });
 

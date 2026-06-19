@@ -234,7 +234,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/login";
+    window.location.href = "/auth";
   };
 
   const filteredSections = menuSections.filter((section) => {

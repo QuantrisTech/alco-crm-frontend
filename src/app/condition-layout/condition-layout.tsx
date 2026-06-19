@@ -25,7 +25,7 @@ export default function ConditionLayout({ children }: { children: React.ReactNod
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  if (pathname === "/login" || pathname === "/auth/callback") {
+  if (pathname === "/auth" || pathname === "/auth/callback") {
     return <>{children}</>;
   }
 
