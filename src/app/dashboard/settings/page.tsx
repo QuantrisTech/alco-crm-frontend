@@ -70,7 +70,7 @@ export default function Setting() {
         title="Settings"
         subtitle="Manage system settings"
         titleIcon={<Settings size={24} />}
-        totalCount={6}
+        // totalCount={6}
       />
 
       <form onSubmit={handleSubmit} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm max-w-2xl">

@@ -38,6 +38,7 @@ import { UserBooksCell } from "./components/user-books-cell";
 import { AddBookPopup } from "./components/add-book-popup";
 import CollapsedCell from "./components/collapsed-cell";
 import ExportButton from "@/app/component/ui/export-button";
+import { useRouter } from "next/navigation";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -126,6 +127,7 @@ function EnrollmentsContent() {
   const [assigningEnrollment, setAssigningEnrollment] = useState<any>(null);
   const [addBookUserId, setAddBookUserId] = useState<string | null>(null);
 
+  const router = useRouter();
   // ── Dropdown data ────────────────────────────────────────────────────────
   // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
   const { data: programs = [] } = useQuery({
@@ -431,6 +433,8 @@ function EnrollmentsContent() {
         isError={isError}
         hideToggle={false}
         totalPages={data?.meta?.totalPages}
+        // onRowClick={(item) => router.push(`/enrollments/${item.enrollments[0]?._id}`)}
+        // onRowClick={(item) => router.push(`/dashboard/enrollments/${item.enrollments[0]?._id}`)}
         onPageChange={handlePageChange}
         // columns={[
         //   {
@@ -561,20 +565,16 @@ function EnrollmentsContent() {
             label: "Programs",
             minWidth: "350px",
             render: (row) => (
-              // <div className="flex flex-col gap-1  w-56 ">
-              //   {row.enrollments.map((e: any) => (
-              //     <span key={e._id} className="text-sm text-gray-700 w-56 truncate">
-              //       - {e.program?.name || "—"}
-              //       <br />
-              //       <span className="text-[10px] text-gray-400 ml-2">
-              //         ({e.batch?.name || "No Batch"})
-              //       </span>
-              //     </span>
-              //   ))}
-              // </div>
               <CollapsedCell
                 items={row.enrollments.map((e: any) => (
-                  <div key={e._id} className="relative ">
+                  <div
+                    key={e._id}
+                    onClick={(ev) => {
+                      ev.stopPropagation();              // row-click ko fire hone se roko
+                      router.push(`/dashboard/enrollments/${e._id}`); // sirf isi program ki detail
+                    }}
+                    className="relative cursor-pointer hover:bg-indigo-50 rounded-lg p-1.5 -m-1.5 transition"
+                  >
                     <p className="text-sm font-medium text-gray-700 leading-tight">
                       {e.program?.name || "—"}
                     </p>
@@ -583,29 +583,34 @@ function EnrollmentsContent() {
                     </p>
                     {e.assigned_to ? (
                       <div className="flex gap-2">
-                        <p className="py-1 text-[10px]">
-                          Assigned To
-                        </p>
-                        <button className="px-2 py-1 text-[10px] rounded bg-indigo-100 text-indigo-600" onClick={() => setAssigningEnrollment(e)}>
+                        <p className="py-1 text-[10px]">Assigned To</p>
+                        <button
+                          className="px-2 py-1 text-[10px] rounded bg-indigo-100 text-indigo-600"
+                          onClick={(ev) => {
+                            ev.stopPropagation();         // assign popup ko alag rakho
+                            setAssigningEnrollment(e);
+                          }}
+                        >
                           {e.assigned_to.name}
                         </button>
                       </div>
                     ) : (
                       <button
-                        onClick={() => setAssigningEnrollment(e)}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          setAssigningEnrollment(e);
+                        }}
                         className="px-2 py-1 text-[10px] rounded bg-yellow-100 text-yellow-700"
                       >
                         not assigned
                       </button>
                     )}
                     <div
-                      key={e._id}
                       className={`px-2.5 py-0.5 rounded text-[10px] font-medium w-fit ${statusColor(e.status)} mt-0.5`}
                     >
                       {e.status}
                     </div>
                   </div>
-
                 ))}
                 minWidth="w-[300px]"
                 tooltipWidth="w-64"

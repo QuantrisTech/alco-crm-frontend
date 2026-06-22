@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
 import { setCredentials } from "@/store/authSlice";
@@ -40,6 +40,7 @@ type ModalStep = "forgot" | "reset" | null;
 export default function LoginClient({ onSwitchMode }: { onSwitchMode?: () => void }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient(); 
   const [showPassword, setShowPassword] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>(null);
   const [otpEmail, setOtpEmail] = useState("");
@@ -60,6 +61,9 @@ export default function LoginClient({ onSwitchMode }: { onSwitchMode?: () => voi
     mutationFn: (data: LoginForm) => loginUser({ identifier: data.identifier, password: data.password }),
     onSuccess: (res) => {
       const userData = res.data.data.user;
+
+      
+      queryClient.clear();
 
       dispatch(setCredentials({
         user: userData,

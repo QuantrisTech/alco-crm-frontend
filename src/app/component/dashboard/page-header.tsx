@@ -22,11 +22,11 @@ type HeaderProps = {
   coveredLabel?: string;
   onAdd?: () => void;
   onDeleteAll?: () => void;
-  filters?: Record<string, string>;
+  filters?: Record<string, string | number>; 
   setFilters?: React.Dispatch<React.SetStateAction<any>>;
   filterFields?: FilterField[];
-  actions?: React.ReactNode; 
-  exportBtn?: React.ReactNode; 
+  actions?: React.ReactNode;
+  exportBtn?: React.ReactNode;
 };
 
 export default function PageHeader({
@@ -41,8 +41,8 @@ export default function PageHeader({
   filters = { search: "", status: "", quality: "", source: "" },
   setFilters,
   filterFields,
-  actions, 
-  exportBtn 
+  actions,
+  exportBtn
 }: HeaderProps) {
   const { user: authUser } = useAppSelector((state) => state.auth);
   const role = authUser?.role;
@@ -108,7 +108,7 @@ export default function PageHeader({
                     <InputField
                       label=""
                       placeholder={field.placeholder}
-                      value={filters?.[field.name] || ""}
+                      value={String(filters?.[field.name] ?? "")}
                       onChange={(e) =>
                         setFilters?.((prev: any) => ({
                           ...prev,
@@ -127,7 +127,7 @@ export default function PageHeader({
                     <Select
                       label=""
                       options={field.options || []}
-                      value={filters?.[field.name] || ""}
+                      value={String(filters?.[field.name] ?? "")}
                       placeholder={field.placeholder || `All ${field.name}`}
                       onChange={(e) =>
                         setFilters?.((prev: any) => ({ ...prev, [field.name]: e.target.value }))
@@ -141,12 +141,12 @@ export default function PageHeader({
               return null;
             })}
 
-            
+
           </div>
         )}
-        {/* {exportBtn} */}
+        {exportBtn}
         {/* Reset button */}
-            {Object.values(filters || {}).some((v) => v) && (
+        {/* {Object.values(filters || {}).some((v) => v) && (
               <button
                 onClick={() => setFilters?.({})}
                 className=" py-2 my-auto text-sm text-red-600/70"
@@ -154,7 +154,23 @@ export default function PageHeader({
               >
                 <RotateCcw size={20}/>
               </button>
-            )}
+            )} */}
+        {Object.values(filters || {}).some((v) => v) && (
+          <button
+            onClick={() =>
+              setFilters?.((prev: any) => ({
+                ...Object.keys(prev).reduce((acc, key) => {
+                  acc[key] = key === "page" ? 1 : key === "limit" ? prev.limit : "";
+                  return acc;
+                }, {} as any),
+              }))
+            }
+            className="py-2 my-auto text-sm text-red-600/70"
+            title="Reset"
+          >
+            <RotateCcw size={20} />
+          </button>
+        )}
       </div>
     </div>
   );

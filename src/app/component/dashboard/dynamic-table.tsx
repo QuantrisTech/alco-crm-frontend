@@ -7,7 +7,7 @@ type Column = {
   key: string;
   label: string;
   render?: (item: any, index: number) => React.ReactNode;
-  minWidth?: string; // e.g. "160px", "200px"
+  minWidth?: string;
 };
 
 type Action = {
@@ -30,10 +30,10 @@ type Props = {
   currentPage?: number;
   pageSize?: number;
   totalPages?: number;
+  onRowClick?: (item: any) => void;
   onPageChange?: (page: number) => void;
 };
 
-// --- Icons (SVG, no emoji) ---
 const TableIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -52,7 +52,6 @@ const GridIcon = () => (
   </svg>
 );
 
-// --- Spinner ---
 const Spinner = () => (
   <div className="flex items-center justify-center py-20">
     <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
@@ -60,11 +59,9 @@ const Spinner = () => (
 );
 
 // --- Card View ---
-function CardView({ data, columns, actions, currentPage, pageSize }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number }) {
+function CardView({ data, columns, actions, currentPage, pageSize, onRowClick }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void }) {
   if (data.length === 0) {
-    return (
-      <div className="text-center py-16 text-gray-400 text-sm">No data found</div>
-    );
+    return <div className="text-center py-16 text-gray-400 text-sm">No data found</div>;
   }
 
   return (
@@ -72,14 +69,13 @@ function CardView({ data, columns, actions, currentPage, pageSize }: { data: any
       {data.map((item, index) => (
         <div
           key={item._id || index}
-          className="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-4 flex flex-col gap-3 group"
+          onClick={() => onRowClick?.(item)}
+          className={`bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-4 flex flex-col gap-3 group ${onRowClick ? "cursor-pointer" : ""}`}
         >
-          {/* Card Header: index badge */}
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold bg-yellow-50 text-yellow-600 border border-yellow-200 px-2 py-0.5 rounded-full">
               #{(currentPage - 1) * pageSize + index + 1}
             </span>
-            {/* Actions in top-right */}
             {actions.length > 0 && (
               <div className="flex items-center gap-1">
                 {actions.map((action, i) => {
@@ -88,7 +84,8 @@ function CardView({ data, columns, actions, currentPage, pageSize }: { data: any
                   return (
                     <div key={i} className="relative group/btn">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (action.disabled && action.disabled(item)) return;
                           action.onClick(item);
                         }}
@@ -112,10 +109,8 @@ function CardView({ data, columns, actions, currentPage, pageSize }: { data: any
             )}
           </div>
 
-          {/* Divider */}
           <div className="h-px bg-gray-100" />
 
-          {/* Column Data */}
           <div className="flex flex-col gap-2">
             {columns.map((col) => (
               <div key={col.key} className="flex flex-row justify-between gap-2">
@@ -137,9 +132,8 @@ function CardView({ data, columns, actions, currentPage, pageSize }: { data: any
 }
 
 // --- Table View ---
-function TableView({ data, columns, actions, currentPage, pageSize }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number }) {
+function TableView({ data, columns, actions, currentPage, pageSize, onRowClick }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void }) {
   return (
-    // ── Horizontal scroll wrapper — kicks in below lg ──────────────────────
     <div className="overflow-x-auto w-full">
       <table className="w-full text-sm min-w-[640px]">
         <thead className="bg-gray-50 border-b">
@@ -154,14 +148,16 @@ function TableView({ data, columns, actions, currentPage, pageSize }: { data: an
                 {col.label}
               </th>
             ))}
-            {actions.length > 0 && (
-              <th className="px-4 py-4 font-medium w-20">Actions</th>
-            )}
+            {actions.length > 0 && <th className="px-4 py-4 font-medium w-20">Actions</th>}
           </tr>
         </thead>
         <tbody>
           {data?.map((item, index) => (
-            <tr key={item._id || index} className="border-b last:border-0 hover:bg-gray-50 transition">
+            <tr
+              key={item._id || index}
+              onClick={() => onRowClick?.(item)}
+              className={`border-b last:border-0 hover:bg-gray-50 transition ${onRowClick ? "cursor-pointer" : ""}`}
+            >
               <td className="px-4 py-4 text-gray-400 text-xs">
                 {(currentPage - 1) * pageSize + index + 1}
               </td>
@@ -183,10 +179,11 @@ function TableView({ data, columns, actions, currentPage, pageSize }: { data: an
                       return (
                         <div key={i} className="relative group">
                           <button
-                          onClick={() => {
-                            if (action.disabled && action.disabled(item)) return;
-                            action.onClick(item);
-                          }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (action.disabled && action.disabled(item)) return;
+                              action.onClick(item);
+                            }}
                             disabled={action.disabled ? action.disabled(item) : false}
                             className={`p-2 rounded-lg text-gray-400 transition
                               ${action.className || "hover:bg-gray-100 hover:text-gray-600"}
@@ -232,6 +229,7 @@ export default function DynamicTable({
   currentPage = 1,
   pageSize = 10,
   totalPages = 1,
+  onRowClick,
   onPageChange,
 }: Props) {
   const [view, setView] = useState<"table" | "card">("table");
@@ -239,22 +237,16 @@ export default function DynamicTable({
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-
-        {/* ---- VIEW TOGGLE HEADER ---- */}
         <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
           <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">
             {data?.length ?? 0} Records
           </span>
 
-          {/* Toggle Buttons */}
           <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
             <button
               onClick={() => setView("table")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-              ${view === "table"
-                  ? "bg-white text-gray-800 shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-                }`}
+              ${view === "table" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
             >
               <TableIcon />
               <span className="hidden sm:inline">List</span>
@@ -263,10 +255,7 @@ export default function DynamicTable({
               <button
                 onClick={() => setView("card")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-              ${view === "card"
-                    ? "bg-white text-gray-800 shadow-sm"
-                    : "text-gray-400 hover:text-gray-600"
-                  }`}
+              ${view === "card" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
               >
                 <GridIcon />
                 <span className="hidden sm:inline">Cards</span>
@@ -275,26 +264,21 @@ export default function DynamicTable({
           </div>
         </div>
 
-        {/* ---- CONTENT ---- */}
         {isLoading ? (
           <Spinner />
         ) : isError ? (
-          <div className="text-center py-20 text-red-500 text-sm">
-            Failed to load data.
-          </div>
+          <div className="text-center py-20 text-red-500 text-sm">Failed to load data.</div>
         ) : view === "table" ? (
-          <TableView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} />
+          <TableView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick} />
         ) : (
-          <CardView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} />
+          <CardView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick} />
         )}
       </div>
-      {/* ---- PAGINATION ---- */}
+
       {totalPages && totalPages >= 1 && onPageChange && (
         <div className="flex items-center justify-between mt-6 flex-wrap gap-2">
           <p className="text-xs text-gray-400">
-            Page{" "}
-            <span className="font-semibold text-gray-700">{currentPage}</span>
-            {" "}of{" "}
+            Page <span className="font-semibold text-gray-700">{currentPage}</span> of{" "}
             <span className="font-semibold text-gray-700">{totalPages}</span>
           </p>
           <div className="flex items-center gap-2">

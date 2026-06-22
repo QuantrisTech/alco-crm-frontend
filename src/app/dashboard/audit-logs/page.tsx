@@ -5,6 +5,8 @@ import { getAllAuditLogs, getAuditLogById } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import { ScrollText, Eye, X } from "lucide-react";
+import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
+import ExportButton from "@/app/component/ui/export-button";
 
 const moduleColor = (module: string) => {
   const map: Record<string, string> = {
@@ -18,23 +20,22 @@ const moduleColor = (module: string) => {
 };
 
 export default function AuditLogsPage() {
-  const [filters, setFilters] = useState({ module: "", action: "", from: "", to: "", page: 1, limit: 20 });
+  const [filters, setFilters] = useState({ module: "", search: "", from: "", to: "", page: 1, limit: 20 });
   const [viewingLog, setViewingLog] = useState<any>(null);
 
   const filterFields: FilterField[] = [
-    { type: "input", name: "action", placeholder: "Filter by action..." },
+    { type: "input", name: "search", placeholder: "Search by action, name, role..." },
     {
       type: "select", name: "module",
       options: [
-        { label: "Finance", value: "finance_manager" },
+        { label: "Finance", value: "finance" },
         { label: "Enrollment", value: "enrollment" },
+        { label: "Leads", value: "leads" },
         { label: "Access", value: "access" },
         { label: "Admin", value: "admin" },
         { label: "Auth", value: "auth" },
       ],
     },
-    { type: "input", name: "from", placeholder: "From date (YYYY-MM-DD)" },
-    { type: "input", name: "to", placeholder: "To date (YYYY-MM-DD)" },
   ];
 
   const { data, isLoading, isError } = useQuery({
@@ -49,16 +50,45 @@ export default function AuditLogsPage() {
         subtitle="All system actions — security & accountability"
         titleIcon={<ScrollText size={24} />}
         totalCount={data?.meta?.total ?? 0}
-        filters={{
-          module: filters.module,
-          action: filters.action,
-          from: filters.from,
-          to: filters.to,
-          page: filters.page.toString(),
-          limit: filters.limit.toString(),
-        }}
+        filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
+        exportBtn={
+          <div className="flex items-center gap-2">
+            <DateRangeFilter
+              from={filters.from}
+              to={filters.to}
+              onChange={(from, to) =>
+                setFilters((f: any) => ({ ...f, from, to, page: 1 }))
+              }
+            />
+            <ExportButton
+              filename="audit-logs"
+              label="Export Excel"
+              fetchData={async () => {
+                const res = await getAllAuditLogs({
+                  limit: 10000,
+                  module: filters.module,
+                  search: filters.search,
+                  from: filters.from,
+                  to: filters.to,
+                });
+                return res.data.data;
+              }}
+              columns={[
+                { header: "Performed By", key: "user.name" },
+                { header: "Email", key: "user.email" },
+                { header: "Role", key: "user.role" },
+                { header: "Action", key: "action" },
+                { header: "Module", key: "module" },
+                { header: "Target ID", key: "targetId" },
+                { header: "IP Address", key: "ip" },
+                { header: "Date", key: "createdAt", format: (v: any) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Time", key: "createdAt", format: (v: any) => v ? new Date(v).toLocaleTimeString("en-PK") : "—" },
+              ]}
+            />
+          </div>
+        }
       />
 
       <DynamicTable
