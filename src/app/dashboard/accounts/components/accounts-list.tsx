@@ -411,7 +411,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Code *</label>
               <input
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
                 placeholder="e.g. 1003"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
@@ -420,7 +420,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Name *</label>
               <input
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
                 placeholder="Account name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -432,7 +432,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Type *</label>
               <select
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value, subType: "" })}
               >
@@ -444,7 +444,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Sub Type</label>
               <select
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
                 value={form.subType}
                 onChange={(e) => setForm({ ...form, subType: e.target.value })}
               >
@@ -460,7 +460,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             <label className="text-xs text-gray-500 mb-1 block">Opening Balance (Rs)</label>
             <input
               type="number"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
               value={form.openingBalance}
               onChange={(e) => setForm({ ...form, openingBalance: Number(e.target.value) })}
             />
@@ -470,7 +470,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             <label className="text-xs text-gray-500 mb-1 block">Description</label>
             <textarea
               rows={2}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-none"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400 resize-none"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
