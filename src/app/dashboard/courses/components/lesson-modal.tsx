@@ -7,7 +7,8 @@ import {
 } from "@/utils/api";
 import {
     X, CheckCircle, Send, Mic, Clock,
-    ChevronLeft, ChevronRight, Play, List, Layers, Lock
+    ChevronLeft, ChevronRight, Play, List, Layers, Lock,
+    Rewind, FastForward
 } from "lucide-react";
 import toast from "react-hot-toast";
 import formatDuration from "@/utils/func";
@@ -39,6 +40,10 @@ function SecureAudioPlayer({
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [loaded, setLoaded] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1);
+
+    const SKIP_SECONDS = 10;
+    const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -47,6 +52,7 @@ function SecureAudioPlayer({
             setDuration(audio.duration);
             setLoaded(true);
             if (savedSeconds && savedSeconds > 0) audio.currentTime = savedSeconds;
+            audio.playbackRate = playbackRate; // re-apply speed when lesson changes
         };
         audio.addEventListener("loadedmetadata", onMeta);
         return () => audio.removeEventListener("loadedmetadata", onMeta);
@@ -77,6 +83,26 @@ function SecureAudioPlayer({
         else { audio.play(); setIsPlaying(true); }
     };
 
+    // ── Skip forward/back by fixed seconds ──
+    const skip = (delta: number) => {
+        const audio = audioRef.current;
+        if (!audio || !loaded) return;
+        const newTime = Math.min(Math.max(audio.currentTime + delta, 0), duration);
+        audio.currentTime = newTime;
+        setCurrentTime(newTime);
+        if (duration > 0) onProgress(Math.round((newTime / duration) * 100), Math.floor(newTime));
+    };
+
+    // ── Cycle through playback speeds ──
+    const changeSpeed = () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const idx = SPEED_OPTIONS.indexOf(playbackRate);
+        const nextRate = SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length];
+        audio.playbackRate = nextRate;
+        setPlaybackRate(nextRate);
+    };
+
     const fmt = (s: number) =>
         `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -92,7 +118,18 @@ function SecureAudioPlayer({
                 onContextMenu={(e) => e.preventDefault()}
                 style={{ display: "none" }}
             />
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+                {/* Rewind */}
+                <button
+                    onClick={() => skip(-SKIP_SECONDS)}
+                    disabled={!loaded}
+                    title={`Rewind ${SKIP_SECONDS}s`}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed text-gray-600"
+                >
+                    <Rewind size={15} />
+                </button>
+
+                {/* Play / Pause */}
                 <button
                     onClick={togglePlay}
                     disabled={!loaded}
@@ -107,6 +144,17 @@ function SecureAudioPlayer({
                         <Play size={16} className="fill-gray-900 ml-0.5" />
                     )}
                 </button>
+
+                {/* Forward */}
+                <button
+                    onClick={() => skip(SKIP_SECONDS)}
+                    disabled={!loaded}
+                    title={`Forward ${SKIP_SECONDS}s`}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed text-gray-600"
+                >
+                    <FastForward size={15} />
+                </button>
+
                 <div className="flex-1">
                     <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
@@ -120,15 +168,24 @@ function SecureAudioPlayer({
                         <span>{loaded ? fmt(duration) : "--:--"}</span>
                     </div>
                 </div>
+
+                {/* Speed control */}
+                <button
+                    onClick={changeSpeed}
+                    disabled={!loaded}
+                    title="Playback speed"
+                    className="px-2.5 h-9 sm:h-10 rounded-full bg-white hover:bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-gray-600"
+                >
+                    {playbackRate}x
+                </button>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Lock size={10} />
-                <span>Seeking and downloading are disabled for this lesson</span>
+                <span>Free scrubbing is disabled — use the skip buttons to navigate</span>
             </div>
         </div>
     );
 }
-
 // ── Main Modal ────────────────────────────────────────────────
 export default function LessonModal({
     enrollmentId, lessonId, onClose, onComplete,
