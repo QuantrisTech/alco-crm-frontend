@@ -133,15 +133,16 @@ export default function LoginClient({ onSwitchMode }: { onSwitchMode?: () => voi
           </div>
           <span className="text-gray-900 font-bold text-xl">ALCO CRM</span>
         </div> */}
-        <Link href="/" className="flex items-center gap-2 mb-4">
+        <div className="flex flex-col items-center">
+        <Link href="/" className="flex items-center gap-2 mb-4 ">
           <Image
             src={Logo}
             alt="logo"
-            className="h-10 md:h-11 xl:h-12 2xl:h-13  w-auto"
+            className="h-10 md:h-11 xl:h-12 2xl:h-13  w-auto "
             priority
           />
         </Link>
-
+        </div>
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Welcome back!</h1>
         <p className="text-gray-400 text-sm mb-6">Login to your account to continue</p>
 

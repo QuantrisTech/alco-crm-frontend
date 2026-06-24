@@ -10,8 +10,10 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "ALCO CRM",
-  description: "ALCO CRM Dashboard",
+  title: {
+    default: "AL&CO CRM",
+    template: "%s | AL&CO CRM",
+  },
   icons: {
     icon: "/mini-logo.svg",
   },
@@ -26,11 +28,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geist.className} bg-linear-to-br from-[#e7e7fc] via-[#fdfcf2] to-[#e0f2fe]`}>
         <Providers>
-        <Toaster 
-          position="bottom-right" />
-        <ConditionLayout>
-        {children}
-        </ConditionLayout>
+          <Toaster
+            position="bottom-right" />
+          <ConditionLayout>
+            {children}
+          </ConditionLayout>
         </Providers>
       </body>
     </html>
