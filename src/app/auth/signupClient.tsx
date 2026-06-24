@@ -6,6 +6,9 @@ import { registerUser } from "@/utils/api";
 import toast from "react-hot-toast";
 import InputField from "../component/ui/inputField";
 import Button from "../component/ui/button";
+import Link from "next/link";
+import Image from "next/image";
+import Logo from "@/assets/logo.webp"
 
 export default function SignupClient({ onSwitchMode }: { onSwitchMode?: () => void }) {
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -50,12 +53,20 @@ export default function SignupClient({ onSwitchMode }: { onSwitchMode?: () => vo
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
 
         {/* Logo */}
-        <div className="flex items-center gap-2 mb-8">
+        {/* <div className="flex items-center gap-2 mb-8">
           <div className="w-9 h-9 bg-yellow-400 rounded-full flex items-center justify-center">
             <span className="text-gray-900 font-bold">A</span>
           </div>
           <span className="text-gray-900 font-bold text-xl">ALCO CRM</span>
-        </div>
+        </div> */}
+        <Link href="/" className="flex items-center gap-2 mb-4">
+          <Image
+            src={Logo}
+            alt="logo"
+            className="h-10 md:h-11 xl:h-12 2xl:h-13  w-auto"
+            priority
+          />
+        </Link>
 
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Create your account</h1>
         <p className="text-gray-400 text-sm mb-6">Sign up to get started</p>
