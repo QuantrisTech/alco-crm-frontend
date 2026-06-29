@@ -437,10 +437,10 @@ export default function InvoiceReceivingList() {
       ),
     },
     {
-      key: "description", label: "Memo",
+      key: "description", label: "Description",
       render: (inv: any) => inv.description
         ? <span className="text-xs text-gray-500 font-mono truncate max-w-[180px] block">{inv.description}</span>
-        : <span className="text-xs text-gray-300 italic">No memo</span>,
+        : <span className="text-xs text-gray-300 italic">No Description</span>,
     },
   ];
 

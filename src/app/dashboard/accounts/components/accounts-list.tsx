@@ -382,6 +382,101 @@ const SUBTYPES: Record<string, string[]> = {
   expense: ["salary", "marketing", "utilities", "rent", "software", "other_expense"],
 };
 
+
+// ── Custom Type Dropdown ────────────────────────────────────
+function TypeDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 flex items-center justify-between bg-white"
+      >
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${TYPE_COLORS[value]}`}>
+          {value}
+        </span>
+        <ChevronDown size={14} className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg overflow-hidden">
+          {ACCOUNT_TYPES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => {
+                onChange(t);
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+            >
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${TYPE_COLORS[t]}`}>
+                {t}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Custom SubType Combobox ─────────────────────────────────
+function SubTypeCombobox({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  const filtered = options.filter((s) =>
+    s.toLowerCase().includes(value.toLowerCase())
+  );
+
+  return (
+    <div className="relative">
+      <input
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
+        placeholder="Select or type custom..."
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+
+      {open && filtered.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {filtered.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onMouseDown={() => {
+                onChange(s);
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm capitalize text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"
+            >
+              {s.replace(/_/g, " ")}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Create Account Modal ──────────────────────────────────────
 function CreateAccountModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -431,28 +526,18 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Type *</label>
-              <select
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
+              <TypeDropdown
                 value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value, subType: "" })}
-              >
-                {ACCOUNT_TYPES.map((t) => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, type: v, subType: "" })}
+              />
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Sub Type</label>
-              <select
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
+              <SubTypeCombobox
                 value={form.subType}
-                onChange={(e) => setForm({ ...form, subType: e.target.value })}
-              >
-                <option value="">Select...</option>
-                {(SUBTYPES[form.type] || []).map((s) => (
-                  <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, subType: v })}
+                options={SUBTYPES[form.type] || []}
+              />
             </div>
           </div>
 
