@@ -433,9 +433,14 @@ async function generateContractPDF(data) {
   hLine(p3, ML + 203, y - 3, 130);
   p3.drawText("by and between", { x: ML + 340, y, size: 9, font, color: C.black });
   hLine(p3, ML + 415, y - 3, 84);
-  y -= 16;
 
   const fullName = data.fullName || "_______________";
+
+  p3.drawText(fullName, { x: ML + 420, y, size: 9, font: boldFont, color: C.black });
+
+  y -= 16;
+
+
   p3.drawText(`(Participants Name), hereinafter referred to as the "Client," and Arslan Larik & Company, hereinafter referred to as`, { x: ML, y, size: 8.5, font, color: C.black });
   y -= 14;
   p3.drawText('"AL&CO."', { x: W / 2 - 20, y, size: 8.5, font, color: C.black });
