@@ -535,7 +535,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     totalAmount: 0,
     advanceAmount: 0,
     advanceDueDate: "",
-    installments: [{ label: "Installment 1", amount: 0, dueDate: "" }],
+    installments: [],
     notes: "",
   });
 
@@ -577,7 +577,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         totalAmount: 0,
         advanceAmount: 0,
         advanceDueDate: "",
-        installments: [{ label: "Installment 1", amount: 0, dueDate: "" }],
+        installments: [],
         notes: "",
       });
     }
@@ -587,6 +587,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   };
 
   // ── Fresh form helpers ───────────────────────────────────────
+  // Remaining = kitna abhi tak unallocated hai (advance + installments ke baad).
+  // Yeh negative nahi honi chahiye (over-allocation), lekin zero hona zaroori nahi —
+  // baqi amount future me "Add Installments" (append mode) se add ho sakta hai.
   const freshRemaining =
     freshForm.totalAmount -
     freshForm.advanceAmount -
@@ -667,8 +670,14 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
   });
 
+  // Full allocation force nahi karte — sirf basic fields aur over-allocation check.
+  // Advance-only invoice (bina installments ke) bhi valid hai; remaining baad me
+  // "Add Installments" (append mode) se cover ho sakta hai.
   const handleFreshSubmit = () => {
-    if (freshRemaining !== 0) { toast.error("Please allocate the full amount first"); return; }
+    if (freshForm.totalAmount <= 0) { toast.error("Please enter total program fee"); return; }
+    if (freshForm.advanceAmount <= 0) { toast.error("Please enter advance amount"); return; }
+    if (!freshForm.advanceDueDate) { toast.error("Please select advance due date"); return; }
+    if (freshRemaining < 0) { toast.error(`Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`); return; }
     submitFresh();
   };
 
@@ -687,7 +696,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     setResults([]);
     setSelectedEnrollment(null);
     setMode("fresh");
-    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [{ label: "Installment 1", amount: 0, dueDate: "" }], notes: "" });
+    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "" });
     setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
     onClose();
   };
@@ -946,19 +955,30 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Remaining badge */}
-              <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${freshRemaining < 0 ? "bg-rose-50 text-rose-600" : freshRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"}`}>
-                {freshRemaining < 0 ? `Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}` : freshRemaining === 0 ? "✓ Fully allocated" : `Remaining to allocate: Rs ${fmt(freshRemaining)}`}
-              </div>
+              {/* Remaining badge — informational only, doesn't block submit unless negative */}
+              {freshForm.totalAmount > 0 && (
+                <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${freshRemaining < 0 ? "bg-rose-50 text-rose-600" : freshRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"}`}>
+                  {freshRemaining < 0
+                    ? `Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`
+                    : freshRemaining === 0
+                    ? "✓ Fully allocated"
+                    : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
+                </div>
+              )}
 
-              {/* Installments */}
+              {/* Installments — optional */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-600">Installments</label>
+                  <label className="text-xs font-semibold text-gray-600">Installments (Optional)</label>
                   <button type="button" onClick={addFreshInstallment} className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium">
                     <Plus size={12} /> Add
                   </button>
                 </div>
+
+                {freshForm.installments.length === 0 && (
+                  <p className="text-[11px] text-gray-400 italic px-1">No installments added — this will be an advance-only invoice. More installments can be added anytime later.</p>
+                )}
+
                 <div className="space-y-2">
                   {freshForm.installments.map((inst, idx) => (
                     <div key={idx} className="border border-gray-100 rounded-xl p-3 bg-gray-50">
@@ -970,11 +990,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                           className="text-xs font-medium text-gray-700 bg-transparent border-none outline-none flex-1"
                           placeholder="Label e.g. Month 1"
                         />
-                        {freshForm.installments.length > 1 && (
-                          <button type="button" onClick={() => removeFreshInstallment(idx)} className="text-rose-400 hover:text-rose-600 ml-2">
-                            <Trash2 size={11} />
-                          </button>
-                        )}
+                        <button type="button" onClick={() => removeFreshInstallment(idx)} className="text-rose-400 hover:text-rose-600 ml-2">
+                          <Trash2 size={11} />
+                        </button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <input
@@ -1015,7 +1033,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
               <button onClick={handleClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">Cancel</button>
               <button
                 onClick={handleFreshSubmit}
-                disabled={isPending || freshRemaining !== 0}
+                disabled={isPending || freshRemaining < 0 || freshForm.totalAmount <= 0 || freshForm.advanceAmount <= 0}
                 className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50"
               >
                 {isPending ? "Saving..." : "Create Invoice"}
@@ -1085,13 +1103,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-              {/* Remaining allocation badge */}
+              {/* Remaining allocation badge — informational, only blocks on over-allocation */}
               <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${appendRemaining < 0 ? "bg-rose-50 text-rose-600" : appendRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"}`}>
                 {appendRemaining < 0
                   ? `Over-allocated by Rs ${fmt(Math.abs(appendRemaining))}`
                   : appendRemaining === 0
                   ? "✓ Fully allocated"
-                  : `Rs ${fmt(appendRemaining)} can still be allocated`}
+                  : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
               </div>
 
               {/* New installments */}
