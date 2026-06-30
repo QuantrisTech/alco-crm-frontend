@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminGetBlogBySlug, adminUpdateBlog } from "@/utils/api";
 import ProtectedRoute from "@/app/component/protected-route";
 import BlockEditor, { Block } from "@/app/dashboard/blogs/component/block-editor";
@@ -155,6 +155,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 export default function EditBlogPage() {
     const { slug } = useParams();
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     const [form, setForm] = useState({
         thumbnail: "",
@@ -218,7 +219,29 @@ export default function EditBlogPage() {
         },
         onSuccess: (res) => {
             toast.success("Blog updated successfully!");
-            const newSlug = res?.data?.data?.slug;
+
+            const updated = res?.data?.data;
+
+            // ✅ form ko turant updated response se bharo — refresh ki zaroorat nahi
+            if (updated) {
+                setForm({
+                    thumbnail: updated.thumbnail || "",
+                    title: updated.title || "",
+                    excerpt: updated.excerpt || "",
+                    content: Array.isArray(updated.content) ? normalizeContentBlocks(updated.content) : [],
+                    category: updated.category || "general",
+                    tags: updated.tags?.join(", ") || "",
+                    read_time: updated.read_time?.toString() || "5",
+                    status: updated.status || "draft",
+                    is_featured: updated.is_featured || false,
+                });
+            }
+
+            // ✅ cached query bhi invalidate karo taake list/dusri jagah bhi sync rahe
+            queryClient.invalidateQueries({ queryKey: ["admin-blog-slug"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
+
+            const newSlug = updated?.slug;
             if (newSlug && newSlug !== slug) {
                 router.replace(`/dashboard/blogs/${newSlug}`);
             }

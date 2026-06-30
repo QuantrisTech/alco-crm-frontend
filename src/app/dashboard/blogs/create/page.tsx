@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminCreateBlog } from "@/utils/api";
 import ProtectedRoute from "@/app/component/protected-route";
 import BlockEditor, { Block } from "@/app/dashboard/blogs/component/block-editor";
@@ -108,9 +108,8 @@ function ThumbnailUploader({
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
-                    className={`h-48 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition gap-2 ${
-                        isDragging ? "border-yellow-400 bg-yellow-50" : "border-gray-200 hover:border-yellow-300"
-                    }`}
+                    className={`h-48 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition gap-2 ${isDragging ? "border-yellow-400 bg-yellow-50" : "border-gray-200 hover:border-yellow-300"
+                        }`}
                 >
                     <span className="text-sm text-gray-400">Click or drag to upload thumbnail</span>
                     <span className="text-xs text-gray-300">PNG, JPG, WEBP supported</span>
@@ -138,7 +137,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 // ── Main Create Page ──
 export default function CreateBlogPage() {
     const router = useRouter();
-
+    const queryClient = useQueryClient();
     const [form, setForm] = useState({
         thumbnail: "",
         title: "",
@@ -156,6 +155,7 @@ export default function CreateBlogPage() {
         mutationFn: (payload: any) => adminCreateBlog(payload),
         onSuccess: () => {
             toast.success("Blog created successfully!");
+            queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
             router.push("/dashboard/blogs");
         },
         onError: (error: any) => {
