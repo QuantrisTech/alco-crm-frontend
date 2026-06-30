@@ -164,13 +164,18 @@ export default function CreateBlogPage() {
         },
     });
 
+    const isValidObjectId = (id?: string) => !!id && /^[0-9a-fA-F]{24}$/.test(id);
+
     const formattedContent = form.content.map((block) => {
         const isList = block.type === "ul" || block.type === "ol";
+
         return {
+            _id: isValidObjectId(block?._id) ? block._id : undefined, // ✅ temp_ ids skip
             type: block.type,
             text: isList ? undefined : block.text,
             items: isList
                 ? (block.items || []).map((item) => ({
+                    _id: isValidObjectId(item._id) ? item._id : undefined, // ✅ items ke liye bhi
                     text: item.text,
                     bold: item.bold || "",
                 }))
