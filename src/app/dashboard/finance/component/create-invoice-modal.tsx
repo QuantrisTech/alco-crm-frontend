@@ -70,7 +70,7 @@
 //         const res = await searchEnrollments(val);
 //         setResults(res.data?.data || []);
 //       } catch {
-//         toast.error("Search failed");
+//         toast.error("Search Operation failed");
 //       } finally {
 //         setIsSearching(false);
 //       }
@@ -143,17 +143,17 @@
 //       });
 //     },
 //     onSuccess: () => {
-//       toast.success("Invoice create ho gaya! ✅");
+//       toast.success("Invoice created successfully! ✅");
 //       queryClient.invalidateQueries({ queryKey: ["invoices"] });
 //       handleClose();
 //     },
-//     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+//     onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
 //   });
 
 //   const handleSubmit = (e: React.FormEvent) => {
 //     e.preventDefault();
 //     if (remaining !== 0) {
-//       toast.error("Pehle amount fully allocate karo");
+//       toast.error("Please allocate the full amount first");
 //       return;
 //     }
 //     submit();
@@ -197,7 +197,7 @@
 //             <div>
 //               <h2 className="text-sm font-bold text-gray-800">Create Invoice</h2>
 //               <p className="text-xs text-gray-400 mt-0.5">
-//                 {step === 1 ? "Step 1: Student / Enrollment select karo" : `Step 2: Payment plan — ${selectedEnrollment?.user?.name}`}
+//                 {step === 1 ? "Step 1: Select Student / Enrollment" : `Step 2: Payment plan — ${selectedEnrollment?.user?.name}`}
 //               </p>
 //             </div>
 //           </div>
@@ -228,7 +228,7 @@
 //                 type="text"
 //                 value={query}
 //                 onChange={handleQueryChange}
-//                 placeholder="Student ka naam ya email likho..."
+//                 placeholder="Enter student name or email..."
 //                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
 //                 autoFocus
 //               />
@@ -236,7 +236,7 @@
 
 //             {/* Loading */}
 //             {isSearching && (
-//               <p className="text-xs text-gray-400 text-center py-4">Dhoondh raha hoon...</p>
+//               <p className="text-xs text-gray-400 text-center py-4">Searching...</p>
 //             )}
 
 //             {/* Results */}
@@ -287,8 +287,8 @@
 //             {/* No results */}
 //             {!isSearching && query.trim().length >= 2 && results.length === 0 && (
 //               <div className="text-center py-8">
-//                 <p className="text-sm text-gray-400">Koi enrollment nahi mili</p>
-//                 <p className="text-xs text-gray-300 mt-1">Naam ya email check karo</p>
+//                 <p className="text-sm text-gray-400">No enrollment found</p>
+//                 <p className="text-xs text-gray-300 mt-1">Please check the name or email</p>
 //               </div>
 //             )}
 
@@ -298,8 +298,8 @@
 //                 <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
 //                   <Search size={20} className="text-gray-300" />
 //                 </div>
-//                 <p className="text-sm text-gray-400">Student ka naam ya email type karo</p>
-//                 <p className="text-xs text-gray-300 mt-1">Kam se kam 2 characters</p>
+//                 <p className="text-sm text-gray-400">Type student name or email</p>
+//                 <p className="text-xs text-gray-300 mt-1">Minimum 2 characters required</p>
 //               </div>
 //             )}
 //           </div>
@@ -539,7 +539,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     notes: "",
   });
 
-  // ── Append mode: sirf naye installments ─────────────────────
+  // ── Append mode: sirf New Installments ─────────────────────
   const [appendInstallments, setAppendInstallments] = useState<NewInstallment[]>([
     { label: "Installment 1", amount: 0, dueDate: "" },
   ]);
@@ -557,7 +557,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
       try {
         const res = await searchEnrollments(val);
         setResults(res.data?.data || []);
-      } catch { toast.error("Search failed"); }
+      } catch { toast.error("Search Operation failed"); }
       finally { setIsSearching(false); }
     }, 400);
   };
@@ -638,11 +638,11 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
       });
     },
     onSuccess: () => {
-      toast.success("Invoice create ho gaya! ✅");
+      toast.success("Invoice created successfully! ✅");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       handleClose();
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
   });
 
   // ── Submit: Append installments ──────────────────────────────
@@ -660,22 +660,22 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
       }
     },
     onSuccess: () => {
-      toast.success("Installments add ho gayi! ✅");
+      toast.success("Installments added successfully! ✅");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       handleClose();
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
   });
 
   const handleFreshSubmit = () => {
-    if (freshRemaining !== 0) { toast.error("Pehle amount fully allocate karo"); return; }
+    if (freshRemaining !== 0) { toast.error("Please allocate the full amount first"); return; }
     submitFresh();
   };
 
   const handleAppendSubmit = () => {
-    if (appendTotal <= 0) { toast.error("Kam se kam ek installment add karo"); return; }
+    if (appendTotal <= 0) { toast.error("Please add at least one installment"); return; }
     if (appendTotal > (existingInvoice?.remainingAmount || 0)) {
-      toast.error(`Remaining amount se zyada allocate ho raha hai (Rs ${fmt(existingInvoice?.remainingAmount)})`);
+      toast.error(`Allocated amount exceeds the remaining amount (Rs ${fmt(existingInvoice?.remainingAmount)})`);
       return;
     }
     submitAppend();
@@ -717,10 +717,10 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
                 {step === 1
-                  ? "Step 1: Student / Enrollment select karo"
+                  ? "Step 1: Select Student / Enrollment"
                   : mode === "append"
-                  ? `Existing invoice pe add — ${selectedEnrollment?.user?.name}`
-                  : `Fresh payment plan — ${selectedEnrollment?.user?.name}`}
+                  ? `Add to Existing Invoice — ${selectedEnrollment?.user?.name}`
+                  : `New Payment Plan — ${selectedEnrollment?.user?.name}`}
               </p>
             </div>
           </div>
@@ -747,13 +747,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 type="text"
                 value={query}
                 onChange={handleQueryChange}
-                placeholder="Student ka naam ya email likho..."
+                placeholder="Enter student name or email..."
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
                 autoFocus
               />
             </div>
 
-            {isSearching && <p className="text-xs text-gray-400 text-center py-4">Dhoondh raha hoon...</p>}
+            {isSearching && <p className="text-xs text-gray-400 text-center py-4">Searching...</p>}
 
             {!isSearching && results.length > 0 && (
               <div className="space-y-2">
@@ -845,13 +845,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                           {hasRemaining && (
                             <div className="mt-2 flex items-center gap-1.5 text-orange-500">
                               <Plus size={10} />
-                              <span className="text-[10px] font-semibold">Rs {fmt(inv.remainingAmount)} remaining — installments add ho sakti hain</span>
+                              <span className="text-[10px] font-semibold">Rs {fmt(inv.remainingAmount)} remaining — more installments can be added</span>
                             </div>
                           )}
                           {!hasRemaining && (
                             <div className="mt-2 flex items-center gap-1.5 text-teal-500">
                               <CheckCircle size={10} />
-                              <span className="text-[10px] font-semibold">Fully paid — naya invoice bana sakte hain</span>
+                              <span className="text-[10px] font-semibold">Fully paid — a new invoice can be created</span>
                             </div>
                           )}
                         </div>
@@ -861,7 +861,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                       {!hasInvoice && (
                         <div className="mt-2 flex items-center gap-1.5 text-orange-400 pt-2 border-t border-gray-100">
                           <AlertCircle size={10} />
-                          <span className="text-[10px] font-semibold">Koi invoice nahi — naya banao</span>
+                          <span className="text-[10px] font-semibold">No invoice found — create a new one</span>
                         </div>
                       )}
                     </button>
@@ -872,8 +872,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
             {!isSearching && query.trim().length >= 2 && results.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-sm text-gray-400">Koi enrollment nahi mili</p>
-                <p className="text-xs text-gray-300 mt-1">Naam ya email check karo</p>
+                <p className="text-sm text-gray-400">No enrollment found</p>
+                <p className="text-xs text-gray-300 mt-1">Please check the name or email</p>
               </div>
             )}
 
@@ -882,8 +882,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
                   <Search size={20} className="text-gray-300" />
                 </div>
-                <p className="text-sm text-gray-400">Student ka naam ya email type karo</p>
-                <p className="text-xs text-gray-300 mt-1">Kam se kam 2 characters</p>
+                <p className="text-sm text-gray-400">Type student name or email</p>
+                <p className="text-xs text-gray-300 mt-1">Minimum 2 characters required</p>
               </div>
             )}
           </div>
@@ -1091,13 +1091,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                   ? `Over-allocated by Rs ${fmt(Math.abs(appendRemaining))}`
                   : appendRemaining === 0
                   ? "✓ Fully allocated"
-                  : `Rs ${fmt(appendRemaining)} aur allocate ho sakta hai`}
+                  : `Rs ${fmt(appendRemaining)} can still be allocated`}
               </div>
 
               {/* New installments */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-gray-600">Naye Installments</label>
+                  <label className="text-xs font-semibold text-gray-600">New Installments</label>
                   <button type="button" onClick={addAppendInstallment} className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium">
                     <Plus size={12} /> Add
                   </button>
