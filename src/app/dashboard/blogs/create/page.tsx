@@ -224,14 +224,14 @@ export default function CreateBlogPage() {
                         <ArrowLeft size={15} />
                         Back
                     </button>
-                    <button
+                    {/* <button
                         onClick={handleSubmit}
                         disabled={isPending}
                         className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
                     >
                         <Save size={15} />
                         {isPending ? "Publishing..." : "Publish Blog"}
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
@@ -341,7 +341,7 @@ export default function CreateBlogPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={isPending}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+                        className="fixed bottom-6 right-6 z-40 w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium shadow-xl hover:bg-gray-800 transition disabled:opacity-50"
                     >
                         <Save size={15} />
                         {isPending ? "Publishing..." : "Publish Blog"}

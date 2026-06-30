@@ -345,7 +345,7 @@ export default function EditBlogPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={isPending}
-                        className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
+                        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-xl hover:bg-gray-800 transition disabled:opacity-50"
                     >
                         <Save size={15} />
                         {isPending ? "Saving..." : "Save Changes"}
@@ -456,14 +456,14 @@ export default function EditBlogPage() {
                         </div>
                     </Card>
 
-                    <button
+                    {/* <button
                         onClick={handleSubmit}
                         disabled={isPending}
                         className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
                     >
                         <Save size={15} />
                         {isPending ? "Saving..." : "Save Changes"}
-                    </button>
+                    </button> */}
                 </div>
             </div>
         </ProtectedRoute>
