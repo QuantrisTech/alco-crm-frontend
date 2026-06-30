@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAllEnrollments,
-  createEnrollment,
+  createEnrollmentDirect,
   updateEnrollment,
   deleteEnrollment,
   graduateEnrollment,
@@ -167,7 +167,7 @@ function ActiveEnrollmentsContent() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const { mutate: addEnrollment, isPending: isAdding } = useMutation({
-    mutationFn: createEnrollment,
+    mutationFn: createEnrollmentDirect,
     onSuccess: () => {
       toast.success("Enrollment created! ✅");
       setIsAddOpen(false);
