@@ -27,9 +27,7 @@ function BatchSelectModal({ lead, onConfirm, onClose }: {
   onConfirm: (batchId: string) => void;
   onClose: () => void;
 }) {
-  // const [batches, setBatches] = useState<any[]>([]);
   const [selectedBatch, setSelectedBatch] = useState("");
-  // const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const { data, isLoading, isError } = useQuery({
@@ -38,21 +36,6 @@ function BatchSelectModal({ lead, onConfirm, onClose }: {
   });
 
   console.log("Batch query error:", data)
-  // useEffect(() => {
-  //   const fetchBatches = async () => {
-  //     try {
-  //       setLoading(true);
-  //       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/batches/active`);
-  //       const data = await res.json();
-  //       setBatches(data?.data || []);
-  //     } catch (err) {
-  //       setError("Failed to load batches. Please try again.");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetchBatches();
-  // }, []);
 
   const handleConfirm = () => {
     if (!selectedBatch) {
@@ -125,7 +108,6 @@ function BatchSelectModal({ lead, onConfirm, onClose }: {
 }
 
 // ── Enroll Modal ──────────────────────────────────────────────────
-// Shows payment plan summary + asks if advance is being paid now
 function EnrollModal({ lead, onConfirm, onClose, isLoading }: {
   lead: any;
   onConfirm: (advancePaid: boolean, method: string) => void;
@@ -240,7 +222,9 @@ function EnrollModal({ lead, onConfirm, onClose, isLoading }: {
 }
 
 // ── Contract Badge ────────────────────────────────────────────────
-function ContractBadge({ contractDetails, onViewContract, lead }: any) {
+// canEdit: agar true hai to "filled" aur "pending" states bhi clickable
+// hongi taake admin lead convert hone se pehle contract edit/fill kar sake.
+function ContractBadge({ contractDetails, onViewContract, lead, canEdit }: any) {
   const status = contractDetails?.status;
   if (!status) return null;
 
@@ -256,18 +240,32 @@ function ContractBadge({ contractDetails, onViewContract, lead }: any) {
   );
 
   if (status === "filled") return (
-    <div className="flex items-center gap-1.5 my-2 px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100">
+    <div
+      onClick={canEdit ? (e) => { e.stopPropagation(); e.preventDefault(); onViewContract?.(lead); } : undefined}
+      className={`flex items-center gap-1.5 my-2 px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100 transition-colors group/contract ${canEdit ? "cursor-pointer hover:bg-indigo-100" : ""}`}
+    >
       <PenLine size={10} className="text-indigo-400 shrink-0" />
       <span className="text-[10px] font-semibold text-indigo-500">Contract Filled</span>
-      <span className="text-[9px] text-indigo-300 ml-auto">Awaiting signature</span>
+      {canEdit ? (
+        <span className="text-[9px] text-indigo-300 ml-auto group-hover/contract:text-indigo-500 transition-colors">Edit →</span>
+      ) : (
+        <span className="text-[9px] text-indigo-300 ml-auto">Awaiting signature</span>
+      )}
     </div>
   );
 
   if (status === "pending") return (
-    <div className="flex items-center gap-1.5 my-2 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+    <div
+      onClick={canEdit ? (e) => { e.stopPropagation(); e.preventDefault(); onViewContract?.(lead); } : undefined}
+      className={`flex items-center gap-1.5 my-2 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100 transition-colors group/contract ${canEdit ? "cursor-pointer hover:bg-gray-100" : ""}`}
+    >
       <Clock size={10} className="text-gray-400 shrink-0" />
       <span className="text-[10px] font-semibold text-gray-500">Contract Pending</span>
-      <span className="text-[9px] text-gray-300 ml-auto">Not filled yet</span>
+      {canEdit ? (
+        <span className="text-[9px] text-gray-400 ml-auto group-hover/contract:text-gray-600 transition-colors">Edit →</span>
+      ) : (
+        <span className="text-[9px] text-gray-300 ml-auto">Not filled yet</span>
+      )}
     </div>
   );
 
@@ -295,6 +293,9 @@ export default function KanbanCard({
   const isAdminOrSuper = ["admin", "super_admin"].includes(currentUser?.role);
   const isOwner = lead.assigned_to?._id === currentUser?._id || lead.created_by === currentUser?._id;
   const canAct = isAdminOrSuper || isOwner;
+
+  // Contract edit allowed as long as lead hasn't been converted yet.
+  const canEditContract = !!onViewContract && lead.status !== "converted" && canAct;
 
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -437,7 +438,12 @@ export default function KanbanCard({
 
         {/* Contract badge */}
         {lead.contractDetails && lead.status === "interested" && (
-          <ContractBadge contractDetails={lead.contractDetails} onViewContract={onViewContract} lead={lead} />
+          <ContractBadge
+            contractDetails={lead.contractDetails}
+            onViewContract={onViewContract}
+            lead={lead}
+            canEdit={canEditContract}
+          />
         )}
 
         {/* Assigned to */}

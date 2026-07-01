@@ -427,7 +427,15 @@ export default function AdminLeads() {
         />
       )}
 
-      <ViewContractModal lead={viewContractLead} onClose={() => setViewContractLead(null)} />
+      <ViewContractModal
+        lead={viewContractLead}
+        onClose={() => setViewContractLead(null)}
+        onSave={(leadId: string, contractDetails: any) =>
+          updateLeadApi({ id: leadId, data: { contractDetails } })
+            .then(() => setViewContractLead((prev: any) => prev ? { ...prev, contractDetails } : prev))
+        }
+        isSaving={isUpdating}
+      />
 
       <ViewPaymentPlanModal lead={viewingPaymentPlan} onClose={() => setViewingPaymentPlan(null)} />
 

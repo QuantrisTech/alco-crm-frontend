@@ -106,82 +106,6 @@ async function generateContractPDF(data) {
     ? new Date(d).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" })
     : "_______________";
 
-  // ── Page template — header + footer matching images ──────────
-  // const addPage = () => {
-  //   const pg = doc.addPage([W, H]);
-
-  //   // ── Top-right colored stripes (matches images exactly) ──
-  //   // Blue thick stripe
-  //   pg.drawRectangle({ x: W - 200, y: H - 18, width: 200, height: 9, color: C.blue });
-  //   // Gold thin stripe below
-  //   pg.drawRectangle({ x: W - 200, y: H - 26, width: 200, height: 5, color: C.gold });
-  //   // Another thin gold
-  //   pg.drawRectangle({ x: W - 200, y: H - 32, width: 160, height: 3, color: C.gold });
-
-  //   // ── AL&CO Logo area (top left) ──
-  //   pg.drawRectangle({ x: ML, y: H - 56, width: 52, height: 44, borderColor: C.navy, borderWidth: 1.5, color: rgb(0.97, 0.97, 0.97) });
-  //   pg.drawText("AL&CO", { x: ML + 6, y: H - 34, size: 11, font: boldFont, color: C.navy });
-  //   pg.drawText("CENTER FOR", { x: ML + 4, y: H - 44, size: 5, font, color: C.gray });
-  //   pg.drawText("HUMAN BRILLIANCE &", { x: ML + 4, y: H - 50, size: 5, font, color: C.gray });
-
-  //   // ── Bottom footer stripes ──
-  //   pg.drawRectangle({ x: ML, y: 24, width: 180, height: 8, color: C.gold });
-  //   pg.drawRectangle({ x: ML, y: 18, width: 180, height: 4, color: C.gold });
-  //   pg.drawRectangle({ x: ML, y: 14, width: 140, height: 3, color: C.gold });
-
-  //   // ── "Arslan Larik & Company" bottom right ──
-  //   pg.drawText("Arslan Larik & Company", { x: W - MR - 130, y: 30, size: 10, font: boldFont, color: C.navy });
-
-  //   return pg;
-  // };
-  //   const addPage = async () => {
-  //   const pg = doc.addPage([W, H]);
-
-  //   // ── Logo (top left) — src/assets/logo.webp ──
-  //   // Note: webp direct support nahi hai pdf-lib mein
-  //   // Logo ko PNG convert karke use karo, ya fetch karo
-  //   try {
-  //     const logoRes = await fetch("/assets/logo.png"); // PNG version rakhna
-  //     const logoBytes = await logoRes.arrayBuffer();
-  //     const logoImg = await doc.embedPng(new Uint8Array(logoBytes));
-  //     const dims = logoImg.scaleToFit(100, 44);
-  //     pg.drawImage(logoImg, { x: ML, y: H - 60, width: dims.width, height: dims.height });
-  //   } catch (_) {
-  //     // Fallback text logo
-  //     pg.drawText("AL&CO", { x: ML, y: H - 38, size: 13, font: boldFont, color: C.navy });
-  //     pg.drawText("CENTER FOR HUMAN BRILLIANCE &", { x: ML, y: H - 48, size: 5.5, font, color: C.gray });
-  //     pg.drawText("BEHAVIORAL REENGINEERING", { x: ML, y: H - 54, size: 5.5, font, color: C.gray });
-  //   }
-
-  //   // ── Header stripes (top RIGHT) ──
-  //   // Space from top, descending size
-  //   // Blue line 1 — sabse bari
-  //   pg.drawRectangle({ x: W - 210, y: H - 14, width: 210, height: 8, color: C.blue });
-  //   // Blue line 2 — choti
-  //   pg.drawRectangle({ x: W - 170, y: H - 23, width: 170, height: 6, color: C.blue });
-  //   // Yellow line 1 — bara
-  //   pg.drawRectangle({ x: W - 190, y: H - 33, width: 190, height: 6, color: C.gold });
-  //   // Yellow line 2 — choti
-  //   pg.drawRectangle({ x: W - 140, y: H - 41, width: 140, height: 5, color: C.gold });
-
-  //   // ── Footer stripes (bottom LEFT, bilkul bottom se) ──
-  //   // Yellow choti (sabse upar wali, sabse choti)
-  //   pg.drawRectangle({ x: ML, y: 14, width: 120, height: 5, color: C.gold });
-  //   // Yellow bari
-  //   pg.drawRectangle({ x: ML, y: 9,  width: 160, height: 5, color: C.gold });
-  //   // Blue bari
-  //   pg.drawRectangle({ x: ML, y: 4,  width: 190, height: 5, color: C.blue });
-  //   // Blue sabse bari (bilkul bottom)
-  //   pg.drawRectangle({ x: ML, y: 0,  width: 220, height: 4, color: C.blue });
-
-  //   // ── "Arslan Larik & Company" footer right ──
-  //   pg.drawText("Arslan Larik & Company", {
-  //     x: W - MR - 128, y: 18,
-  //     size: 10, font: boldFont, color: C.navy
-  //   });
-
-  //   return pg;
-  // };
   // Pehle logo embed karo — ONCE, page se bahar
   let logoImg = null;
   try {
@@ -465,17 +389,6 @@ async function generateContractPDF(data) {
   const advAmt = pp?.advanceAmount || 0;
   const remainingAmt = totalAmt - advAmt;
 
-  // p3.drawText("1.2 The Client agrees to pay the total fee of", { x: ML, y, size: 9, font, color: C.black });
-  // p3.drawText(fmt(totalAmt), { x: ML + 215, y, size: 9, font, color: C.black });
-  // hLine(p3, ML + 213, y - 3, 100);
-  // p3.drawText("[Total Fee] in", { x: ML + 318, y, size: 9, font, color: C.black });
-  // y -= 14;
-
-  // p3.drawText(`[Number] installments of`, { x: ML, y, size: 9, font, color: C.black });
-  // p3.drawText(String(numInst), { x: ML + 116, y, size: 9, font, color: C.black });
-  // hLine(p3, ML + 114, y - 3, 105);
-  // p3.drawText("[Amount per Installment Approximately] each. Details of the", { x: ML + 224, y, size: 9, font, color: C.black });
-  // Line 2 — advance
   // Line 1
   p3.drawText("1.2 The Client agrees to pay the total fee of", { x: ML, y, size: 9, font, color: C.black });
   p3.drawText(fmt(totalAmt), { x: ML + 215, y, size: 9, font, color: C.black });
@@ -498,7 +411,6 @@ async function generateContractPDF(data) {
   }
   hLine(p3, ML, y - 3, 160);
   y -= 30;
-  // y -= 14;
 
   p3.drawText("same are on INVOICE NO#", { x: ML, y, size: 9, font, color: C.black });
   hLine(p3, ML + 118, y - 3, 140);
@@ -662,7 +574,19 @@ async function generateContractPDF(data) {
 }
 
 // ─── Main Component ──────────────────────────────────────────
-export default function ContractPDFGenerator({ contractData, onGenerated = undefined, mode = "standalone" }) {
+// mode: "standalone" (default, editable form + generate PDF, no save-to-server)
+//       "preview"    (read-only signed badge, no editable fields)
+//       "edit"       (editable form like standalone, PLUS a "Save Changes"
+//                     button that calls onSubmit(form) so the parent can
+//                     persist the updated contract details, e.g. before a
+//                     lead is converted)
+export default function ContractPDFGenerator({
+  contractData,
+  onGenerated = undefined,
+  mode = "standalone",
+  onSubmit = undefined,      // (updatedContractDetails) => void — called on Save Changes
+  isSubmitting = false,      // shows a saving state on the Save Changes button
+}) {
   const [form, setForm] = useState({
     fullName: "", email: "", phone: "", programName: "",
     fatherHusbandName: "", cnic: "", bankAccountNumber: "",
@@ -674,6 +598,7 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
   });
 
   const [sigSaved, setSigSaved] = useState(!!contractData?.signatureData);
+  const [sigLoadError, setSigLoadError] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [pdfReady, setPdfReady] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
@@ -683,6 +608,7 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
     if (contractData) {
       setForm(f => ({ ...f, ...contractData }));
       setSigSaved(!!contractData.signatureData);
+      setSigLoadError(false);
     }
   }, [contractData]);
 
@@ -711,6 +637,11 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
     a.click();
   };
 
+  const handleSave = () => {
+    if (!onSubmit) return;
+    onSubmit(form);
+  };
+
   const inp = (label, key, placeholder, full) => (
     <div style={{ gridColumn: full ? "1 / -1" : undefined }}>
       <label style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 4 }}>{label}</label>
@@ -723,9 +654,11 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
     </div>
   );
 
+  // Read-only badge view only applies to "preview" mode.
+  // "edit" mode falls through to the full editable form below (same as "standalone"),
+  // just with an extra Save Changes action.
   const isPreviewMode = mode === "preview" && contractData;
-
-  console.log()
+  const isEditMode = mode === "edit";
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 640, margin: "0 auto", padding: 20 }}>
@@ -773,7 +706,7 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
             ))}
           </div>
 
-          <div style={{ background: "white", border: "1px solid #f0f0f0", borderRadius: 16, padding: 20, marginBottom: 16 }}>
+          {/* <div style={{ background: "white", border: "1px solid #f0f0f0", borderRadius: 16, padding: 20, marginBottom: 16 }}>
             <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Signature</p>
             <div style={{ display: "flex", gap: 4, background: "#f3f4f6", borderRadius: 10, padding: 4, width: "fit-content", marginBottom: 14 }}>
               {["draw", "type"].map(t => (
@@ -784,49 +717,82 @@ export default function ContractPDFGenerator({ contractData, onGenerated = undef
               ))}
             </div>
             {form.signatureType === "draw" ? (
-              sigSaved && form.signatureData ? (
+              sigSaved && form.signatureData && !sigLoadError ? (
                 <div>
-                  <img src={form.signatureData} alt="Signature" style={{ width: "100%", height: 100, objectFit: "contain", border: "1px solid #99f6e4", borderRadius: 10, background: "#f9fafb" }} />
-                  <button type="button" onClick={() => { setForm(f => ({ ...f, signatureData: "" })); setSigSaved(false); }} style={{ ...btnSm, marginTop: 8 }}>↺ Redo</button>
+                  <img
+                    src={form.signatureData}
+                    alt="Signature"
+                    onError={() => setSigLoadError(true)}
+                    style={{ width: "100%", height: 100, objectFit: "contain", border: "1px solid #99f6e4", borderRadius: 10, background: "#f9fafb" }}
+                  />
+                  <button type="button" onClick={() => { setForm(f => ({ ...f, signatureData: "" })); setSigSaved(false); setSigLoadError(false); }} style={{ ...btnSm, marginTop: 8 }}>↺ Redo</button>
+                </div>
+              ) : sigSaved && form.signatureData && sigLoadError ? (
+                <div>
+                  <div style={{ width: "100%", height: 100, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #fca5a5", borderRadius: 10, background: "#fef2f2", padding: 12, boxSizing: "border-box" }}>
+                    <p style={{ fontSize: 11, color: "#b91c1c", textAlign: "center" }}>
+                      ⚠️ Saved signature couldn't load — the stored data looks corrupted or truncated ({form.signatureData.length} chars). Please redraw.
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => { setForm(f => ({ ...f, signatureData: "" })); setSigSaved(false); setSigLoadError(false); }} style={{ ...btnSm, marginTop: 8 }}>↺ Redraw Signature</button>
                 </div>
               ) : (
-                <SignatureCanvas onSave={d => { setForm(f => ({ ...f, signatureData: d })); setSigSaved(true); }} />
+                <SignatureCanvas onSave={d => { setForm(f => ({ ...f, signatureData: d })); setSigSaved(true); setSigLoadError(false); }} />
               )
             ) : (
               <input value={form.signatureData} onChange={e => setForm(f => ({ ...f, signatureData: e.target.value }))}
                 placeholder="Type your full name as signature"
                 style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", fontSize: 20, fontFamily: "Georgia, serif", color: "#111", boxSizing: "border-box" }} />
             )}
-          </div>
+          </div> */}
         </>
       )}
 
       {isPreviewMode && (
         <div style={{ background: "#f0fdf9", border: "1px solid #99f6e4", borderRadius: 16, padding: 16, marginBottom: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "#0d9488" }}>✅ Contract Signed</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#0d9488" }}>Contract Signed</p>
           <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
             Signed by <strong>{form.fullName}</strong> on {new Date(form.signedAt || Date.now()).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" })}
           </p>
         </div>
       )}
 
+      {/* ── Save Changes (edit mode only) ── */}
+      {isEditMode && onSubmit && (
+        <button
+          onClick={handleSave}
+          disabled={isSubmitting}
+          style={{
+            width: "100%", padding: "13px 0", borderRadius: 14,
+            background: isSubmitting ? "#e5e7eb" : "#0d9488",
+            border: "none", color: isSubmitting ? "#9ca3af" : "white",
+            fontWeight: 800, fontSize: 14,
+            cursor: isSubmitting ? "not-allowed" : "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            marginBottom: 10,
+          }}
+        >
+          {isSubmitting ? "Saving..." : "Save Changes"}
+        </button>
+      )}
+
       {!pdfReady ? (
         <button onClick={handleGenerate} disabled={generating}
           style={{ width: "100%", padding: "13px 0", borderRadius: 14, background: generating ? "#e5e7eb" : "#f59e0b", border: "none", color: generating ? "#9ca3af" : "#111", fontWeight: 800, fontSize: 14, cursor: generating ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          {generating ? "⏳ Generating PDF..." : "📄 Generate Contract PDF"}
+          {generating ? "Generating PDF..." : "Generate Contract PDF"}
         </button>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ background: "#f0fdf9", border: "1px solid #6ee7b7", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✅ PDF Ready!</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>PDF Ready!</span>
             <div style={{ display: "flex", gap: 8 }}>
               <a href={pdfUrl} target="_blank" rel="noreferrer"
                 style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #6ee7b7", background: "white", color: "#065f46", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
-                👁️ Preview
+                Preview
               </a>
               <button onClick={handleDownload}
                 style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#0d9488", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                ⬇️ Download
+                Download
               </button>
             </div>
           </div>
