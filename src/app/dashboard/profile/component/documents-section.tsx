@@ -16,6 +16,8 @@ type Props = {
   queryKey: string[];
   title?: string;
   description?: string;
+  required?: boolean;          // ← title ke saath * dikhata hai
+  error?: string;              // ← red border + error message ke liye
 };
 
 export default function DocumentsSection({
@@ -27,6 +29,8 @@ export default function DocumentsSection({
   queryKey,
   title = "My Documents",
   description,
+  required = false,
+  error,
 }: Props) {
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -80,8 +84,15 @@ export default function DocumentsSection({
     : documents?.length || 0;
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">{title}</p>
+    <div
+      className={`bg-white border rounded-2xl p-5 shadow-sm transition-colors ${
+        error ? "border-red-400" : "border-gray-100"
+      }`}
+    >
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+        {title}
+        {required && <span className="text-red-400 ml-0.5">*</span>}
+      </p>
       {description && <p className="text-xs text-gray-400 mb-4">{description}</p>}
 
       <div className="flex items-center gap-2 mt-3">
@@ -103,7 +114,11 @@ export default function DocumentsSection({
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-medium hover:bg-yellow-100 transition disabled:opacity-50"
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition disabled:opacity-50 ${
+            error
+              ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
+              : "bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+          }`}
         >
           <Upload size={14} />
           {uploading ? "Uploading..." : "Upload"}
@@ -126,6 +141,10 @@ export default function DocumentsSection({
           onChange={handleUpload}
         />
       </div>
+
+      {error && (
+        <p className="text-red-500 text-xs mt-2">{error}</p>
+      )}
 
       <DocumentsGalleryModal
         isOpen={docsOpen}
