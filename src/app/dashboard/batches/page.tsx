@@ -222,10 +222,13 @@ export default function BatchesPage() {
       ? Math.round((b.current_students / b.max_students) * 100)
       : 0;
 
-  const getProgramName = (batch: Batch) =>
-    typeof batch.program_id === "object"
-      ? batch.program_id.name
-      : programs.find((p) => p._id === batch.program_id)?.name ?? "—";
+  const getProgramName = (batch: Batch) => {
+    if (!batch.program_id) return "—";
+    if (typeof batch.program_id === "object") {
+      return batch.program_id.name ?? "—";
+    }
+    return programs.find((p) => p._id === batch.program_id)?.name ?? "—";
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
 
