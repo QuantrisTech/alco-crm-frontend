@@ -211,6 +211,8 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 
   const [form, setForm] = useState(() => buildForm(contract));
   const [savedForm, setSavedForm] = useState(() => buildForm(contract));
+  const [errors, setErrors] = useState<Partial<Record<typeof personalFieldKeys[number], string>>>({});
+  const [cnicDocError, setCnicDocError] = useState<string>("");
 
   const [signatureType, setSignatureType] = useState<"draw" | "type">(contract?.signatureType || "draw");
   const [typedSignature, setTypedSignature] = useState(
@@ -252,6 +254,8 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     onSuccess: () => {
       toast.success("Contract submitted successfully! ✅");
       queryClient.invalidateQueries({ queryKey: ["my-contract"] });
+      setErrors({});
+      setCnicDocError("");
       setSavedForm({ ...form });
       setSavedSignatureType(signatureType);
       setSavedSignatureData(currentSignatureData);
@@ -302,6 +306,11 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 
   const hasProfileDetails = Object.values(profilePersonal).some((v) => v.trim() !== "");
 
+  useEffect(() => {
+    const cnicDocs = (profileData?.documents || []).filter((d: any) => d.type === "cnic");
+    if (cnicDocs.length > 0 && cnicDocError) setCnicDocError("");
+  }, [profileData?.documents]);
+
   const [useSavedDetails, setUseSavedDetails] = useState(false);
 
   useEffect(() => {
@@ -318,6 +327,34 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
   });
 
 
+  // ✅ Field-level required-validation — InputField ka `error` prop use karta hai
+  const fieldLabels: Record<typeof personalFieldKeys[number], string> = {
+    fatherHusbandName: "Father / Husband Name is required",
+    cnic: "CNIC Number is required",
+    bankAccountNumber: "Bank Account Number is required",
+    currentAddress: "Current Address is required",
+    emergencyContactName: "Emergency Contact Name is required",
+    emergencyContactPhone: "Emergency Contact Phone is required",
+    occupation: "Occupation / Company is required",
+  };
+
+  const validatePersonalFields = (payload: Record<typeof personalFieldKeys[number], string>) => {
+    const newErrors: Partial<Record<typeof personalFieldKeys[number], string>> = {};
+
+    personalFieldKeys.forEach((key) => {
+      if (!payload[key]?.trim()) {
+        newErrors[key] = fieldLabels[key];
+      }
+    });
+
+    // ✅ Phone format check — required check ke baad, agar value maujood ho
+    if (payload.emergencyContactPhone?.trim() && !isValidPhone(payload.emergencyContactPhone)) {
+      newErrors.emergencyContactPhone = "Please enter a valid phone number (e.g. 03XX-XXXXXXX)";
+    }
+
+    return newErrors;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -325,30 +362,21 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
       personalFieldKeys.map((k) => [k, getFieldValue(k)])
     ) as Record<typeof personalFieldKeys[number], string>;
 
-    if (!personalPayload.fatherHusbandName.trim()) {
-      toast.error("Father / Husband Name is required");
+    const newErrors = validatePersonalFields(personalPayload);
+    setErrors(newErrors);
+
+    const cnicDocs = (profileData?.documents || []).filter((d: any) => d.type === "cnic");
+    if (cnicDocs.length === 0) {
+      setCnicDocError("CNIC Document is required");
+    } else {
+      setCnicDocError("");
+    }
+
+    if (Object.keys(newErrors).length > 0 || cnicDocs.length === 0) {
+      toast.error("Please fill all required fields");
       return;
     }
-    if (!personalPayload.cnic.trim()) {
-      toast.error("CNIC Number is required");
-      return;
-    }
-    if (!personalPayload.currentAddress.trim()) {
-      toast.error("Current Address is required");
-      return;
-    }
-    if (!personalPayload.emergencyContactName.trim()) {
-      toast.error("Emergency Contact Name is required");
-      return;
-    }
-    if (!personalPayload.emergencyContactPhone.trim()) {
-      toast.error("Emergency Contact Phone is required");
-      return;
-    }
-    if (!isValidPhone(personalPayload.emergencyContactPhone)) {
-      toast.error("Please enter a valid phone number (e.g. 03XX-XXXXXXX)");
-      return;
-    }
+
     if (!form.participationAgreement || !form.photoVideoRelease) {
       toast.error("Please agree to both agreements");
       return;
@@ -429,10 +457,10 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             type="button"
             onClick={handleSubmit}
             disabled={!isDirty || isSubmitting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm bg-gray-300 text-gray-800 
               ${isDirty
                 ? "bg-yellow-400 hover:bg-yellow-500 text-gray-900 cursor-pointer"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "cursor-not-allowed"
               } disabled:opacity-60`}
           >
             {isSubmitting
@@ -623,6 +651,8 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
           queryKey={["profile"]}
           title="CNIC Documents"
           description="Upload a clear photo or scan of your CNIC (front & back)"
+          required
+          error={cnicDocError}
         />
 
         {/* Personal Details */}
@@ -707,59 +737,87 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
             <InputField
               label="Father / Husband Name *"
               value={getFieldValue("fatherHusbandName")}
-              onChange={(e) => setForm((p) => ({ ...p, fatherHusbandName: e.target.value }))}
+              onChange={(e) => {
+                setForm((p) => ({ ...p, fatherHusbandName: e.target.value }));
+                setErrors((p) => ({ ...p, fatherHusbandName: undefined }));
+              }}
               placeholder="Enter name"
               disabled={isConverted || useSavedDetails}
+              error={errors.fatherHusbandName}
             />
 
             <InputField
               label="CNIC Number *"
               value={getFieldValue("cnic")}
-              onChange={(e) => setForm((p) => ({ ...p, cnic: e.target.value }))}
+              onChange={(e) => {
+                setForm((p) => ({ ...p, cnic: e.target.value }));
+                setErrors((p) => ({ ...p, cnic: undefined }));
+              }}
               placeholder="XXXXX-XXXXXXX-X"
               disabled={isConverted || useSavedDetails}
+              error={errors.cnic}
             />
 
             <div className="col-span-2">
               <InputField
                 label="Current Address *"
                 value={getFieldValue("currentAddress")}
-                onChange={(e) => setForm((p) => ({ ...p, currentAddress: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, currentAddress: e.target.value }));
+                  setErrors((p) => ({ ...p, currentAddress: undefined }));
+                }}
                 placeholder="Enter your full address"
                 disabled={isConverted || useSavedDetails}
+                error={errors.currentAddress}
               />
             </div>
             <div className="col-span-2">
               <InputField
-                label="Bank Account Number"
+                label="Bank Account Number *"
                 value={getFieldValue("bankAccountNumber")}
-                onChange={(e) => setForm((p) => ({ ...p, bankAccountNumber: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, bankAccountNumber: e.target.value }));
+                  setErrors((p) => ({ ...p, bankAccountNumber: undefined }));
+                }}
                 placeholder="Account number"
                 disabled={isConverted || useSavedDetails}
+                error={errors.bankAccountNumber}
               />
             </div>
             <InputField
-              label="Emergency Contact Name*"
+              label="Emergency Contact Name *"
               value={getFieldValue("emergencyContactName")}
-              onChange={(e) => setForm((p) => ({ ...p, emergencyContactName: e.target.value }))}
+              onChange={(e) => {
+                setForm((p) => ({ ...p, emergencyContactName: e.target.value }));
+                setErrors((p) => ({ ...p, emergencyContactName: undefined }));
+              }}
               placeholder="Name"
               disabled={isConverted || useSavedDetails}
+              error={errors.emergencyContactName}
             />
             <InputField
-              label="Emergency Contact Number*"
+              label="Emergency Contact Number *"
               value={getFieldValue("emergencyContactPhone")}
-              onChange={(e) => setForm((p) => ({ ...p, emergencyContactPhone: e.target.value }))}
+              onChange={(e) => {
+                setForm((p) => ({ ...p, emergencyContactPhone: e.target.value }));
+                setErrors((p) => ({ ...p, emergencyContactPhone: undefined }));
+              }}
               placeholder="Phone"
               disabled={isConverted || useSavedDetails}
+              error={errors.emergencyContactPhone}
             />
 
             <div className="col-span-2">
               <InputField
-                label="Occupation / Company"
+                label="Occupation / Company *"
                 value={getFieldValue("occupation")}
-                onChange={(e) => setForm((p) => ({ ...p, occupation: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, occupation: e.target.value }));
+                  setErrors((p) => ({ ...p, occupation: undefined }));
+                }}
                 placeholder="e.g. Software Engineer at XYZ, Student at ABC"
                 disabled={isConverted || useSavedDetails}
+                error={errors.occupation}
               />
             </div>
 
