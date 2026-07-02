@@ -2,14 +2,13 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { logout, setCredentials } from "@/store/authSlice";
+import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/app/component/protected-route";
 import Button from "@/app/component/ui/button";
 import InputField from "@/app/component/ui/inputField";
 import toast from "react-hot-toast";
-import { User, Lock, Trash2, Save, ShieldAlert, UserRoundCheck, ShieldCheck, Eye, EyeOff, Mail } from "lucide-react";
+import { User, Lock, Save, UserRoundCheck, ShieldCheck, Eye, EyeOff, Mail } from "lucide-react";
 import { changePassword, deleteMyAccount, getProfile, selfVerifyEmail, updateProfile } from "@/utils/api";
 import API from "@/utils/api";
 import Popup from "@/app/component/ui/popup/popup";
@@ -17,7 +16,6 @@ import PageHeader from "@/app/component/dashboard/page-header";
 import DocumentsSection from "./component/documents-section";
 
 export default function ProfilePage() {
-  const dispatch = useAppDispatch();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
@@ -29,18 +27,12 @@ export default function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   });
-  const [showNewPassword, setShowNewPassword] = useState(false);
+
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-
-  // ✅ Old user setup form (is_old_user === true → email + new + confirm, NO current password)
   const [setupForm, setSetupForm] = useState({ email: "", password: "", confirmPassword: "" });
   const [showSetupPassword, setShowSetupPassword] = useState(false);
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-
-  const setupMode = searchParams.get("setup") === "true";
 
   const { data, isLoading } = useQuery({
     queryKey: ["profile"],
@@ -130,6 +122,13 @@ export default function ProfilePage() {
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
+
+  // Delete Account
+  // const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
+  //   mutationFn: () => deleteMyAccount(),
+  //   onSuccess: () => { toast.success("Account deleted!"); dispatch(logout()); router.push("/auth"); },
+  //   onError: () => toast.error("Failed to delete account!"),
+  // });
 
   const handlePasswordSubmit = () => {
     if (!passwordForm.oldPassword.trim()) {
@@ -484,6 +483,34 @@ export default function ProfilePage() {
           confirmText="Yes, Change Password"
           cancelText="Cancel"
         />
+
+        {/* Danger Zone */}
+        {/* <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
+          <h3 className="text-sm font-semibold text-red-500 flex items-center gap-2 mb-2">
+            <ShieldAlert size={16} />
+            Danger Zone
+          </h3>
+          <p className="text-gray-400 text-xs mb-4">
+            Once you delete your account, there is no going back. Please be certain.
+          </p>
+          <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
+            <Trash2 size={16} />
+            Delete Account
+          </Button>
+
+          <Popup
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={() => deleteAccount()}
+            variant="danger"
+            title="Delete Account"
+            description={<>Are you sure? <span className="font-semibold text-red-500">This action cannot be undone.</span></>}
+            confirmText="Yes, Delete My Account"
+            cancelText="Cancel"
+            isLoading={isDeleting}
+            loadingText="Deleting..."
+          />
+        </div> */}
 
       </div>
     </ProtectedRoute>
