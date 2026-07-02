@@ -55,7 +55,21 @@ export default function ProfilePage() {
   // is_old_user === false + isTemporaryPassword === false → normal existing user → change-password flow
   // ─────────────────────────────────────────────────────────────
   const isOldUser = authUser?.is_old_user ?? data?.is_old_user;
-  const needsVerify = authUser?.is_old_user === false && !data?.isTemporaryPassword && !data?.isVerified;
+
+  // ✅ Explicit verify-popup state — har baar jab profile data aaye ya refresh ho
+  // (password change ke baad, ya profile screen pe pehli baar mount hone pe)
+  // check karo: agar user is_old_user nahi hai, temp password nahi hai, aur isVerified false hai
+  // → popup khol do. Warna band rakho.
+  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
+
+  useEffect(() => {
+    if (!data) return; // profile abhi load nahi hui, kuch check mat karo
+
+    const shouldShowVerify =
+      !isOldUser && !data?.isTemporaryPassword && !data?.isVerified;
+
+    setShowVerifyPopup(shouldShowVerify);
+  }, [data, isOldUser]);
 
   useEffect(() => {
     if (data?.name) setNameForm({ name: data.name });
@@ -83,7 +97,13 @@ export default function ProfilePage() {
   // Change Password — current + new + confirm (register-wala temp-password user, ya normal user)
   const { mutate: changePass, isPending: isChangingPass } = useMutation({
     mutationFn: () => changePassword({ oldPassword: passwordForm.oldPassword, newPassword: passwordForm.newPassword }),
-    onSuccess: () => { toast.success("Password changed! 🔒"); setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" }); },
+    onSuccess: () => {
+      toast.success("Password changed! 🔒");
+      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      // ✅ Password change hote hi profile data refresh karo — taake isTemporaryPassword/isVerified
+      // fresh values ke saath aayen aur verify popup ka check sahi chale
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
     onError: (error: any) => toast.error(error?.response?.data?.message || "Failed to change password!"),
   });
 
@@ -92,6 +112,7 @@ export default function ProfilePage() {
     mutationFn: () => selfVerifyEmail(),
     onSuccess: () => {
       toast.success("Email verified successfully! ✅");
+      setShowVerifyPopup(false); // ✅ turant band karo
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to verify!"),
@@ -423,7 +444,7 @@ export default function ProfilePage() {
             "Verify Email" dabate hi selfVerifyEmail API call hoti hai
             aur turant isVerified = true ho jata hai (no OTP, no email link).
            ─────────────────────────────────────────────────────── */}
-        {needsVerify && (
+        {showVerifyPopup && (
           <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-950/20 p-4">
             <div className="bg-blue-50 border border-blue-300 rounded-2xl shadow-sm p-6 max-w-sm w-full">
               <div className="flex items-start gap-3 mb-4">
