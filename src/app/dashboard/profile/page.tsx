@@ -10,7 +10,7 @@ import Button from "@/app/component/ui/button";
 import InputField from "@/app/component/ui/inputField";
 import toast from "react-hot-toast";
 import { User, Lock, Trash2, Save, ShieldAlert, UserRoundCheck, ShieldCheck, Eye, EyeOff, Mail } from "lucide-react";
-import { changePassword, deleteMyAccount, getProfile, updateProfile } from "@/utils/api";
+import { changePassword, deleteMyAccount, getProfile, selfVerifyEmail, updateProfile } from "@/utils/api";
 import API from "@/utils/api";
 import Popup from "@/app/component/ui/popup/popup";
 import PageHeader from "@/app/component/dashboard/page-header";
@@ -29,15 +29,17 @@ export default function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
-  // ✅ Old user setup form
+  // ✅ Old user setup form (is_old_user === true → email + new + confirm, NO current password)
   const [setupForm, setSetupForm] = useState({ email: "", password: "", confirmPassword: "" });
   const [showSetupPassword, setShowSetupPassword] = useState(false);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
-  const isOldUser = authUser?.is_old_user || authUser?.needsAccountSetup;
   const setupMode = searchParams.get("setup") === "true";
 
   const { data, isLoading } = useQuery({
@@ -45,13 +47,29 @@ export default function ProfilePage() {
     queryFn: () => getProfile().then((res) => res.data.user),
   });
 
+  // ─────────────────────────────────────────────────────────────
+  // 🔑 YEH ASLI FLAG HAI JISPE BRANCH KARNA HAI — NA KE isTemporaryPassword PE
+  // is_old_user === true  → legacy user, password hi nahi tha → setup flow (email + new + confirm)
+  // is_old_user === false + isTemporaryPassword === true → register wala naya user,
+  //    temp password already mila hua hai → normal change-password flow (current + new + confirm)
+  // is_old_user === false + isTemporaryPassword === false → normal existing user → change-password flow
+  // ─────────────────────────────────────────────────────────────
+  const isOldUser = authUser?.is_old_user ?? data?.is_old_user;
+  const needsVerify = authUser?.is_old_user === false && !data?.isTemporaryPassword && !data?.isVerified;
+
   useEffect(() => {
     if (data?.name) setNameForm({ name: data.name });
   }, [data]);
 
   useEffect(() => {
-    if (data?.isTemporaryPassword && searchParams.get("password")) {
+    if (!isOldUser && data?.isTemporaryPassword && searchParams.get("password")) {
       setPasswordForm((prev) => ({ ...prev, oldPassword: searchParams.get("password") || "" }));
+    }
+  }, [data, isOldUser]);
+
+  useEffect(() => {
+    if (data?.email) {
+      setSetupForm((prev) => ({ ...prev, email: data.email }));
     }
   }, [data]);
 
@@ -62,21 +80,24 @@ export default function ProfilePage() {
     onError: () => toast.error("Failed to update profile!"),
   });
 
-  // Change Password
+  // Change Password — current + new + confirm (register-wala temp-password user, ya normal user)
   const { mutate: changePass, isPending: isChangingPass } = useMutation({
     mutationFn: () => changePassword({ oldPassword: passwordForm.oldPassword, newPassword: passwordForm.newPassword }),
     onSuccess: () => { toast.success("Password changed! 🔒"); setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" }); },
     onError: (error: any) => toast.error(error?.response?.data?.message || "Failed to change password!"),
   });
 
-  // Delete Account
-  const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
-    mutationFn: () => deleteMyAccount(),
-    onSuccess: () => { toast.success("Account deleted!"); dispatch(logout()); router.push("/auth"); },
-    onError: () => toast.error("Failed to delete account!"),
+  // ✅ Instant self-verify — popup ke button se, koi email link ki zaroorat nahi
+  const { mutate: selfVerify, isPending: isSelfVerifying } = useMutation({
+    mutationFn: () => selfVerifyEmail(),
+    onSuccess: () => {
+      toast.success("Email verified successfully! ✅");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed to verify!"),
   });
 
-  // ✅ Complete Account Setup (old user)
+  // ✅ Complete Account Setup — sirf is_old_user === true ke liye (email + new + confirm, no current password)
   const { mutate: completeSetup, isPending: isSettingUp } = useMutation({
     mutationFn: () => API.post("/api/auth/complete-setup", {
       email: setupForm.email,
@@ -84,13 +105,7 @@ export default function ProfilePage() {
     }),
     onSuccess: () => {
       toast.success("Account secured! Please verify your email. ✅");
-      // Redux update — flags hatao
-      dispatch(setCredentials({
-        user: { ...authUser, is_old_user: false, needsAccountSetup: false },
-        token: localStorage.getItem("token") || "",
-      }));
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      router.push("/dashboard");
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
@@ -100,27 +115,22 @@ export default function ProfilePage() {
       toast.error("Current password is required!");
       return;
     }
-
     if (!passwordForm.newPassword.trim()) {
       toast.error("New password is required!");
       return;
     }
-
     if (passwordForm.newPassword.length < 6) {
       toast.error("New password must be at least 6 characters!");
       return;
     }
-
     if (!passwordForm.confirmPassword.trim()) {
       toast.error("Please confirm your new password!");
       return;
     }
-
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
-
     setShowPasswordConfirm(true);
   };
 
@@ -131,7 +141,6 @@ export default function ProfilePage() {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (!emailRegex.test(setupForm.email)) {
       toast.error("Please enter a valid email address!");
       return;
@@ -141,17 +150,14 @@ export default function ProfilePage() {
       toast.error("Password is required!");
       return;
     }
-
     if (setupForm.password.length < 6) {
       toast.error("Password must be at least 6 characters!");
       return;
     }
-
     if (!setupForm.confirmPassword.trim()) {
       toast.error("Please confirm your password!");
       return;
     }
-
     if (setupForm.password !== setupForm.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
@@ -170,15 +176,6 @@ export default function ProfilePage() {
     }
   };
 
-  useEffect(() => {
-    if (data?.email) {
-      setSetupForm((prev) => ({
-        ...prev,
-        email: data.email,
-      }));
-    }
-  }, [data]);
-
   return (
     <ProtectedRoute>
       <div className="flex-1 px-2 space-y-6 max-w-3xl">
@@ -189,37 +186,53 @@ export default function ProfilePage() {
           titleIcon={<UserRoundCheck size={24} />}
         />
 
-        {/* ✅ OLD USER — Account Setup Section (sabse upar dikhao) */}
-        {(isOldUser || setupMode) && (
-          <div className="bg-amber-50 border border-amber-300 rounded-2xl shadow-sm p-6">
-            <div className="flex items-start gap-3 mb-5">
-              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <ShieldCheck size={18} className="text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-amber-800">Secure Your Account</h3>
-                <p className="text-xs text-amber-600 mt-0.5">
-                  Set your email and password to securely access your LMS account.
-                  You can also do this later.
-                </p>
-              </div>
+        {/* ───────────────────────────────────────────────────────
+            Password Section — ab sirf isOldUser pe branch hota hai
+            isOldUser === true  → Setup flow (email + new + confirm), koi current password field nahi
+            isOldUser === false → Normal change-password flow (current + new + confirm)
+               (chahe isTemporaryPassword true ho ya false — dono case mein current password chahiye,
+                kyunki inka ek password already exist karta hai jo verify hona zaroori hai)
+           ─────────────────────────────────────────────────────── */}
+        <div className={isOldUser
+          ? "bg-amber-50 border border-amber-300 rounded-2xl shadow-sm p-6"
+          : "bg-white rounded-2xl shadow-sm p-6"
+        }>
+          <div className="flex items-start gap-3 mb-5">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isOldUser ? "bg-amber-100" : "bg-gray-100"}`}>
+              {isOldUser
+                ? <ShieldCheck size={18} className="text-amber-600" />
+                : <Lock size={16} className="text-gray-600" />
+              }
             </div>
+            <div>
+              <h3 className={`text-sm font-semibold ${isOldUser ? "text-amber-800" : "text-gray-700"}`}>
+                {isOldUser ? "Secure Your Account" : "Change Password"}
+              </h3>
+              {isOldUser && (
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Set your password to securely access your LMS account.
+                </p>
+              )}
+              {!isOldUser && data?.isTemporaryPassword && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Enter the temporary password you received by email, then set a new one.
+                </p>
+              )}
+            </div>
+          </div>
 
+          {isOldUser ? (
+            // ── OLD USER: email (readonly/prefilled) + new + confirm — NO current password ──
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-                <div className="relative">
-                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="email"
-                    // value={setupForm.email}
-                    value={setupForm.email}
-                    disabled={true} // Disable if not in setup mode
-                    onChange={(e) => setSetupForm({ ...setupForm, email: e.target.value })}
-                    placeholder="your@email.com"
-                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                  />
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={setupForm.email}
+                  onChange={(e) => setSetupForm({ ...setupForm, email: e.target.value })}
+                  placeholder="you@example.com"
+                  className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                />
               </div>
 
               <div>
@@ -227,6 +240,8 @@ export default function ProfilePage() {
                 <div className="relative">
                   <input
                     type={showSetupPassword ? "text" : "password"}
+                    name="new-password"
+                    autoComplete="new-password"
                     value={setupForm.password}
                     onChange={(e) => setSetupForm({ ...setupForm, password: e.target.value })}
                     placeholder="Min 6 characters"
@@ -240,13 +255,20 @@ export default function ProfilePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-                <input
-                  type="password"
-                  value={setupForm.confirmPassword}
-                  onChange={(e) => setSetupForm({ ...setupForm, confirmPassword: e.target.value })}
-                  placeholder="Confirm password"
-                  className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirm-password"
+                    autoComplete="new-password"
+                    value={setupForm.confirmPassword}
+                    onChange={(e) => setSetupForm({ ...setupForm, confirmPassword: e.target.value })}
+                    placeholder="Confirm password"
+                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 pr-10"
+                  />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -259,16 +281,82 @@ export default function ProfilePage() {
                   <ShieldCheck size={16} />
                   Secure My Account
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => router.push("/dashboard")}
-                >
+                <Button variant="secondary" onClick={() => router.push("/dashboard")}>
                   Later
                 </Button>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            // ── NORMAL / REGISTER-TEMP-PASSWORD USER: current + new + confirm ──
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {data?.isTemporaryPassword ? "Temporary Password" : "Current Password"}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={passwordForm.oldPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                    placeholder="••••••••"
+                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 pr-10"
+                  />
+                  <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showCurrentPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+                <div className="relative">
+                  <input
+                    type={showSetupPassword ? "text" : "password"}
+                    name="new-password"
+                    autoComplete="new-password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    placeholder="Min 6 characters"
+                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 pr-10"
+                  />
+                  <button type="button" onClick={() => setShowSetupPassword(!showSetupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showSetupPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirm-password"
+                    autoComplete="new-password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    placeholder="Confirm password"
+                    className="w-full border border-gray-200 placeholder:text-gray-400 text-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 pr-10"
+                  />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handlePasswordSubmit}
+                  isLoading={isChangingPass}
+                  loadingText="Changing..."
+                  variant="black"
+                >
+                  <Lock size={16} />
+                  Change Password
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Profile Card */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -286,8 +374,7 @@ export default function ProfilePage() {
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${roleColor(data?.role)}`}>
                   {data?.role}
                 </span>
-                {/* ✅ old user badge */}
-                {data?.is_old_user && (
+                {isOldUser && (
                   <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
                     Account setup pending
                   </span>
@@ -322,25 +409,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Change Password — old user ke liye hide karo agar setup nahi kiya */}
-        {!isOldUser && (
-          <div className={searchParams.get("password") ? "bg-red-50 border border-red-500 rounded-2xl shadow-sm p-6" : "bg-white rounded-2xl shadow-sm p-6"}>
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-              <Lock size={16} />
-              Change Password
-            </h3>
-            <div className="space-y-4">
-              <InputField label="Current Password" type="password" placeholder="••••••••" value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })} />
-              <InputField label="New Password" type="password" placeholder="••••••••" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} />
-              <InputField label="Confirm New Password" type="password" placeholder="••••••••" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} />
-              <Button isLoading={isChangingPass} loadingText="Changing..." onClick={handlePasswordSubmit} variant="black">
-                <Lock size={16} />
-                Change Password
-              </Button>
-            </div>
-          </div>
-        )}
-
         <DocumentsSection
           userId={data?._id}
           documents={data?.documents || []}
@@ -349,44 +417,52 @@ export default function ProfilePage() {
           title="My Documents"
         />
 
-        {/* Danger Zone */}
-        {/* <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
-          <h3 className="text-sm font-semibold text-red-500 flex items-center gap-2 mb-2">
-            <ShieldAlert size={16} />
-            Danger Zone
-          </h3>
-          <p className="text-gray-400 text-xs mb-4">
-            Once you delete your account, there is no going back. Please be certain.
-          </p>
-          <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
-            <Trash2 size={16} />
-            Delete Account
-          </Button>
+        {/* ───────────────────────────────────────────────────────
+            Email verify ab sirf is popup ke instant button se hoga.
+            Email pe jaake link click karne ki zaroorat nahi —
+            "Verify Email" dabate hi selfVerifyEmail API call hoti hai
+            aur turant isVerified = true ho jata hai (no OTP, no email link).
+           ─────────────────────────────────────────────────────── */}
+        {needsVerify && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-950/20 p-4">
+            <div className="bg-blue-50 border border-blue-300 rounded-2xl shadow-sm p-6 max-w-sm w-full">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <Mail size={18} className="text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-800">Verify Your Email</h3>
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    Click below to verify your email and unlock all features. No need to check your inbox.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => selfVerify()}
+                  isLoading={isSelfVerifying}
+                  loadingText="Verifying..."
+                  variant="black"
+                  type="button"
+                >
+                  <ShieldCheck size={16} />
+                  Verify Email
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
-          <Popup
-            isOpen={showDeleteConfirm}
-            onClose={() => setShowDeleteConfirm(false)}
-            onConfirm={() => deleteAccount()}
-            variant="danger"
-            title="Delete Account"
-            description={<>Are you sure? <span className="font-semibold text-red-500">This action cannot be undone.</span></>}
-            confirmText="Yes, Delete My Account"
-            cancelText="Cancel"
-            isLoading={isDeleting}
-            loadingText="Deleting..."
-          />
-
-          <Popup
-            isOpen={showPasswordConfirm}
-            onClose={() => setShowPasswordConfirm(false)}
-            onConfirm={() => { setShowPasswordConfirm(false); changePass(); }}
-            variant="warning"
-            title="Change Password"
-            description="Are you sure you want to change your password?"
-            confirmText="Yes, Change Password"
-            cancelText="Cancel"
-          />
-        </div> */}
+        <Popup
+          isOpen={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={() => { setShowPasswordConfirm(false); changePass(); }}
+          variant="warning"
+          title="Change Password"
+          description="Are you sure you want to change your password?"
+          confirmText="Yes, Change Password"
+          cancelText="Cancel"
+        />
 
       </div>
     </ProtectedRoute>

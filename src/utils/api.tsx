@@ -78,7 +78,8 @@ export const registerUser = (data: RegisterData) => API.post("/api/auth/register
 export const forgotPassword = (data: { email: string }) => API.post("/api/auth/forgot-password", data);
 export const resetPassword = (data: { email: string; otp: string; newPassword: string }) => API.post("/api/auth/reset-password", data);
 export const getMe = () => API.get("/api/auth/me");
-
+export const resendVerification = (data: { email: string }) => API.post("/api/auth/resend-verification", data);
+export const selfVerifyEmail = () => API.post("/api/auth/verify-email-self");  // ✅ POST
 // Admin APIs
 export const adminGetAllUsers = (params?: any) => API.get("/api/admin/users", { params });
 export const adminGetUserById = (id: string) => API.get(`/api/admin/users/${id}`);
@@ -199,6 +200,10 @@ export const sendInvoiceEmail = (id: string) =>
 
 export const sendReceivingInvoiceEmail = (id: string, body: any) =>
   API.post(`/api/v1/finance/invoices/${id}/send-receiving-invoice`, body);
+
+export const sendReceivingReportEmail = (body: { invoiceIds?: string[]; filters?: any }) =>
+  API.post("/api/v1/finance/invoices/receiving/export-email", body);
+
 export const getSalesRoleInvoices = (params?: any) =>
   axios.get("/finance/invoices/sales", { params });
 
@@ -357,17 +362,17 @@ export const adminDeleteResource = (id: string) =>
 // ─────────────────────────────────────────────────────────────
 // ACCOUNTS MODULE — api.ts mein add karo (end mein, before export default)
 // ─────────────────────────────────────────────────────────────
- 
+
 // ─── Chart of Accounts ───────────────────────────────────────
 export const seedAccounts = () =>
   API.post("/api/v1/accounts/seed");
- 
+
 export const getAllAccounts = (params?: { type?: string; isActive?: boolean; search?: string }) =>
   API.get("/api/v1/accounts", { params });
- 
+
 export const getAccountById = (id: string) =>
   API.get(`/api/v1/accounts/${id}`);
- 
+
 export const createAccount = (data: {
   code: string;
   name: string;
@@ -377,19 +382,19 @@ export const createAccount = (data: {
   description?: string;
   openingBalance?: number;
 }) => API.post("/api/v1/accounts", data);
- 
+
 export const updateAccount = (id: string, data: any) =>
   API.patch(`/api/v1/accounts/${id}`, data);
- 
+
 export const deleteAccount = (id: string) =>
   API.delete(`/api/v1/accounts/${id}`);
- 
+
 // ─── Ledger ──────────────────────────────────────────────────
 export const getAccountLedger = (
   id: string,
   params?: { from?: string; to?: string; page?: number; limit?: number }
 ) => API.get(`/api/v1/accounts/${id}/ledger`, { params });
- 
+
 // ─── Journal Entries ─────────────────────────────────────────
 export const getAllJournalEntries = (params?: {
   sourceType?: string;
@@ -399,14 +404,14 @@ export const getAllJournalEntries = (params?: {
   page?: number;
   limit?: number;
 }) => API.get("/api/v1/accounts/journal", { params });
- 
+
 export const createJournalEntry = (data: {
   description: string;
   date?: string;
   lines: { account: string; type: "debit" | "credit"; amount: number; description?: string }[];
   notes?: string;
 }) => API.post("/api/v1/accounts/journal", data);
- 
+
 // ─── Expenses ────────────────────────────────────────────────
 export const getAllExpenses = (params?: {
   status?: string;
@@ -416,7 +421,7 @@ export const getAllExpenses = (params?: {
   page?: number;
   limit?: number;
 }) => API.get("/api/v1/accounts/expenses", { params });
- 
+
 export const createExpense = (data: {
   title: string;
   description?: string;
@@ -431,30 +436,30 @@ export const createExpense = (data: {
   recurringInterval?: string;
   notes?: string;
 }) => API.post("/api/v1/accounts/expenses", data);
- 
+
 export const approveExpense = (id: string) =>
   API.patch(`/api/v1/accounts/expenses/${id}/approve`);
- 
+
 export const rejectExpense = (id: string, data: { reason: string }) =>
   API.patch(`/api/v1/accounts/expenses/${id}/reject`, data);
- 
+
 // ─── Accounts Dashboard ──────────────────────────────────────
 export const getAccountsDashboard = () =>
   API.get("/api/v1/accounts/dashboard");
- 
+
 // ─── Reports ─────────────────────────────────────────────────
 export const getProfitLoss = (params?: { year?: number; from?: string; to?: string }) =>
   API.get("/api/v1/reports/profit-loss", { params });
- 
+
 export const getBalanceSheet = (params?: { asOf?: string }) =>
   API.get("/api/v1/reports/balance-sheet", { params });
- 
+
 export const getARAgingReport = () =>
   API.get("/api/v1/reports/ar-aging");
- 
+
 export const getCashFlowReport = (params?: { year?: number; from?: string; to?: string }) =>
   API.get("/api/v1/reports/cash-flow", { params });
- 
+
 export const getRevenueByProgram = (params?: { year?: number; from?: string; to?: string }) =>
   API.get("/api/v1/reports/revenue-by-program", { params });
 
