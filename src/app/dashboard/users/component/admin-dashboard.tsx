@@ -58,6 +58,7 @@ const roleColor = (role: string) => {
 export default function AdminPage() {
   const queryClient = useQueryClient();
 
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -260,10 +261,7 @@ export default function AdminPage() {
           {
             icon: <Trash2 size={14} />,
             label: "Delete",
-            onClick: (user) => {
-              setDeletingId(user._id);
-              deleteUser(user._id);
-            },
+            onClick: (user) => setDeletingUser(user),
             disabled: (user: User) => user.role === "admin",
             className: "hover:bg-red-50 hover:text-red-500",
           },
@@ -390,6 +388,30 @@ export default function AdminPage() {
           }
           confirmText="Yes, Delete All"
           isLoading={isDeletingAll}
+          loadingText="Deleting..."
+        />
+      )}
+      {deletingUser && (
+        <Popup
+          isOpen={!!deletingUser}
+          onClose={() => setDeletingUser(null)}
+          onConfirm={() => {
+            deleteUser(deletingUser._id);
+            setDeletingUser(null);
+          }}
+          variant="danger"
+          title="Delete User"
+          description={
+            <>
+              Delete{" "}
+              <span className="font-bold text-red-500">
+                {deletingUser.name}
+              </span>
+              ? This cannot be undone.
+            </>
+          }
+          confirmText="Yes, Delete"
+          isLoading={isDeleting}
           loadingText="Deleting..."
         />
       )}
