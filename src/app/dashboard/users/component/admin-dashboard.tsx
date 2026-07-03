@@ -166,7 +166,7 @@ export default function AdminPage() {
         titleIcon={<UserCog size={24} />}
         totalCount={data?.total ?? 0}
         onAdd={() => setIsAddOpen(true)}
-        onDeleteAll={() => setShowDeleteAll(true)}
+        // onDeleteAll={() => setShowDeleteAll(true)}
         filters={filters}
         setFilters={setFilters}
         filterFields={[
@@ -257,16 +257,16 @@ export default function AdminPage() {
             disabled: (user: User) => user.role === "admin",
             className: "hover:bg-blue-50 hover:text-blue-500",
           },
-          // {
-          //   icon: <Trash2 size={14} />,
-          //   label: "Delete",
-          //   onClick: (user) => {
-          //     setDeletingId(user._id);
-          //     deleteUser(user._id);
-          //   },
-          //   disabled: (user: User) => user.role === "admin",
-          //   className: "hover:bg-red-50 hover:text-red-500",
-          // },
+          {
+            icon: <Trash2 size={14} />,
+            label: "Delete",
+            onClick: (user) => {
+              setDeletingId(user._id);
+              deleteUser(user._id);
+            },
+            disabled: (user: User) => user.role === "admin",
+            className: "hover:bg-red-50 hover:text-red-500",
+          },
         ]}
       />
 
