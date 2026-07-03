@@ -13,6 +13,7 @@ import {
   adminGetBatches,
   assignEnrollment,
   createEnrollmentDirect,
+  adminGetAllUsers,
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
@@ -108,8 +109,9 @@ function EnrollmentsContent() {
   const { user: authUser } = useAppSelector((state) => state.auth);
   const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
   const isSalesManager = authUser?.role === "sales_manager";
-  const canAdd = isAdmin || isSalesManager;
-  const canAction = isAdmin || isSalesManager;
+  const isFinanceManager = authUser?.role === "finance_manager";
+  const canAdd = isAdmin || isSalesManager || isFinanceManager;
+  const canAction = isAdmin || isSalesManager || isFinanceManager;
 
   const [filters, setFilters] = useState<Record<string, string>>({
     status: "",
@@ -137,11 +139,10 @@ function EnrollmentsContent() {
   });
 
   // getAllUsersForRole returns { data: User[] }
-  const { data: usersRes } = useQuery({
-    queryKey: ["all-users-role"],
-    queryFn: () => getAllUsersForRole().then((r) => r.data),
-    // staleTime: 1000 * 60 * 5,
-  });
+const { data: usersRes } = useQuery({
+  queryKey: ["all-users-role"],
+  queryFn: () => adminGetAllUsers({ limit: 10000 }).then((r) => r.data),
+});
   // const users = (usersRes?.users ?? []).filter((u: any) => u.role === "user");
   const users = (usersRes?.users ?? [])
     .filter((u: any) => u.role === "user")
@@ -583,7 +584,7 @@ function EnrollmentsContent() {
                     </p>
                     {e.assigned_to ? (
                       <div className="flex gap-2">
-                        <p className="py-1 text-[10px]">Assigned To</p>
+                        <p className="py-1 text-[10px] text-gray-500">Assigned To</p>
                         <button
                           className="px-2 py-1 text-[10px] rounded bg-indigo-100 text-indigo-600"
                           onClick={(ev) => {

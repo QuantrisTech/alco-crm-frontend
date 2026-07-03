@@ -25,6 +25,7 @@ interface Installment {
   status: "PENDING" | "PAID" | "OVERDUE";
   isAdvance: boolean;
   paidAmount?: number;
+  receiptUrl?: string | null;
 }
 
 interface Invoice {
@@ -49,15 +50,16 @@ interface PaymentFormState {
   method: PaymentMethod | null;
   referenceNumber: string;
   notes: string;
+  receipt: File | null;
 }
 
 const formatDate = (d: string) =>
   d
     ? new Date(d).toLocaleDateString("en-PK", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
     : "—";
 
 const formatAmt = (n: number) => Number(n || 0).toLocaleString("en-PK");
@@ -69,35 +71,35 @@ const PAYMENT_TABS: {
   color: string;
   activeColor: string;
 }[] = [
-  {
-    key: "cash",
-    label: "Cash",
-    icon: <Banknote size={13} />,
-    color: "text-slate-500",
-    activeColor: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  },
-  {
-    key: "bank",
-    label: "Bank Transfer",
-    icon: <Building2 size={13} />,
-    color: "text-slate-500",
-    activeColor: "text-blue-600 bg-blue-50 border-blue-200",
-  },
-  {
-    key: "cheque",
-    label: "Cheque",
-    icon: <FileText size={13} />,
-    color: "text-slate-500",
-    activeColor: "text-violet-600 bg-violet-50 border-violet-200",
-  },
-  {
-    key: "manual",
-    label: "Manual",
-    icon: <Settings size={13} />,
-    color: "text-slate-500",
-    activeColor: "text-orange-600 bg-orange-50 border-orange-200",
-  },
-];
+    {
+      key: "cash",
+      label: "Cash",
+      icon: <Banknote size={13} />,
+      color: "text-slate-500",
+      activeColor: "text-emerald-600 bg-emerald-50 border-emerald-200",
+    },
+    {
+      key: "bank",
+      label: "Bank Transfer",
+      icon: <Building2 size={13} />,
+      color: "text-slate-500",
+      activeColor: "text-blue-600 bg-blue-50 border-blue-200",
+    },
+    {
+      key: "cheque",
+      label: "Cheque",
+      icon: <FileText size={13} />,
+      color: "text-slate-500",
+      activeColor: "text-violet-600 bg-violet-50 border-violet-200",
+    },
+    {
+      key: "manual",
+      label: "Manual",
+      icon: <Settings size={13} />,
+      color: "text-slate-500",
+      activeColor: "text-orange-600 bg-orange-50 border-orange-200",
+    },
+  ];
 
 export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -106,6 +108,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
     method: null,
     referenceNumber: "",
     notes: "",
+    receipt: null,
   });
 
   // Check if form is valid to enable Confirm button
@@ -125,12 +128,13 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
         method: paymentForm.method!,
         referenceNumber: paymentForm.referenceNumber || undefined,
         notes: paymentForm.notes || undefined,
+        receipt: paymentForm.receipt || undefined,
       }),
     onSuccess: (res) => {
       const msg = res.data?.message || "Installment marked as paid!";
       toast.success(msg);
       setConfirmingId(null);
-      setPaymentForm({ method: null, referenceNumber: "", notes: "" });
+      setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
       if (res.data?.data?.status === "PAID") onClose();
@@ -141,12 +145,12 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
 
   const handleConfirmingOpen = (id: string) => {
     setConfirmingId(id);
-    setPaymentForm({ method: null, referenceNumber: "", notes: "" });
+    setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null });
   };
 
   const handleConfirmingClose = () => {
     setConfirmingId(null);
-    setPaymentForm({ method: null, referenceNumber: "", notes: "" });
+    setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null });
   };
 
   if (!invoice) return null;
@@ -237,22 +241,20 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
               return (
                 <div
                   key={inst._id}
-                  className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-                    isPaid
-                      ? "border-emerald-100 bg-emerald-50/60"
-                      : isConfirming
-                        ? "border-slate-200 bg-slate-50"
-                        : inst.isAdvance
-                          ? "border-amber-100 bg-amber-50/40 hover:border-amber-200"
-                          : "border-slate-100 bg-white hover:border-slate-200"
-                  }`}
+                  className={`rounded-xl border transition-all duration-200 overflow-hidden ${isPaid
+                    ? "border-emerald-100 bg-emerald-50/60"
+                    : isConfirming
+                      ? "border-slate-200 bg-slate-50"
+                      : inst.isAdvance
+                        ? "border-amber-100 bg-amber-50/40 hover:border-amber-200"
+                        : "border-slate-100 bg-white hover:border-slate-200"
+                    }`}
                 >
                   {/* Top Row */}
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Icon */}
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      isPaid ? "bg-emerald-100" : inst.isAdvance ? "bg-amber-100" : "bg-slate-100"
-                    }`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isPaid ? "bg-emerald-100" : inst.isAdvance ? "bg-amber-100" : "bg-slate-100"
+                      }`}>
                       {isPaid ? (
                         <CheckCircle2 size={16} className="text-emerald-600" />
                       ) : inst.isAdvance ? (
@@ -278,6 +280,16 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             Paid
                           </span>
                         )}
+                        {isPaid && inst.receiptUrl && (
+                          <a
+                            href={inst.receiptUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ms-auto text-[9px] font-bold uppercase tracking-wider text-gray-600 hover:text-gray-700 underline underline-offset-2"
+                          >
+                            View Slip
+                          </a>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-slate-400">Due: {formatDate(inst.dueDate)}</span>
@@ -293,11 +305,10 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                         {!isConfirming ? (
                           <button
                             onClick={() => handleConfirmingOpen(inst._id)}
-                            className={`text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${
-                              inst.isAdvance
-                                ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                            }`}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all ${inst.isAdvance
+                              ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              }`}
                           >
                             Mark Paid
                             <ChevronRight size={12} />
@@ -313,11 +324,10 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             <button
                               onClick={() => payInstallment({ installmentId: inst._id })}
                               disabled={!isFormValid() || isPending}
-                              className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
-                                isFormValid() && !isPending
-                                  ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
-                                  : "bg-slate-200 text-slate-400 cursor-not-allowed opacity-60"
-                              }`}
+                              className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${isFormValid() && !isPending
+                                ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+                                : "bg-slate-200 text-slate-400 cursor-not-allowed opacity-60"
+                                }`}
                             >
                               {isPending ? (
                                 <span className="flex items-center gap-1">
@@ -374,11 +384,10 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                                 referenceNumber: "",
                               }))
                             }
-                            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all ${
-                              paymentForm.method === tab.key
-                                ? tab.activeColor + " border"
-                                : "border-slate-100 bg-white text-slate-400 hover:bg-slate-50 hover:border-slate-200"
-                            }`}
+                            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all ${paymentForm.method === tab.key
+                              ? tab.activeColor + " border"
+                              : "border-slate-100 bg-white text-slate-400 hover:bg-slate-50 hover:border-slate-200"
+                              }`}
                           >
                             {tab.icon}
                             {tab.label}
@@ -498,6 +507,31 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             }
                             className="w-full text-xs rounded-lg border border-orange-200 bg-white px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
                           />
+                        </div>
+                      )}
+
+                      {/* 👇 YAHAN — receipt upload, common for all methods */}
+                      {paymentForm.method && (
+                        <div className="rounded-lg bg-slate-50 border border-dashed border-slate-200 px-3 py-2.5 space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Payment Proof <span className="text-slate-400 normal-case font-normal">(optional)</span>
+                          </p>
+                          <input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({
+                                ...prev,
+                                receipt: e.target.files?.[0] || null,
+                              }))
+                            }
+                            className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-200 file:text-slate-600 hover:file:bg-slate-300 cursor-pointer"
+                          />
+                          {paymentForm.receipt && (
+                            <p className="text-[10px] text-emerald-600 font-medium truncate">
+                              ✓ {paymentForm.receipt.name}
+                            </p>
+                          )}
                         </div>
                       )}
 

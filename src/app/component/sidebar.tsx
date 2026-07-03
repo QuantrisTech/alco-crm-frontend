@@ -113,14 +113,14 @@ const menuSections: MenuSection[] = [
   },
   {
     title: "Finance",
-    roles: ["super_admin", "admin", "finance_manager", "user"],
+    roles: ["super_admin", "admin", "finance_manager", "sales_manager", "user"],
     mode: "crm",
     items: [
       { label: "Overview", href: "/dashboard/finance", icon: Wallet, roles: ["super_admin", "admin"] },
       {
         label: "Invoices",
         icon: FileText,
-        roles: ["super_admin", "admin", "finance_manager"],
+        roles: ["super_admin", "admin", "finance_manager", "sales_manager"],
         children: [
           { label: "All Invoices", href: "/dashboard/finance/invoices" },
           { label: "Pending", href: "/dashboard/finance/invoices/pending" },

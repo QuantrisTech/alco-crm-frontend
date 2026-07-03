@@ -14,6 +14,7 @@ import PageHeader from "@/app/component/dashboard/page-header";
 import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
 import DocumentsSection from "../profile/component/documents-section";
 import InputField from "@/app/component/ui/inputField";
+import { isValidPhoneNumber } from "libphonenumber-js";
 
 const formatPhone = (phone?: string) => {
   if (!phone) return "—";
@@ -276,21 +277,16 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
     queryFn: () => getProfile().then((res) => res.data.user),
   });
 
-  const isValidPhone = (phone: string) => {
-    const digits = phone.trim().replace(/\D/g, "");
-
-    // Valid Pakistani phone formats:
-    // 1. 03XX-XXXXXXX (11 digits, starts with 0)
-    // 2. +923XX-XXXXXXX (92 prefix, 12 digits)
-    // 3. 923XX-XXXXXXX (92 prefix without +, 12 digits)
-
-    return (
-      /^03\d{9}$/.test(digits) ||           // 03XX-XXXXXXX (11 digits)
-      /^923\d{9}$/.test(digits) ||          // 923XX-XXXXXXX (12 digits)
-      /^92\d{10}$/.test(digits)             // 92XXXXXXXXXX (12 digits)
-    );
-  };
-
+  // isValidPhone function replace karo
+const isValidPhone = (phone: string) => {
+  const trimmed = phone.trim();
+  // agar + nahi hai to PK assume karo (local default), warna international detect karo
+  if (trimmed.startsWith("+")) {
+    return isValidPhoneNumber(trimmed);
+  }
+  const digits = trimmed.replace(/\D/g, "");
+  return isValidPhoneNumber(digits.startsWith("92") ? `+${digits}` : `0${digits.replace(/^0+/, "")}`, "PK");
+};
   // ── Profile (settings) personal details ──────────────────────
 
 
@@ -349,7 +345,7 @@ function ContractForm({ lead, onBack }: { lead: Lead; onBack: () => void }) {
 
     // ✅ Phone format check — required check ke baad, agar value maujood ho
     if (payload.emergencyContactPhone?.trim() && !isValidPhone(payload.emergencyContactPhone)) {
-      newErrors.emergencyContactPhone = "Please enter a valid phone number (e.g. 03XX-XXXXXXX)";
+      newErrors.emergencyContactPhone = "Please enter a valid phone number (include country code for non-Pakistani numbers, e.g. +1...)";
     }
 
     return newErrors;

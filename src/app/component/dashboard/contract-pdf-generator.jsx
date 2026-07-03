@@ -75,6 +75,15 @@ const btnSm = {
   display: "flex", alignItems: "center", gap: 4, color: "#6b7280"
 };
 
+const ordinalDay = (d) => {
+  const day = d.getDate();
+  const suffix = (day % 10 === 1 && day !== 11) ? "st"
+    : (day % 10 === 2 && day !== 12) ? "nd"
+      : (day % 10 === 3 && day !== 13) ? "rd"
+        : "th";
+  return `${day}${suffix}`;
+};
+
 // ─── PDF Generator ───────────────────────────────────────────
 async function generateContractPDF(data) {
   const PDFLib = await loadPdfLib();
@@ -277,7 +286,7 @@ async function generateContractPDF(data) {
   // PAGE 2 — Photo Audio Video Release
   // ════════════════════════════════════════════
   const p2 = addPage();
-  y = H - 80;
+  y = H - 100;
 
   p2.drawText("PHOTOGRAPH, AUDIO AND VIDEO RELEASE", {
     x: W / 2 - 120, y, size: 11, font: boldFont, color: C.black
@@ -344,7 +353,7 @@ async function generateContractPDF(data) {
   // PAGE 3 — Contract for Training Program Enrolment
   // ════════════════════════════════════════════
   const p3 = addPage();
-  y = H - 75;
+  y = H - 95;
 
   p3.drawText("Contract for Training Program Enrolment", {
     x: W / 2 - 138, y, size: 14, font: boldFont, color: C.black
@@ -377,7 +386,7 @@ async function generateContractPDF(data) {
   p3.drawText("1.1 The Client hereby enrolls in the", { x: ML, y, size: 9, font, color: C.black });
   p3.drawText(data.programName || "_______________", { x: ML + 175, y, size: 9, font, color: C.black });
   hLine(p3, ML + 173, y - 3, 155);
-  p3.drawText("[Training Program Name] training program offered", { x: ML + 333, y, size: 9, font, color: C.black });
+  p3.drawText("training program offered", { x: ML + 333, y, size: 9, font, color: C.black });   // "[Training Program Name] " hata diya
   y -= 14;
   p3.drawText("by AL&CO.", { x: ML, y, size: 9, font, color: C.black });
   y -= 20;
@@ -413,6 +422,9 @@ async function generateContractPDF(data) {
   y -= 30;
 
   p3.drawText("same are on INVOICE NO#", { x: ML, y, size: 9, font, color: C.black });
+  if (data.invoiceNumber) {
+    p3.drawText(data.invoiceNumber, { x: ML + 118, y, size: 9, font: boldFont, color: C.black });
+  }
   hLine(p3, ML + 118, y - 3, 140);
   y -= 30;
 
@@ -420,13 +432,18 @@ async function generateContractPDF(data) {
   p3.drawText("2. Payment Terms:", { x: ML, y, size: 10, font: boldFont, color: C.black });
   y -= 20;
 
+  const advanceDueDate = pp?.advanceDueDate;
+  const dueDateLabel = advanceDueDate ? fmtDate(advanceDueDate) : "[Date]";
+  const dueDayLabel = advanceDueDate ? ordinalDay(new Date(advanceDueDate)) : "[Day]";
+
   p3.drawText("2.1 The first installment is due on", { x: ML, y, size: 9, font, color: C.black });
-  p3.drawText(fmtDate(pp?.advanceDueDate), { x: ML + 168, y, size: 9, font, color: C.black });
+  p3.drawText(dueDateLabel, { x: ML + 168, y, size: 9, font, color: C.black });
   hLine(p3, ML + 166, y - 3, 130);
-  p3.drawText("[Date] and subsequent installments are due on the", { x: ML + 300, y, size: 9, font, color: C.black });
+  p3.drawText("and subsequent installments are due on the", { x: ML + 300, y, size: 9, font, color: C.black });
   y -= 14;
+  p3.drawText(dueDayLabel, { x: ML, y, size: 9, font, color: C.black });
   hLine(p3, ML, y - 3, 130);
-  p3.drawText("[Day] of each month thereafter until the full fee is paid.", { x: ML + 135, y, size: 9, font, color: C.black });
+  p3.drawText("of each month thereafter until the full fee is paid.", { x: ML + 135, y, size: 9, font, color: C.black });
   y -= 20;
 
   const payTermParas = [
@@ -455,40 +472,38 @@ async function generateContractPDF(data) {
   // PAGE 4 — Client Information
   // ════════════════════════════════════════════
   const p4 = addPage();
-  y = H - 75;
+  y = H - 95;
 
   p4.drawText("4. Client Information:", { x: ML, y, size: 10, font: boldFont, color: C.black });
   y -= 18;
   p4.drawText("4.1 The Client agrees to provide the following information:", { x: ML, y, size: 9, font, color: C.black });
   y -= 28;
 
-  // Each field with asterisk label + underline
-  const fields4 = [
+  // ── Single-line fields (in image order) ──
+  const singleLineFields = [
     ["Full Name", data.fullName],
     ["Father's Name/Husband's Name", data.fatherHusbandName],
     ["CNIC Number (of Participant)", data.cnic],
-    ["Bank Account Number", data.bankAccountNumber],
-    ["Current Address", data.currentAddress],
-    ["Primary Cell Phone Number", data.phone],
-    ["Emergency Contact Name: (Next to KIN)", data.emergencyContactName],
-    ["Current Occupation/Company", data.occupation],
   ];
 
-  for (const [label, value] of fields4) {
+  for (const [label, value] of singleLineFields) {
     p4.drawText(`* ${label}:`, { x: ML, y, size: 9, font: boldFont, color: C.black });
     y -= 16;
     if (value) p4.drawText(value, { x: ML, y, size: 9, font, color: C.black });
     hLine(p4, ML, y - 3, TW);
-    // Bank account needs 2 lines
-    if (label === "Bank Account Number") {
-      y -= 14;
-      hLine(p4, ML, y - 3, TW);
-    }
     y -= 20;
   }
 
-  // Bank example note
-  y -= 6;
+  // ── Bank Account Number — 2 lines ──
+  p4.drawText("* Bank Account Number:", { x: ML, y, size: 9, font: boldFont, color: C.black });
+  y -= 16;
+  if (data.bankAccountNumber) p4.drawText(data.bankAccountNumber, { x: ML, y, size: 9, font, color: C.black });
+  hLine(p4, ML, y - 3, TW);
+  y -= 14;
+  hLine(p4, ML, y - 3, TW);
+  y -= 26;
+
+  // ── Bank example note — right after Bank Account Number ──
   p4.drawText("[Example of Bank Details as to how it needs to be provided] Account Title: Arslan Larik & Company, Account", { x: ML, y, size: 7.5, font: boldFont, color: C.black });
   y -= 12;
   p4.drawText("Number: 19107901888203, IBAN: PK94HABB0019107901888203, Address of the Bank Branch: Korangi Rd", { x: ML, y, size: 7.5, font: boldFont, color: C.black });
@@ -496,7 +511,32 @@ async function generateContractPDF(data) {
   p4.drawText("DHA Phase II", { x: ML, y, size: 7.5, font: boldFont, color: C.black });
   y -= 24;
 
-  // Occupation examples
+  // ── Current Address — 2 lines ──
+  p4.drawText("* Current Address:", { x: ML, y, size: 9, font: boldFont, color: C.black });
+  y -= 16;
+  if (data.currentAddress) p4.drawText(data.currentAddress, { x: ML, y, size: 9, font, color: C.black });
+  hLine(p4, ML, y - 3, TW);
+  y -= 14;
+  hLine(p4, ML, y - 3, TW);
+  y -= 26;
+
+  // ── Remaining single-line fields ──
+  const restFields = [
+    ["Primary Cell Phone Number", data.phone],
+    ["Emergency Contact Name: (Next to KIN)", data.emergencyContactName],
+    ["Current Occupation/Company", data.occupation],
+  ];
+
+  for (const [label, value] of restFields) {
+    p4.drawText(`* ${label}:`, { x: ML, y, size: 9, font: boldFont, color: C.black });
+    y -= 16;
+    if (value) p4.drawText(value, { x: ML, y, size: 9, font, color: C.black });
+    hLine(p4, ML, y - 3, TW);
+    y -= 20;
+  }
+
+  // ── Occupation examples (static reference text — kept as per original template) ──
+  y -= 6;
   p4.drawText("Example:", { x: ML, y, size: 9, font: boldFont, color: C.black });
   y -= 16;
   p4.drawText("For a working professional:", { x: ML + 16, y, size: 9, font: boldFont, color: C.black });
@@ -506,14 +546,12 @@ async function generateContractPDF(data) {
   p4.drawText("For a student:", { x: ML + 16, y, size: 9, font: boldFont, color: C.black });
   y -= 14;
   p4.drawText("o  Current Occupation/Company: Student at [University/School Name]", { x: ML + 32, y, size: 9, font, color: C.black });
-
   // ════════════════════════════════════════════
   // PAGE 5 — Acceptance and Signatures
   // ════════════════════════════════════════════
   const p5 = addPage();
-  y = H - 75;
+  y = H - 95;
 
-  // Continued occupation examples
   p5.drawText("For a housewife:", { x: ML + 16, y, size: 9, font: boldFont, color: C.black });
   y -= 14;
   p5.drawText("o  Current Occupation/Company: Housewife, dependent on [Husband's Name]", { x: ML + 32, y, size: 9, font, color: C.black });
@@ -533,7 +571,7 @@ async function generateContractPDF(data) {
   y -= 60;
 
   // Client signature block
-  p5.drawText("[Client's Signature]", { x: ML, y, size: 9, font, color: C.black });
+  p5.drawText("Client's Signature:", { x: ML, y, size: 9, font: boldFont, color: C.black });
   // Embed signature
   if (data.signatureData?.startsWith("data:image")) {
     try {
@@ -549,8 +587,9 @@ async function generateContractPDF(data) {
   }
   hLine(p5, ML, y - 3, 150);
 
-  p5.drawText("[Date]", { x: ML + 300, y, size: 9, font, color: C.black });
-  p5.drawText(fmtDate(data.signedAt), { x: ML + 335, y, size: 9, font, color: C.black });
+
+  p5.drawText("Date:", { x: ML + 300, y, size: 9, font: boldFont, color: C.black });
+  p5.drawText(fmtDate(data.signedAt), { x: ML + 335, y, size: 9, font, color: C.black })
   hLine(p5, ML + 298, y - 3, 180);
   y -= 70;
 
@@ -560,7 +599,7 @@ async function generateContractPDF(data) {
   p5.drawText("*and anyone on Behalf of AL&CO", { x: ML, y, size: 9, font: boldFont, color: C.black });
   y -= 36;
 
-  p5.drawText("Signature", { x: ML, y, size: 9, font: boldFont, color: C.black });
+  p5.drawText("Signature:", { x: ML, y, size: 9, font: boldFont, color: C.black });
   hLine(p5, ML + 52, y - 3, 120);
   y -= 36;
 

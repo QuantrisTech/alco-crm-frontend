@@ -174,13 +174,25 @@ export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/
 export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
 export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
 export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
-// utils/api.ts
-export const markInstallmentPaid = (
-  invoiceId: string,
-  installmentId: string,
-  body: { method: string; referenceNumber?: string; notes?: string }
-) =>
-  API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`, body);
+// export const markInstallmentPaid = (
+//   invoiceId: string,
+//   installmentId: string,
+//   body: { method: string; referenceNumber?: string; notes?: string }
+// ) =>
+//   API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`, body);
+export const markInstallmentPaid = (invoiceId: string, installmentId: string, payload: any) => {
+  const formData = new FormData();
+  formData.append("method", payload.method);
+  if (payload.referenceNumber) formData.append("referenceNumber", payload.referenceNumber);
+  if (payload.notes) formData.append("notes", payload.notes);
+  if (payload.receipt) formData.append("receipt", payload.receipt); // File object, optional
+
+  return API.patch(
+    `/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`,  // 👈 fixed
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+};
 
 export const updateInstallment = (invoiceId: string, installmentId: string, data: any) =>
   API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}`, data);

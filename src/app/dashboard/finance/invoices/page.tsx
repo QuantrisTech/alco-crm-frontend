@@ -111,15 +111,28 @@ export default function InvoicesPage() {
   //     : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
   // });
 
+  // const { data, isLoading, isError } = useQuery({
+  //   queryKey: isStudent
+  //     ? ["my-invoices"]
+  //     : isSalesManager
+  //       ? ["sales-manager-invoices", filters]
+  //       : ["invoices", filters],
+  //   queryFn: isStudent
+  //     ? () => getMyInvoices().then((r) => r.data)
+  //     : isSalesManager
+  //       ? () => getSalesRoleInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data)
+  //       : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
+  // });
+
   const { data, isLoading, isError } = useQuery({
     queryKey: isStudent
       ? ["my-invoices"]
-      : isSalesManager
-        ? ["sales-manager-invoices", filters]
+      : (isSalesManager || isSalesRep)
+        ? ["sales-role-invoices", filters]
         : ["invoices", filters],
     queryFn: isStudent
       ? () => getMyInvoices().then((r) => r.data)
-      : isSalesManager
+      : (isSalesManager || isSalesRep)
         ? () => getSalesRoleInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data)
         : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
   });
@@ -189,8 +202,8 @@ export default function InvoicesPage() {
               fetchData={async () => {
                 const res = await getAllInvoices({
                   limit: 10000,
-                  status: filters.status,      
-                  search: filters.search,      
+                  status: filters.status,
+                  search: filters.search,
                   dateFrom: filters.dateFrom,
                   dateTo: filters.dateTo,
                 });
@@ -349,7 +362,7 @@ export default function InvoicesPage() {
                 className: "hover:bg-yellow-50 hover:text-yellow-600",
               },
             ]
-            : isSalesManager
+            : (isSalesManager || isSalesRep)
               ? [
                 {
                   icon: <Eye size={14} />,

@@ -20,6 +20,11 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
+import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator"; // path adjust
+import ContractBadge from '@/app/component/dashboard/contract-badge';
+import { useState } from "react";
+import Modal from "@/app/component/ui/model/modal";
+import ViewContractModal from "../../leads/components/view-contract-modal";
 
 // ─── Badge helpers (same palette as enrollments list) ───────────────────────
 const statusColor = (status: string) => {
@@ -83,6 +88,7 @@ const fmtDateTime = (d?: string) =>
 function EnrollmentDetailContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [viewContract, setViewContract] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["enrollment", id],
@@ -165,6 +171,15 @@ function EnrollmentDetailContent() {
                 {e.accessStatus || "—"}
               </span>
             </div>
+
+            {e.leadSnapshot?.contractDetails && (
+              <ContractBadge
+                contractDetails={e.leadSnapshot.contractDetails}
+                onViewContract={() => setViewContract(true)}
+                canEdit={false}   // 🔒 edit off — view only
+              />
+            )}
+
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-gray-400">Enrolled On</span>
               <span className="text-xs text-gray-600 flex items-center gap-1">
@@ -315,6 +330,25 @@ function EnrollmentDetailContent() {
           </div>
         </div>
       </div>
+
+      {viewContract && (
+        <ViewContractModal
+          lead={{
+            _id: e._id,
+            status: "converted",          // force view-only
+            first_name: e.user?.name?.split(" ")[0] || "",
+            last_name: e.user?.name?.split(" ").slice(1).join(" ") || "",
+            email: e.user?.email,
+            phone: e.user?.phone,
+            contractDetails: e.leadSnapshot?.contractDetails,
+            paymentPlan: e.leadSnapshot?.paymentPlan,
+            program_id: e.program,
+            invoiceNumber: invoice?.invoiceNumber,
+          }}
+          onClose={() => setViewContract(false)}
+        // onSave pass hi mat karo → canEdit automatically false ho jayega
+        />
+      )}
     </>
   );
 }
