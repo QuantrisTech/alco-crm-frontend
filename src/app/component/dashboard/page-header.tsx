@@ -5,6 +5,7 @@ import Select from "@/app/component/ui/select";
 // icon
 import { Plus, Trash2, TrendingUp, RotateCcw } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
+import GuideButton from "@/app/dashboard/guide/component/guide-button";
 
 export type FilterField = {
   type: "input" | "select";
@@ -17,12 +18,13 @@ type HeaderProps = {
   title?: string;
   subtitle?: string;
   titleIcon?: React.ReactNode;
+  pageKey?: string;
   totalCount?: any;
   coveredCount?: number;
   coveredLabel?: string;
   onAdd?: () => void;
   onDeleteAll?: () => void;
-  filters?: Record<string, string | number>; 
+  filters?: Record<string, string | number>;
   setFilters?: React.Dispatch<React.SetStateAction<any>>;
   filterFields?: FilterField[];
   actions?: React.ReactNode;
@@ -33,6 +35,7 @@ export default function PageHeader({
   title = "Admin Panel",
   subtitle = "Manage all users and their roles",
   titleIcon,
+  pageKey,
   totalCount,
   coveredCount,
   coveredLabel = "Covered",
@@ -49,13 +52,19 @@ export default function PageHeader({
   const isUserForResponsive = role === "user";
 
   return (
+    <>
     <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}>
       {/* Left Side */}
       <div>
-        <h1 className={`${isUserForResponsive ? "text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2" : "text-2xl font-bold text-gray-800 flex items-center gap-2"}`}>
-          {titleIcon && <span className="flex items-center">{titleIcon}</span>}
-          {title}
-        </h1>
+        <div className="flex items-center">
+          <h1 className={`${isUserForResponsive ? "text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2" : "text-2xl font-bold text-gray-800 flex items-center gap-2"}`}>
+            {titleIcon && <span className="flex items-center">{titleIcon}</span>}
+            {title}
+          </h1>
+          {
+            pageKey && <GuideButton pageKey={pageKey} />
+          }
+        </div>
         {subtitle && <p className="text-gray-400 text-sm mt-1">{subtitle}</p>}
       </div>
 
@@ -144,7 +153,6 @@ export default function PageHeader({
 
           </div>
         )}
-        {exportBtn}
         {/* Reset button */}
         {/* {Object.values(filters || {}).some((v) => v) && (
               <button
@@ -172,6 +180,11 @@ export default function PageHeader({
           </button>
         )}
       </div>
+      
     </div>
+    <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}>
+        <div className="flex items-center justify-end ms-auto me-8">{exportBtn}</div>
+    </div>
+    </>
   );
 }

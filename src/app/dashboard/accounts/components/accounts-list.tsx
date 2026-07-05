@@ -364,6 +364,7 @@ import { Plus, Search, ChevronDown, ChevronRight, Loader2, X, BookOpen, Eye, Wal
 import PageHeader from "@/app/component/dashboard/page-header";
 import { useRouter } from "next/navigation";
 import ExportButton from "@/app/component/ui/export-button";
+import InputWithSelect from "@/app/component/ui/input-with-select";
 
 const TYPE_COLORS: Record<string, string> = {
   asset: "bg-sky-100 text-sky-700",
@@ -430,52 +431,7 @@ function TypeDropdown({
 }
 
 // ── Custom SubType Combobox ─────────────────────────────────
-function SubTypeCombobox({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-}) {
-  const [open, setOpen] = useState(false);
 
-  const filtered = options.filter((s) =>
-    s.toLowerCase().includes(value.toLowerCase())
-  );
-
-  return (
-    <div className="relative">
-      <input
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
-        placeholder="Select or type custom..."
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-      />
-
-      {open && filtered.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-100 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-          {filtered.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onMouseDown={() => {
-                onChange(s);
-                setOpen(false);
-              }}
-              className="w-full text-left px-3 py-2 text-sm capitalize text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"
-            >
-              {s.replace(/_/g, " ")}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Create Account Modal ──────────────────────────────────────
 function CreateAccountModal({ onClose }: { onClose: () => void }) {
@@ -533,7 +489,7 @@ function CreateAccountModal({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Sub Type</label>
-              <SubTypeCombobox
+              <InputWithSelect
                 value={form.subType}
                 onChange={(v) => setForm({ ...form, subType: v })}
                 options={SUBTYPES[form.type] || []}

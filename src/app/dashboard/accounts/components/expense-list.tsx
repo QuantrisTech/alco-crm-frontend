@@ -22,6 +22,7 @@ import CreateExpenseModal from "./create-expense-modal";
 import RejectModal from "./reject-modal";
 import ExportButton from "@/app/component/ui/export-button";
 
+
 // ── Constants ─────────────────────────────────────────────────
 const CATEGORIES = [
   "salary", "marketing", "utilities", "rent",

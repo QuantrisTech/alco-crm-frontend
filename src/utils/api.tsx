@@ -89,7 +89,7 @@ export const adminDeleteAllUsers = () => API.delete("/api/admin/users");
 export const adminCreateUser = (data: any) => API.post("/api/admin/users", data);
 export const adminAssignRole = (id: string, role: string) => API.patch(`/api/admin/users/${id}/role`, { role });
 export const adminUpdateUserPassword = (id: string, password: string) => API.patch(`/api/admin/users/${id}`, { newPassword: password });
-
+export const getAdminRecipients = () => API.get("/api/admin/users/recipients");
 // User Profile APIs
 export const getAllUsersForRole = () => API.get("/api/users");
 export const getProfile = () => API.get("/api/users/profile");
@@ -174,6 +174,7 @@ export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/
 export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
 export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
 export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
+// utils/api.ts
 // export const markInstallmentPaid = (
 //   invoiceId: string,
 //   installmentId: string,
@@ -216,8 +217,10 @@ export const sendReceivingInvoiceEmail = (id: string, body: any) =>
 export const sendReceivingReportEmail = (body: { invoiceIds?: string[]; filters?: any }) =>
   API.post("/api/v1/finance/invoices/receiving/export-email", body);
 
+// export const getSalesRoleInvoices = (params?: any) =>
+//   axios.get("/finance/invoices/sales", { params });
 export const getSalesRoleInvoices = (params?: any) =>
-  axios.get("/finance/invoices/sales", { params });
+  API.get("/api/v1/finance/invoices/sales", { params });
 
 // ─── Finance — Payments ──────────────────────────────────────
 export const getAllPayments = (params?: any) => API.get("/api/v1/finance/payments", { params });
@@ -425,6 +428,11 @@ export const createJournalEntry = (data: {
 }) => API.post("/api/v1/accounts/journal", data);
 
 // ─── Expenses ────────────────────────────────────────────────
+export const getAllExpenseTitles = () => API.get("/api/v1/accounts/expense-titles");
+export const createExpenseTitle = (data: { title: string }) => API.post("/api/v1/accounts/expense-titles", data);
+export const updateExpenseTitle = ({ id, ...data }: { id: string; title: string }) => API.patch(`/api/v1/accounts/expense-titles/${id}`, data);
+export const deleteExpenseTitle = (id: string) => API.delete(`/api/v1/accounts/expense-titles/${id}`);
+
 export const getAllExpenses = (params?: {
   status?: string;
   category?: string;
@@ -474,6 +482,29 @@ export const getCashFlowReport = (params?: { year?: number; from?: string; to?: 
 
 export const getRevenueByProgram = (params?: { year?: number; from?: string; to?: string }) =>
   API.get("/api/v1/reports/revenue-by-program", { params });
+
+// ─── Guides ──────────────────────────────────────────────────
+export const getGuideByPageKey = (pageKey: string) =>
+  API.get(`/api/v1/guides/${pageKey}`);
+
+export const getAllGuides = () =>
+  API.get("/api/v1/guides/admin/all");
+
+export const adminUpsertGuide = (data: {
+  pageKey: string;
+  heading: string;
+  description: any[]; // Block[] from BlockEditor
+  videoUrl: string;
+  videoPublicId?: string;
+}) => API.post("/api/v1/guides/admin", data);
+
+export const deleteGuide = (id: string) =>
+  API.delete(`/api/v1/guides/admin/${id}`);
+
+export const getGuideUploadSignature = () =>
+  API.get("/api/v1/guides/upload-signature");
+
+export const getActiveGuides = () => API.get("/api/v1/guides");
 
 // ─── Website SEO Pages ────────────────────────────────────────
 export interface SeoFormData {

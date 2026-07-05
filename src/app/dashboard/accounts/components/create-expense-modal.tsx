@@ -1,10 +1,18 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createExpense, getAllAccounts } from "@/utils/api";
+import {
+  createExpense,
+  getAllAccounts,
+  getAllExpenseTitles,
+  createExpenseTitle,
+  updateExpenseTitle,
+  deleteExpenseTitle
+} from "@/utils/api";
 import { Loader2, X } from "lucide-react";
 import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
+import InputWithSelect from "@/app/component/ui/input-with-select";
 
 // ── Constants ─────────────────────────────────────────────────
 const CATEGORIES = [
@@ -53,6 +61,26 @@ export default function CreateExpenseModal({ onClose }: { onClose: () => void })
       alert(err?.response?.data?.message || "Error creating expense"),
   });
 
+  const { data: titlesData } = useQuery({
+    queryKey: ["expense-titles"],
+    queryFn: () => getAllExpenseTitles().then((r) => r.data.data),
+  });
+
+  const { mutateAsync: addTitle, isPending: isAddingTitle } = useMutation({
+    mutationFn: createExpenseTitle,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expense-titles"] }),
+  });
+
+  const { mutateAsync: editTitle } = useMutation({
+    mutationFn: updateExpenseTitle,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expense-titles"] }),
+  });
+
+  const { mutateAsync: removeTitle } = useMutation({
+    mutationFn: deleteExpenseTitle,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["expense-titles"] }),
+  });
+
   const set = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => {
@@ -61,17 +89,17 @@ export default function CreateExpenseModal({ onClose }: { onClose: () => void })
       return;
     }
     mutate({
-      title:             form.title,
-      description:       form.description,
-      amount:            Number(form.amount),
-      account:           form.account,
-      category:          form.category,
-      paymentMethod:     form.paymentMethod,
-      referenceNumber:   form.referenceNumber || undefined,
-      date:              form.date,
-      vendor:            form.vendorName ? { name: form.vendorName } : undefined,
-      notes:             form.notes,
-      isRecurring:       form.isRecurring,
+      title: form.title,
+      description: form.description,
+      amount: Number(form.amount),
+      account: form.account,
+      category: form.category,
+      paymentMethod: form.paymentMethod,
+      referenceNumber: form.referenceNumber || undefined,
+      date: form.date,
+      vendor: form.vendorName ? { name: form.vendorName } : undefined,
+      notes: form.notes,
+      isRecurring: form.isRecurring,
       recurringInterval: form.isRecurring ? form.recurringInterval : undefined,
     } as any);
   };
@@ -108,12 +136,18 @@ export default function CreateExpenseModal({ onClose }: { onClose: () => void })
         <div className="p-5 space-y-4">
 
           {/* Row 1 — Title */}
-          <InputField
-            label="Title *"
-            placeholder="e.g. Office Rent - June"
-            value={form.title}
-            onChange={(e) => set("title", e.target.value)}
-          />
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Title *</label>
+            <InputWithSelect
+              value={form.title}
+              onChange={(v) => set("title", v)}
+              options={titlesData || []}
+              isSaving={isAddingTitle}
+              onAdd={(title) => addTitle({ title })}
+              onEdit={(id, title) => editTitle({ id, title })}
+              onDelete={(id) => removeTitle(id)}
+            />
+          </div>
 
           {/* Row 2 — Amount + Date */}
           <div className="grid grid-cols-2 gap-3">
@@ -134,12 +168,20 @@ export default function CreateExpenseModal({ onClose }: { onClose: () => void })
 
           {/* Row 3 — Category + Account */}
           <div className="grid grid-cols-2 gap-3">
-            <Select
+            {/* <Select
               label="Category *"
               options={categoryOptions}
               value={form.category}
               onChange={(e) => set("category", e.target.value)}
-            />
+            /> */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Category</label>
+              <InputWithSelect
+                value={form.category}
+                onChange={(v) => setForm({ ...form, category: v })}
+                options={CATEGORIES}
+              />
+            </div>
             <Select
               label="Expense Account *"
               options={accountOptions}

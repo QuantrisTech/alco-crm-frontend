@@ -32,6 +32,9 @@ type Props = {
   totalPages?: number;
   onRowClick?: (item: any) => void;
   onPageChange?: (page: number) => void;
+  selectedIds?: string[];
+  onSelectAll?: () => void;
+  onToggleSelect?: (id: string) => void;
 };
 
 const TableIcon = () => (
@@ -132,32 +135,52 @@ function CardView({ data, columns, actions, currentPage, pageSize, onRowClick }:
 }
 
 // --- Table View ---
-function TableView({ data, columns, actions, currentPage, pageSize, onRowClick }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void }) {
+function TableView({ data, columns, actions, currentPage, pageSize, onRowClick,
+  selectedIds, onSelectAll, onToggleSelect }: {
+    data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void,
+    selectedIds?: string[];
+    onSelectAll?: () => void;
+    onToggleSelect?: (id: string) => void;
+  }) {
+  const allSelected = selectedIds?.length === data.length && data.length > 0;
+
   return (
     <div className="overflow-x-auto w-full">
       <table className="w-full text-sm min-w-[640px]">
         <thead className="bg-gray-50 border-b">
           <tr className="text-gray-400 text-left">
+            {onSelectAll && (
+              <th className="px-4 py-4 w-10">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={onSelectAll}
+                  className="w-4 h-4 accent-yellow-500 cursor-pointer"
+                />
+              </th>
+            )}
             <th className="px-4 py-4 font-medium w-10">#</th>
             {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 py-4 font-medium whitespace-nowrap"
-                style={col.minWidth ? { minWidth: col.minWidth } : undefined}
-              >
-                {col.label}
-              </th>
+              <th key={col.key} className="px-4 py-4 font-medium whitespace-nowrap">{col.label}</th>
             ))}
             {actions.length > 0 && <th className="px-4 py-4 font-medium w-20">Actions</th>}
           </tr>
         </thead>
         <tbody>
           {data?.map((item, index) => (
-            <tr
-              key={item._id || index}
-              onClick={() => onRowClick?.(item)}
-              className={`border-b last:border-0 hover:bg-gray-50 transition ${onRowClick ? "cursor-pointer" : ""}`}
-            >
+            <tr key={item._id || index} onClick={() => onRowClick?.(item)}
+              className={`border-b last:border-0 hover:bg-gray-50 transition ${onRowClick ? "cursor-pointer" : ""}`}>
+              {onSelectAll && (
+                <td className="px-4 py-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds?.includes(item._id) || false}
+                    onChange={(e) => { e.stopPropagation(); onToggleSelect?.(item._id); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 accent-yellow-500 cursor-pointer"
+                  />
+                </td>
+              )}
               <td className="px-4 py-4 text-gray-400 text-xs">
                 {(currentPage - 1) * pageSize + index + 1}
               </td>
@@ -231,6 +254,7 @@ export default function DynamicTable({
   totalPages = 1,
   onRowClick,
   onPageChange,
+  selectedIds, onSelectAll, onToggleSelect,
 }: Props) {
   const [view, setView] = useState<"table" | "card">("table");
 
@@ -269,7 +293,10 @@ export default function DynamicTable({
         ) : isError ? (
           <div className="text-center py-20 text-red-500 text-sm">Failed to load data.</div>
         ) : view === "table" ? (
-          <TableView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick} />
+          <TableView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick}
+            selectedIds={selectedIds}
+            onSelectAll={onSelectAll}
+            onToggleSelect={onToggleSelect} />
         ) : (
           <CardView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick} />
         )}
