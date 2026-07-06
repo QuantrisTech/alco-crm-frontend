@@ -173,6 +173,8 @@ export const getAllInvoices = (params?: any) => API.get("/api/v1/finance/invoice
 export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/${id}`);
 export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
 export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
+export const deleteInvoice = (id: string, reason?: string) =>
+  API.delete(`/api/v1/finance/invoices/${id}`, { data: { reason } });
 export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
 // utils/api.ts
 // export const markInstallmentPaid = (
@@ -181,15 +183,17 @@ export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoic
 //   body: { method: string; referenceNumber?: string; notes?: string }
 // ) =>
 //   API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`, body);
+// api.ts mein abhi ye hai (paidDate missing):
 export const markInstallmentPaid = (invoiceId: string, installmentId: string, payload: any) => {
   const formData = new FormData();
   formData.append("method", payload.method);
   if (payload.referenceNumber) formData.append("referenceNumber", payload.referenceNumber);
   if (payload.notes) formData.append("notes", payload.notes);
-  if (payload.receipt) formData.append("receipt", payload.receipt); // File object, optional
+  if (payload.paidDate) formData.append("paidDate", payload.paidDate); // 👈 ye line add karo
+  if (payload.receipt) formData.append("receipt", payload.receipt);
 
   return API.patch(
-    `/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`,  // 👈 fixed
+    `/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`,
     formData,
     { headers: { "Content-Type": "multipart/form-data" } }
   );

@@ -235,10 +235,10 @@ const formatAmount = (n: number) =>
 const formatDate = (d: string) =>
   d
     ? new Date(d).toLocaleDateString("en-PK", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
     : "—";
 
 // ── Access Guard ─────────────────────────────────────────────────
@@ -281,9 +281,11 @@ export default function UserDashboard() {
   const isLoading = enrollLoading || invoiceLoading;
 
   // ── Normalize data ───────────────────────────────────────────
-  const enrollments: Enrollment[] = enrollData?.data ?? enrollData ?? [];
-  const invoices: Invoice[]       = invoiceData?.data ?? invoiceData ?? [];
-
+  const rawEnrollments = enrollData?.data ?? enrollData;
+  const enrollments: Enrollment[] = Array.isArray(rawEnrollments) ? rawEnrollments : [];
+  // ── Normalize data ───────────────────────────────────────────
+  const rawInvoices = invoiceData?.data ?? invoiceData;
+  const invoices: Invoice[] = Array.isArray(rawInvoices) ? rawInvoices : [];
   // ── Enrollment Logic ─────────────────────────────────────────
   // Agar koi bhi enrollment RESTRICTED hai aur advance nahi di
   const hasActiveEnrollment = enrollments.some(
@@ -305,65 +307,65 @@ export default function UserDashboard() {
   const advancePaid = advanceInstallment?.status === "PAID";
 
   // ── Active enrollments count ─────────────────────────────────
-  const activeEnrollments  = enrollments.filter((e) => e.accessStatus === "ACTIVE").length;
-  const restrictedCount    = enrollments.filter((e) => e.accessStatus === "RESTRICTED").length;
+  const activeEnrollments = enrollments.filter((e) => e.accessStatus === "ACTIVE").length;
+  const restrictedCount = enrollments.filter((e) => e.accessStatus === "RESTRICTED").length;
 
   // ── Stats data build karo ────────────────────────────────────
   const stats = [
     {
-      title:   "Enrollments",
-      value:   isLoading ? "..." : String(enrollments.length),
-      sub:     isLoading
+      title: "Enrollments",
+      value: isLoading ? "..." : String(enrollments.length),
+      sub: isLoading
         ? "Loading..."
         : activeEnrollments > 0
           ? `${activeEnrollments} active · ${restrictedCount} restricted`
           : hasAnyEnrollment
             ? `${restrictedCount} pending advance payment`
             : "No enrollments yet",
-      icon:    BookOpen,
-      iconBg:  "#EEEDFE",
+      icon: BookOpen,
+      iconBg: "#EEEDFE",
       iconColor: "#534AB7",
     },
     {
-      title:   "Pending Installments",
-      value:   isLoading ? "..." : String(pendingInstallments.length),
-      sub:     isLoading
+      title: "Pending Installments",
+      value: isLoading ? "..." : String(pendingInstallments.length),
+      sub: isLoading
         ? "Loading..."
         : nextDueInstallment
           ? `Next: ${nextDueInstallment.label} — ${formatDate(nextDueInstallment.dueDate)}`
           : latestInvoice
             ? "All installments paid"
             : "No invoice found",
-      icon:    CreditCard,
-      iconBg:  "#FAEEDA",
+      icon: CreditCard,
+      iconBg: "#FAEEDA",
       iconColor: "#854F0B",
     },
     {
-      title:   "Paid Amount",
-      value:   isLoading
+      title: "Paid Amount",
+      value: isLoading
         ? "..."
         : formatAmount(latestInvoice?.paidAmount ?? 0),
-      sub:     isLoading
+      sub: isLoading
         ? "Loading..."
         : latestInvoice
           ? `Outstanding: ${formatAmount(latestInvoice.remainingAmount ?? 0)}`
           : "No invoice found",
-      icon:    DollarSign,
-      iconBg:  "#E1F5EE",
+      icon: DollarSign,
+      iconBg: "#E1F5EE",
       iconColor: "#0F6E56",
     },
     {
-      title:   "Invoice Status",
-      value:   isLoading
+      title: "Invoice Status",
+      value: isLoading
         ? "..."
         : latestInvoice?.status ?? "N/A",
-      sub:     isLoading
+      sub: isLoading
         ? "Loading..."
         : latestInvoice
           ? `Total: ${formatAmount(latestInvoice.totalAmount)} · ${latestInvoice.invoiceNumber}`
           : "No invoice found",
-      icon:    TrendingUp,
-      iconBg:  "#E6F1FB",
+      icon: TrendingUp,
+      iconBg: "#E6F1FB",
       iconColor: "#185FA5",
     },
   ];
@@ -412,7 +414,7 @@ export default function UserDashboard() {
             </p>
           </div>
 
-        /* Agar enrollment hai lekin RESTRICTED hai (advance nahi di) */
+          /* Agar enrollment hai lekin RESTRICTED hai (advance nahi di) */
         ) : !isLoading && hasAnyEnrollment && !hasActiveEnrollment ? (
           <>
             {/* Stats toh dikhao lekin restricted warning bhi */}
@@ -422,7 +424,7 @@ export default function UserDashboard() {
             <RestrictedCard />
           </>
 
-        /* Normal — active enrollment hai */
+          /* Normal — active enrollment hai */
         ) : (
           stats.map((stat) => (
             <StatCarduser key={stat.title} {...stat} />
@@ -443,13 +445,12 @@ export default function UserDashboard() {
               </p>
             </div>
             <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                latestInvoice.status === "PAID"
-                  ? "bg-green-100 text-green-700"
-                  : latestInvoice.status === "PARTIAL"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-sky-100 text-sky-700"
-              }`}
+              className={`text-xs font-semibold px-3 py-1 rounded-full ${latestInvoice.status === "PAID"
+                ? "bg-green-100 text-green-700"
+                : latestInvoice.status === "PARTIAL"
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-sky-100 text-sky-700"
+                }`}
             >
               {latestInvoice.status}
             </span>
@@ -469,9 +470,8 @@ export default function UserDashboard() {
               {latestInvoice.installments.map((inst, idx) => (
                 <tr
                   key={idx}
-                  className={`border-t border-gray-50 ${
-                    inst.isAdvance ? "bg-amber-50/40" : ""
-                  }`}
+                  className={`border-t border-gray-50 ${inst.isAdvance ? "bg-amber-50/40" : ""
+                    }`}
                 >
                   <td className="px-5 py-3 text-xs font-mono text-gray-400">
                     {String(idx + 1).padStart(2, "0")}
@@ -492,11 +492,10 @@ export default function UserDashboard() {
                   </td>
                   <td className="px-5 py-3">
                     <span
-                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                        inst.status === "PAID"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${inst.status === "PAID"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-amber-100 text-amber-700"
+                        }`}
                     >
                       {inst.status}
                     </span>

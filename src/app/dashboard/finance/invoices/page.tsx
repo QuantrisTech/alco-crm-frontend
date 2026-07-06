@@ -24,6 +24,9 @@ import SendReceiptModal from "../component/send-receipt-modal";
 import CreateInvoiceModal from "../component/create-invoice-modal";
 import ExportButton from "@/app/component/ui/export-button";
 import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
+import { deleteInvoice } from "@/utils/api";
+import { Trash2 } from "lucide-react";
+import DeleteInvoiceModal from "../component/delete-invoice-modal";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -70,6 +73,8 @@ export default function InvoicesPage() {
   const isAdmin = ["admin", "super_admin", "finance_manager"].includes(authUser?.role || "");
   const isSalesManager = authUser?.role === "sales_manager";
   const isSalesRep = authUser?.role === "sales_rep";
+  const canDelete = ["admin", "super_admin"].includes(authUser?.role || "");
+  const [deletingInvoice, setDeletingInvoice] = useState<any>(null);
 
   const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10", dateFrom: "", dateTo: "" });
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -171,6 +176,22 @@ export default function InvoicesPage() {
     },
     onError: () => toast.error("Failed to update!"),
   });
+
+  const { mutate: removeInvoice, isPending: isDeleting } = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => deleteInvoice(id, reason),
+    onSuccess: () => {
+      toast.success("Invoice cancelled — payments voided, journal reversed");
+      setDeletingInvoice(null);
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Delete failed!"),
+  });
+
+  const handleDeleteInvoice = (inv: any) => {
+    const reason = window.prompt("Cancellation reason (optional):") || undefined;
+    if (!window.confirm(`Sure cancel invoice ${inv.invoiceNumber}? Sab payments void ho jayenge.`)) return;
+    removeInvoice({ id: inv._id, reason });
+  };
 
   const invoiceList = isStudent ? (data?.data ?? data ?? []) : (data?.data ?? []);
   const totalCount = isStudent ? invoiceList.length : (data?.meta?.total ?? 0);
@@ -361,6 +382,15 @@ export default function InvoicesPage() {
                 onClick: (inv: any) => handleSendInvoice(inv._id),
                 className: "hover:bg-yellow-50 hover:text-yellow-600",
               },
+              ...(canDelete
+                ? [{
+                  icon: <Trash2 size={14} />,
+                  label: "Delete Invoice",
+                  onClick: (inv: any) => setDeletingInvoice(inv),
+                  className: "hover:bg-red-50 hover:text-red-600",
+                  hidden: (inv: any) => inv.status === "CANCELLED",
+                }]
+                : []),
             ]
             : (isSalesManager || isSalesRep)
               ? [
@@ -418,6 +448,13 @@ export default function InvoicesPage() {
           <EditInstallmentsModal
             invoice={editInstallmentInvoice}
             onClose={() => setEditInstallmentInvoice(null)}
+          />
+
+          <DeleteInvoiceModal
+            invoice={deletingInvoice}
+            onClose={() => setDeletingInvoice(null)}
+            isLoading={isDeleting}
+            onConfirm={(reason) => removeInvoice({ id: deletingInvoice._id, reason })}
           />
         </>
       )}

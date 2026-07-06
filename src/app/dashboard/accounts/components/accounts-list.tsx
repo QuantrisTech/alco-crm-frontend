@@ -380,7 +380,22 @@ const SUBTYPES: Record<string, string[]> = {
   liability: ["accounts_payable", "other_liability"],
   equity: ["owners_equity", "retained_earnings"],
   income: ["tuition_fee", "registration_fee", "other_income"],
-  expense: ["salary", "marketing", "utilities", "rent", "software", "other_expense"],
+  expense: [
+    "salary",
+    "salaries_wages",
+    "marketing",
+    "utilities",
+    "rent",
+    "software",
+    "donations_charity",
+    "bank_charges_fees",
+    "taxes_withholding_tax",
+    "office_supplies_expenses",
+    "telephone_internet",
+    "security_expense",
+    "printing_stationery",
+    "other_expense",
+  ],
 };
 
 

@@ -51,6 +51,7 @@ interface PaymentFormState {
   referenceNumber: string;
   notes: string;
   receipt: File | null;
+  paidDate: string;
 }
 
 const formatDate = (d: string) =>
@@ -104,11 +105,13 @@ const PAYMENT_TABS: {
 export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
   const queryClient = useQueryClient();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const todayStr = () => new Date().toISOString().split("T")[0];
   const [paymentForm, setPaymentForm] = useState<PaymentFormState>({
     method: null,
     referenceNumber: "",
     notes: "",
     receipt: null,
+    paidDate: todayStr(),
   });
 
   // Check if form is valid to enable Confirm button
@@ -129,12 +132,13 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
         referenceNumber: paymentForm.referenceNumber || undefined,
         notes: paymentForm.notes || undefined,
         receipt: paymentForm.receipt || undefined,
+        paidDate: paymentForm.paidDate,
       }),
     onSuccess: (res) => {
       const msg = res.data?.message || "Installment marked as paid!";
       toast.success(msg);
       setConfirmingId(null);
-      setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null });
+      setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null, paidDate: todayStr() });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
       if (res.data?.data?.status === "PAID") onClose();
@@ -145,12 +149,12 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
 
   const handleConfirmingOpen = (id: string) => {
     setConfirmingId(id);
-    setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null });
+    setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null, paidDate: todayStr() });
   };
 
   const handleConfirmingClose = () => {
     setConfirmingId(null);
-    setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null });
+    setPaymentForm({ method: null, referenceNumber: "", notes: "", receipt: null, paidDate: todayStr() });
   };
 
   if (!invoice) return null;
@@ -532,6 +536,23 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                               ✓ {paymentForm.receipt.name}
                             </p>
                           )}
+                        </div>
+                      )}
+
+                      {paymentForm.method && (
+                        <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Payment Date
+                          </p>
+                          <input
+                            type="date"
+                            value={paymentForm.paidDate}
+                            max={todayStr()}
+                            onChange={(e) =>
+                              setPaymentForm((prev) => ({ ...prev, paidDate: e.target.value }))
+                            }
+                            className="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                          />
                         </div>
                       )}
 

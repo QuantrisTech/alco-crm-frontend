@@ -63,13 +63,33 @@ function InvoiceCard({ invoice }: { invoice: any }) {
     address: contractDetails.currentAddress,
   };
 
+  // NAYA:
   const cfg = statusConfig[invoice.status] || statusConfig.PENDING;
   const Icon = cfg.icon;
   const paid = invoice.paidAmount || 0;
   const total = invoice.totalAmount || 0;
   const remaining = invoice.remainingAmount || 0;
   const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
-  const due = invoice.dueDate ? daysLeft(invoice.dueDate) : null;
+
+  // ── Overdue sirf UNPAID installments se calculate karo ─────
+  const unpaidInstallments = (invoice.installments || []).filter((i: any) => i.status !== "PAID");
+  const nextUnpaid = [...unpaidInstallments].sort(
+    (a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+  )[0];
+
+  const allInstallmentsPaid =
+    (invoice.installments?.length ?? 0) > 0 && unpaidInstallments.length === 0;
+
+  // Sab paid hain → sabse latest paidAt date dikhao
+  const lastPaidAt = allInstallmentsPaid
+    ? invoice.installments.reduce((latest: string | null, i: any) => {
+      if (!i.paidAt) return latest;
+      if (!latest || new Date(i.paidAt) > new Date(latest)) return i.paidAt;
+      return latest;
+    }, null)
+    : null;
+
+  const due = nextUnpaid?.dueDate ? daysLeft(nextUnpaid.dueDate) : null;
 
   // ── Email invoice to self ──────────────────────────────────
   const { mutate: emailInvoice, isPending: sendingInvoice } = useMutation({
@@ -118,12 +138,22 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             )}
             <p className="text-xs text-gray-400 mt-0.5">
               Invoice #{invoice._id?.slice(-6).toUpperCase()}
-              {invoice.dueDate && ` · Due: ${new Date(invoice.dueDate).toLocaleDateString()}`}
+              {nextUnpaid?.dueDate
+                ? ` · Due: ${new Date(nextUnpaid.dueDate).toLocaleDateString()}`
+                : invoice.dueDate
+                  ? ` · Due: ${new Date(invoice.dueDate).toLocaleDateString()}`
+                  : ""}
             </p>
-            {due && (
-              <p className={`text-xs font-medium mt-1 ${due.overdue ? "text-rose-500" : "text-gray-400"}`}>
-                {due.text}
+            {allInstallmentsPaid && lastPaidAt ? (
+              <p className="text-xs font-medium mt-1 text-green-600">
+                ✓ Paid on {new Date(lastPaidAt).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })}
               </p>
+            ) : (
+              due && (
+                <p className={`text-xs font-medium mt-1 ${due.overdue ? "text-rose-500" : "text-gray-400"}`}>
+                  {due.text}
+                </p>
+              )
             )}
           </div>
           <span className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full shrink-0 ${cfg.color}`}>
@@ -133,7 +163,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
         </div>
 
         {/* ── Action buttons row ── */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {/* <div className="flex items-center gap-2 mb-4 flex-wrap">
           <button
             onClick={() => DownloadInvoice(invoice, userForInvoice)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
@@ -150,7 +180,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             {sendingInvoice ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
             Email Me Invoice
           </button>
-        </div>
+        </div> */}
 
         {/* Progress bar */}
         <div className="mb-1">
@@ -195,10 +225,10 @@ function InvoiceCard({ invoice }: { invoice: any }) {
                   <div
                     key={idx}
                     className={`flex items-center justify-between p-3 rounded-xl border ${isPaid
-                        ? "bg-green-50 border-green-100"
-                        : inst.status === "OVERDUE"
-                          ? "bg-rose-50 border-rose-100"
-                          : "bg-white border-gray-100"
+                      ? "bg-green-50 border-green-100"
+                      : inst.status === "OVERDUE"
+                        ? "bg-rose-50 border-rose-100"
+                        : "bg-white border-gray-100"
                       }`}
                   >
                     <div>
@@ -268,21 +298,30 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             Payment History
           </p>
           <div className="space-y-2">
-            {invoice.payments.map((p: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
-                  <div>
-                    <p className="text-gray-700 font-medium capitalize">{p.method}</p>
-                    <p className="text-xs text-gray-400">
-                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}
-                      {p.referenceNumber ? ` · Ref: ${p.referenceNumber}` : ""}
-                    </p>
+            {invoice.payments.map((p: any, idx: number) => {
+              const paymentDate = p.paidAt || p.createdAt;
+              return (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                    <div>
+                      <p className="text-gray-700 font-medium capitalize">{p.method}</p>
+                      <p className="text-xs text-gray-400">
+                        {paymentDate
+                          ? new Date(paymentDate).toLocaleDateString("en-PK", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                          : "—"}
+                        {p.referenceNumber ? ` · Ref: ${p.referenceNumber}` : ""}
+                      </p>
+                    </div>
                   </div>
+                  <span className="font-semibold text-green-600">{fmt(p.amount)}</span>
                 </div>
-                <span className="font-semibold text-green-600">{fmt(p.amount)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

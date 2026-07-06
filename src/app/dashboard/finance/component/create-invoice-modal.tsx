@@ -499,6 +499,7 @@ interface FreshForm {
   advanceDueDate: string;
   installments: NewInstallment[];
   notes: string;
+  invoiceNumber: string;
 }
 
 interface Props {
@@ -537,6 +538,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     advanceDueDate: "",
     installments: [],
     notes: "",
+    invoiceNumber: "",
   });
 
   // ── Append mode: sirf New Installments ─────────────────────
@@ -579,6 +581,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         advanceDueDate: "",
         installments: [],
         notes: "",
+        invoiceNumber: "",
       });
     }
     setResults([]);
@@ -638,6 +641,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         dueDate: freshForm.advanceDueDate,
         installments: allInstallments,
         notes: freshForm.notes,
+        invoiceNumber: freshForm.invoiceNumber.trim() || undefined,
       });
     },
     onSuccess: () => {
@@ -696,7 +700,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     setResults([]);
     setSelectedEnrollment(null);
     setMode("fresh");
-    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "" });
+    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "" });
     setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
     onClose();
   };
@@ -728,8 +732,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 {step === 1
                   ? "Step 1: Select Student / Enrollment"
                   : mode === "append"
-                  ? `Add to Existing Invoice — ${selectedEnrollment?.user?.name}`
-                  : `New Payment Plan — ${selectedEnrollment?.user?.name}`}
+                    ? `Add to Existing Invoice — ${selectedEnrollment?.user?.name}`
+                    : `New Payment Plan — ${selectedEnrollment?.user?.name}`}
               </p>
             </div>
           </div>
@@ -919,6 +923,19 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {/* Total */}
               <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Old Invoice Number <span className="text-gray-400 font-normal">(optional — for migrated users)</span>
+                </label>
+                <input
+                  type="text"
+                  value={freshForm.invoiceNumber}
+                  onChange={(e) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                  placeholder="e.g. INV-2023-0045"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Total Program Fee (Rs)</label>
                 <input
                   type="number"
@@ -961,8 +978,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                   {freshRemaining < 0
                     ? `Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`
                     : freshRemaining === 0
-                    ? "✓ Fully allocated"
-                    : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
+                      ? "✓ Fully allocated"
+                      : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
                 </div>
               )}
 
@@ -1108,8 +1125,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 {appendRemaining < 0
                   ? `Over-allocated by Rs ${fmt(Math.abs(appendRemaining))}`
                   : appendRemaining === 0
-                  ? "✓ Fully allocated"
-                  : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
+                    ? "✓ Fully allocated"
+                    : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
               </div>
 
               {/* New installments */}
