@@ -500,6 +500,7 @@ interface FreshForm {
   installments: NewInstallment[];
   notes: string;
   invoiceNumber: string;
+  issueDate: string;
 }
 
 interface Props {
@@ -530,7 +531,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
   // ── Mode: "fresh" = naya invoice | "append" = existing pe add ─
   const [mode, setMode] = useState<"fresh" | "append">("fresh");
-
+  const todayStr = () => new Date().toISOString().split("T")[0];
   // ── Fresh invoice form ───────────────────────────────────────
   const [freshForm, setFreshForm] = useState<FreshForm>({
     totalAmount: 0,
@@ -539,6 +540,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     installments: [],
     notes: "",
     invoiceNumber: "",
+    issueDate: todayStr(),
   });
 
   // ── Append mode: sirf New Installments ─────────────────────
@@ -582,6 +584,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         installments: [],
         notes: "",
         invoiceNumber: "",
+        issueDate: todayStr(),
       });
     }
     setResults([]);
@@ -642,6 +645,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         installments: allInstallments,
         notes: freshForm.notes,
         invoiceNumber: freshForm.invoiceNumber.trim() || undefined,
+        issueDate: freshForm.issueDate,
       });
     },
     onSuccess: () => {
@@ -700,7 +704,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     setResults([]);
     setSelectedEnrollment(null);
     setMode("fresh");
-    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "" });
+    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "", issueDate: todayStr() });
     setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
     onClose();
   };
@@ -921,18 +925,30 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-              {/* Total */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Old Invoice Number <span className="text-gray-400 font-normal">(optional — for migrated users)</span>
-                </label>
-                <input
-                  type="text"
-                  value={freshForm.invoiceNumber}
-                  onChange={(e) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                  placeholder="e.g. INV-2023-0045"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                {/* Total */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Old Invoice Number
+                  </label>
+                  <input
+                    type="text"
+                    value={freshForm.invoiceNumber}
+                    onChange={(e) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                    placeholder="e.g. INV-2023-0045"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
+                  <input
+                    type="date"
+                    value={freshForm.issueDate}
+                    onChange={(e) => setFreshForm((p) => ({ ...p, issueDate: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
