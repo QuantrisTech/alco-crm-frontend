@@ -1,12 +1,12 @@
 export default function DownloadInvoice(invoice: any, user: any) {
   // ── Installment rows ──────────────────────────────────────
   const installmentRows = (invoice.installments || []).map((inst: any, idx: number) => {
-    const isPaid    = inst.status === "PAID";
+    const isPaid = inst.status === "PAID";
     const isOverdue = inst.status === "OVERDUE";
-    const statusBg  = isPaid ? "#dcfce7" : isOverdue ? "#fee2e2" : "#f1f5f9";
+    const statusBg = isPaid ? "#dcfce7" : isOverdue ? "#fee2e2" : "#f1f5f9";
     const statusClr = isPaid ? "#16a34a" : isOverdue ? "#dc2626" : "#64748b";
-    const statusTxt = isPaid ? "✓ Paid"  : isOverdue ? "Overdue" : "Pending";
-    const rowBg     = idx % 2 === 0 ? "#ffffff" : "#f9fafb";
+    const statusTxt = isPaid ? "✓ Paid" : isOverdue ? "Overdue" : "Pending";
+    const rowBg = idx % 2 === 0 ? "#ffffff" : "#f9fafb";
 
     return `
     <tr style="background:${rowBg};">
@@ -40,8 +40,8 @@ export default function DownloadInvoice(invoice: any, user: any) {
 
   // ── Derived values ────────────────────────────────────────
   const totalInstallments = invoice.installments?.length ?? 0;
-  const program           = invoice.enrollment?.program;
-  const batch             = invoice.enrollment?.batch;
+  const program = invoice.enrollment?.program;
+  const batch = invoice.enrollment?.batch;
 
   // ── Build HTML ────────────────────────────────────────────
   const html = `<!DOCTYPE html>
@@ -51,7 +51,7 @@ export default function DownloadInvoice(invoice: any, user: any) {
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Invoice — ${invoice.invoiceNumber || invoice._id?.slice(-6).toUpperCase()}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f6fb;font-family:Georgia,serif;">
+<body style="margin:0;padding:0;background:#f4f6fb;font-family:Arial, Helvetica, sans-serif;">
 
 <div style="width:100%;max-width:860px;margin:0 auto;background:#ffffff;">
 
@@ -62,19 +62,15 @@ export default function DownloadInvoice(invoice: any, user: any) {
         <td style="vertical-align:top;">
           <table cellpadding="0" cellspacing="0">
             <tr>
-              <td style="vertical-align:middle;">
-                <div style="width:64px;height:64px;background:rgba(200,168,75,0.15);border:2px solid #c8a84b;border-radius:10px;margin:0 auto 20px;line-height:64px;text-align:center;font-size:18px;color:#c8a84b">ALCO</div>
-              </td>
               <td style="vertical-align:middle;padding-left:12px;">
                 <img src="https://res.cloudinary.com/dmbpjv9e8/image/upload/h_110,q_100,f_auto/v1777543091/logo-white_xg7uyj.webp" alt="Arslan Larik & Company" style="height:40px;width:auto;display:block;" />
-                <div style="font-size:11px;color:#94a3b8;font-weight:400;letter-spacing:0.12em;text-transform:uppercase;margin-top:2px;">Academy of Life Coaching</div>
               </td>
             </tr>
           </table>
-          <div style="font-size:11.5px;color:#94a3b8;line-height:1.7;margin-top:14px;">
-            Karachi, Pakistan<br/>
-            info@alco.com &nbsp;|&nbsp; +92 300 0000000<br/>
-            www.alco.com
+           <div style="font-size:11.5px;color:#94a3b8;line-height:1.7;margin-top:14px;">
+            D86/1, block 7, Gulshan-e-iqbal, karachi, Sindh PK<br/>
+            connect@arslanlarik.com &nbsp;|&nbsp; 1+8886814808<br/>
+            https://arslanlarik.com/ &nbsp;|&nbsp; NTN: 2826497-5
           </div>
         </td>
         <td style="vertical-align:top;text-align:right;">
@@ -167,8 +163,8 @@ export default function DownloadInvoice(invoice: any, user: any) {
             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1a3a5c;margin-bottom:2px;">Enrolled Program</div>
             <div style="font-size:14px;font-weight:800;color:#1a3a5c;">${program?.name || invoice.enrollment?.program?.name || "—"}</div>
             ${(program?.short_description || program?.shortDescription)
-              ? `<div style="font-size:11.5px;color:#3a5a7c;margin-top:3px;font-style:italic;">${program?.short_description || program?.shortDescription}</div>`
-              : ""}
+      ? `<div style="font-size:11.5px;color:#3a5a7c;margin-top:3px;font-style:italic;">${program?.short_description || program?.shortDescription}</div>`
+      : ""}
           </td>
           <td style="text-align:right;vertical-align:middle;">
             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1a3a5c;margin-bottom:2px;">Installments</div>
@@ -231,44 +227,73 @@ export default function DownloadInvoice(invoice: any, user: any) {
     </table>
 
     <!-- NOTES -->
-    <div style="background:#f4f6fb;border:1px solid #dde2ec;border-radius:12px;padding:16px 20px;margin-bottom:32px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:6px;">Terms &amp; Notes</div>
-      <div style="font-size:13px;color:#4a5060;line-height:1.6;">
-        Advance payment of <strong style="color:#0f1117;">Rs ${advanceInst?.amount?.toLocaleString() || "—"}</strong> must be received by
-        <strong style="color:#0f1117;">${fmtDate(advanceInst?.dueDate || invoice.dueDate)}</strong> to activate enrollment.
-        Remaining installments are due monthly as per schedule above.
-        Late payments may result in restricted portal access.
-        For queries contact: <strong style="color:#0f1117;">finance@alco.com</strong>
+   <div style="background:#f4f6fb;border:1px solid #dde2ec;border-radius:12px;padding:16px 20px;margin-bottom:32px;">
+        <div
+          style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:10px;">
+          Terms &amp; Notes
+        </div>
+
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#4a5060;line-height:1.8;">
+          <li>This is an auto-generated invoice and therefore requires no signature.</li>
+
+          <li>All payments remitted, including initial down payments, are deemed final and non-refundable upon receipt.
+          </li>
+
+          <li>Certificates will be awarded after successful test evaluation and full payment completion.</li>
+
+          <li>Company NTN Number: <strong style="color:#0f1117;">2826497-5</strong></li>
+
+          <li>Cheques should be crossed and made payable to <strong style="color:#0f1117;">Arslan Larik &amp;
+              Company</strong>.</li>
+
+          <li>Bank details will be provided upon request.</li>
+        </ul>
       </div>
-    </div>
+
+  </div>
 
   </div>
 
   <!-- FOOTER -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dde2ec;background:#f4f6fb;">
-    <tr>
-      <td style="padding:22px 44px;vertical-align:middle;">
-        <div style="font-size:12px;font-weight:700;color:#4a5060;margin-bottom:2px;">Payment Methods Accepted</div>
-        <div style="font-size:11px;color:#8a92a6;line-height:1.7;">
-          Cash &nbsp;|&nbsp; Bank Transfer &nbsp;|&nbsp; Cheque<br/>
-          Account: ALCO Academy &nbsp;|&nbsp; HBL: 0123-456789-01
-        </div>
-      </td>
-      <td style="padding:22px 44px;text-align:right;vertical-align:middle;">
-        <div style="font-size:13px;font-weight:800;color:#1a3a5c;letter-spacing:-0.02em;">ALCO</div>
-        <div style="font-size:11px;color:#8a92a6;margin-top:4px;">This is a system-generated invoice.<br/>No signature required.</div>
-      </td>
-    </tr>
-  </table>
+   <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dde2ec;background:#f4f6fb;">
+      <tr>
+        <td style="padding:22px 44px;vertical-align:top;">
+          <div style="font-size:12px;font-weight:700;color:#4a5060;margin-bottom:8px;">
+            Payment Methods Accepted
+          </div>
+
+          <div style="font-size:11px;color:#8a92a6;line-height:1.8;">
+            Cash &nbsp;|&nbsp; Bank Transfer &nbsp;|&nbsp; Cheque<br /><br />
+
+            <strong style="color:#0f1117;">HBL Bank</strong><br />
+            <strong>Account Title:</strong> ARSLAN LARIK &amp; Company<br />
+            <strong>Account Number:</strong> 19107901888203<br />
+            <strong>IBAN:</strong> PK94HABB0019107901888203<br />
+            <strong>Branch:</strong> Korangi Road, DHA Phase II
+          </div>
+        </td>
+
+        <td style="padding:22px 44px;text-align:right;vertical-align:top;">
+          <div style="font-size:13px;font-weight:800;color:#1a3a5c;letter-spacing:-0.02em;">
+            ALCO
+          </div>
+          <div style="font-size:11px;color:#8a92a6;margin-top:4px;">
+            This is a system-generated invoice.<br />
+            No signature required.
+          </div>
+        </td>
+      </tr>
+    </table>
+
 
 </div>
 </body>
 </html>`;
 
   const blob = new Blob([html], { type: "text/html" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
   a.download = `Invoice-${invoice.invoiceNumber || invoice._id?.slice(-6)}.html`;
   a.click();
   URL.revokeObjectURL(url);

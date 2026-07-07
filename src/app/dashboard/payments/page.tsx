@@ -137,7 +137,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
               </p>
             )}
             <p className="text-xs text-gray-400 mt-0.5">
-              Invoice #{invoice._id?.slice(-6).toUpperCase()}
+              Invoice # {invoice.invoiceNumber || invoice._id?.slice(-6).toUpperCase()}
               {nextUnpaid?.dueDate
                 ? ` · Due: ${new Date(nextUnpaid.dueDate).toLocaleDateString()}`
                 : invoice.dueDate
@@ -163,7 +163,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
         </div>
 
         {/* ── Action buttons row ── */}
-        {/* <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <button
             onClick={() => DownloadInvoice(invoice, userForInvoice)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
@@ -180,7 +180,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             {sendingInvoice ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
             Email Me Invoice
           </button>
-        </div> */}
+        </div>
 
         {/* Progress bar */}
         <div className="mb-1">
