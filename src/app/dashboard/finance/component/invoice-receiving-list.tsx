@@ -54,6 +54,7 @@ export function InvoiceViewModal({ invoice, onClose }: { invoice: any; onClose: 
               <span className="text-gray-400">Status: </span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(invoice.status)}`}>{invoice.status}</span>
             </div>
+            <div><span className="text-gray-400">Issue Date: </span><span className="text-gray-700">{fmtDate(invoice.issueDate)}</span></div>
           </div>
           {invoice.description && (
             <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3">
