@@ -94,6 +94,24 @@ const batchFields = (programs: Program[]): ModalField[] => [
   },
 ];
 
+// const cardColors = [
+//   "bg-blue-50/60 border-blue-100",
+//   "bg-emerald-50/60 border-emerald-100",
+//   "bg-amber-50/60 border-amber-100",
+//   "bg-violet-50/60 border-violet-100",
+//   "bg-pink-50/60 border-pink-100",
+//   "bg-cyan-50/60 border-cyan-100",
+//   "bg-orange-50/60 border-orange-100",
+//   "bg-lime-50/60 border-lime-100",
+// ];
+
+// const getCardColor = (id: string) => {
+//   // id ke basis pe consistent color (refresh pe change nahi hoga)
+//   let hash = 0;
+//   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+//   return cardColors[Math.abs(hash) % cardColors.length];
+// };
+
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
 const statusColor = (status: string) => {
@@ -136,7 +154,7 @@ export default function BatchesPage() {
   // component ke andar
   const { user: authUser } = useAppSelector((state) => state.auth);
   const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
-  const canAdd = ["admin", "super_admin"].includes(authUser?.role);
+  const canAdd = ["admin", "super_admin", "finance_manager"].includes(authUser?.role);
 
   // ── Load programs for filter + modal dropdowns ─────────────────────────────
   const { data: programsRes } = useQuery({
@@ -313,6 +331,7 @@ export default function BatchesPage() {
               <div
                 key={batch._id}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition"
+                // className={`${getCardColor(batch._id)} rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition`}
               >
                 {/* Card Header */}
                 <div className="p-5 border-b border-gray-50">
