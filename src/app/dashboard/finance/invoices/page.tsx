@@ -51,6 +51,7 @@ const createFields: ModalField[] = [
 ];
 
 const editFields: ModalField[] = [
+  { name: "issueDate", label: "Issue Date", type: "input", inputType: "date" },
   { name: "dueDate", label: "Due Date", type: "input", inputType: "date" },
   {
     name: "status", label: "Status", type: "select",
@@ -356,6 +357,13 @@ export default function InvoicesPage() {
         actions={
           isAdmin
             ? [
+
+              {
+                icon: <Pencil size={14} />,
+                label: "Edit Invoice",
+                onClick: (inv: any) => setEditingInvoice(inv),
+                className: "hover:bg-gray-50 hover:text-gray-700",
+              },
               {
                 icon: <ListOrdered size={14} />,
                 label: "Edit Installments",
@@ -429,6 +437,7 @@ export default function InvoicesPage() {
               initialValues={{
                 dueDate: editingInvoice.dueDate?.split("T")[0] || "",
                 status: editingInvoice.status,
+                issueDate: editingInvoice.issueDate?.split("T")[0] || "",
               }}
               onSubmit={(data) => editInvoice({ id: editingInvoice._id, data })}
               isLoading={isUpdating}
