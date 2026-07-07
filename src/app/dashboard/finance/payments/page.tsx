@@ -174,7 +174,8 @@ export default function PaymentsPage() {
             render: (p) => <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColor(p.status)}`}>{p.status}</span>,
           },
           { key: "receivedBy", label: "Received By", render: (p) => <span className="text-gray-500 text-sm">{p.receivedBy?.name || "—"}</span> },
-          { key: "createdAt", label: "Date", render: (p) => <span className="text-gray-400 text-sm">{new Date(p.createdAt).toLocaleDateString()}</span> },
+          { key: "paidAt", label: "Paid At", render: (p) => <span className="text-gray-400 text-sm">{p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "—"}</span> },
+          { key: "createdAt", label: "Created At", render: (p) => <span className="text-gray-400 text-sm">{new Date(p.createdAt).toLocaleDateString()}</span> },
         ]}
         actions={[
           {
