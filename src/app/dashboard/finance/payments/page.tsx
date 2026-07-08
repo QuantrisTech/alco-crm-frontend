@@ -10,6 +10,7 @@ import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { Receipt, CheckCircle, XCircle, Pencil } from "lucide-react";
 import ExportButton from "@/app/component/ui/export-button";
+import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
@@ -69,7 +70,7 @@ const editPaymentFields: ModalField[] = [
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState({ status: "", method: "", page: "1", limit: "10" });
+  const [filters, setFilters] = useState({ status: "", method: "", page: "1", limit: "10", dateFrom: "", dateTo: "" });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [approvingPayment, setApprovingPayment] = useState<any>(null);
@@ -97,7 +98,12 @@ export default function PaymentsPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["payments", filters],
-    queryFn: () => getAllPayments({ ...filters, page: parseInt(filters.page), limit: parseInt(filters.limit) }).then((r) => r.data),
+    queryFn: () =>
+      getAllPayments({
+        ...filters,
+        page: parseInt(filters.page),
+        limit: parseInt(filters.limit),
+      }).then((r) => r.data),
   });
 
   const { mutate: addPay, isPending: isAdding } = useMutation({
@@ -135,25 +141,53 @@ export default function PaymentsPage() {
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
-        exportBtn={<ExportButton
-          filename="payments"
-          label="Export Excel"
-          fetchData={async () => {
-            const res = await getAllPayments({ limit: 10000 });
-            return res.data.data;
-          }}
-          columns={[
-            { header: "Student", key: "user.name" },
-            { header: "Email", key: "user.email" },
-            { header: "Amount (Rs)", key: "amount", format: (v) => Number(v || 0).toLocaleString() },
-            { header: "Method", key: "method" },
-            { header: "Reference #", key: "referenceNumber" },
-            { header: "Status", key: "status" },
-            { header: "Approved By", key: "approvedBy.name" },
-            { header: "Date", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-          ]}
-        />}
+        exportBtn={
+          <div className="flex items-center gap-2">
+            <DateRangeFilter
+              from={filters.dateFrom}
+              to={filters.dateTo}
+              onChange={(from, to) =>
+                setFilters((f) => ({ ...f, dateFrom: from, dateTo: to, page: "1" }))
+              }
+            />
+            <ExportButton
+              filename="payments"
+              label="Export Excel"
+              fetchData={async () => {
+                const res = await getAllPayments({
+                  limit: 10000,
+                  status: filters.status,
+                  method: filters.method,
+                  dateFrom: filters.dateFrom,
+                  dateTo: filters.dateTo,
+                });
+                return res.data.data;
+              }}
+              columns={[
+                { header: "Student", key: "user.name" },
+                { header: "Email", key: "user.email" },
+                { header: "Amount (Rs)", key: "amount", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Method", key: "method" },
+                { header: "Reference #", key: "referenceNumber" },
+                { header: "Status", key: "status" },
+                { header: "Approved By", key: "approvedBy.name" },
+                { header: "Date", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              ]}
+            />
+            <div className="flex justify-end">
+              <div className="bg-white border border-gray-100 rounded-lg px-4 py-1.5 shadow-sm">
+                <span className="text-xs text-gray-400 uppercase tracking-wide mr-2">Total Amount</span>
+                <span className="text-sm font-semibold text-gray-800">
+                  Rs {(data?.meta?.totalAmount ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        }
       />
+
+      {/* Total amount for current filter set (relies on backend meta.totalAmount) */}
+
 
       <DynamicTable
         data={data?.data || []}
@@ -161,6 +195,8 @@ export default function PaymentsPage() {
         isError={isError}
         currentPage={data?.meta?.page || 1}
         pageSize={data?.meta?.limit || 10}
+        totalPages={data?.meta?.totalPages || 1}
+        onPageChange={(page) => setFilters((f) => ({ ...f, page: String(page) }))}
         columns={[
           { key: "user", label: "Student", render: (p) => <span className="font-medium text-gray-800">{p.user?.name || "—"}</span> },
           { key: "amount", label: "Amount", render: (p) => <span className="font-bold text-gray-800">Rs {(p.amount || 0).toLocaleString()}</span> },
@@ -198,10 +234,8 @@ export default function PaymentsPage() {
         ]}
       />
 
-      {/* Add Payment */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Payment" fields={addPaymentFields} onSubmit={addPay} isLoading={isAdding} mode="add" />
 
-      {/* Edit Payment */}
       {editingPayment && (
         <Modal
           isOpen={!!editingPayment}
@@ -215,7 +249,6 @@ export default function PaymentsPage() {
         />
       )}
 
-      {/* Approve Popup */}
       {approvingPayment && (
         <Popup
           isOpen={!!approvingPayment}
@@ -230,7 +263,6 @@ export default function PaymentsPage() {
         />
       )}
 
-      {/* Reject Modal */}
       {rejectingPayment && (
         <Modal
           isOpen={!!rejectingPayment}

@@ -255,6 +255,8 @@ export default function InvoicesPage() {
         isError={isError}
         currentPage={data?.meta?.page || 1}
         pageSize={data?.meta?.limit || 10}
+        totalPages={data?.meta?.totalPages || 1}
+        onPageChange={(page) => setFilters((f) => ({ ...f, page: String(page) }))}
         columns={[
           ...(isAdmin
             ? [{

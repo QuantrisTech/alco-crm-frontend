@@ -14,6 +14,7 @@ import {
   assignEnrollment,
   createEnrollmentDirect,
   adminGetAllUsers,
+  createEnrollmentDirectBundle,
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
@@ -101,6 +102,122 @@ const roleColor = (role: string) => {
 //   },
 // ];
 
+// ── Per-program batch picker popup ──────────────────────────────
+function BatchPickerModal({
+  program,
+  batches,
+  currentBatch,
+  onConfirm,
+  onClose,
+}: {
+  program: { id: string; name: string };
+  batches: any[];
+  currentBatch?: string;
+  onConfirm: (batchId: string) => void;
+  onClose: () => void;
+}) {
+  const [selectedBatch, setSelectedBatch] = useState(currentBatch || "");
+  const [error, setError] = useState("");
+
+  const handleConfirm = () => {
+    if (!selectedBatch) {
+      setError("Please select a batch");
+      return;
+    }
+    onConfirm(selectedBatch);
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+        <h3 className="text-sm font-semibold text-gray-800 mb-1">
+          Select Batch — {program.name}
+        </h3>
+        <p className="text-[11px] text-gray-400 mb-4">
+          Choose the batch for this program.
+        </p>
+
+        <select
+          value={selectedBatch}
+          onChange={(e) => { setSelectedBatch(e.target.value); setError(""); }}
+          className="w-full border border-gray-200 text-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"
+        >
+          <option value="">— Select Batch —</option>
+          {batches.map((b: any) => (
+            <option key={b._id} value={b._id}>
+              {b.name}
+              {b.start_date ? ` (${new Date(b.start_date).toLocaleDateString()})` : ""}
+            </option>
+          ))}
+        </select>
+        {error && <p className="text-[11px] text-rose-500 mt-2">{error}</p>}
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose}
+            className="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button onClick={handleConfirm}
+            className="flex-1 py-2 rounded-lg bg-indigo-500 text-white text-sm hover:bg-indigo-600">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Program checklist with per-program batch badge ──────────────
+function ProgramPicker({
+  programs,
+  selected,
+  programBatches,
+  activeBatches,
+  onToggle,
+  onPickBatch,
+}: {
+  programs: any[];
+  selected: string[];
+  programBatches: Record<string, string>;
+  activeBatches: any[];
+  onToggle: (id: string) => void;
+  onPickBatch: (program: { id: string; name: string }) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <label className="text-sm font-medium text-gray-700 mb-2 block">Program(s)*</label>
+      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y">
+        {programs.map((p: any) => {
+          const isChecked = selected.includes(p._id);
+          const batchId = programBatches[p._id];
+          const batch = activeBatches.find((b: any) => b._id === batchId);
+          return (
+            <div key={p._id} className="flex items-center justify-between px-3 py-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer flex-1">
+                <input type="checkbox" checked={isChecked} onChange={() => onToggle(p._id)} />
+                {p.name}
+              </label>
+              {isChecked && (
+                <button
+                  type="button"
+                  onClick={() => onPickBatch({ id: p._id, name: p.name })}
+                  className={`px-2 py-1 text-[10px] rounded ${batch ? "bg-indigo-100 text-indigo-600" : "bg-yellow-100 text-yellow-700"
+                    }`}
+                >
+                  {batch ? batch.name : "Select Batch"}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Main Content ──────────────────────────────────────────────────────────────
 
@@ -128,6 +245,30 @@ function EnrollmentsContent() {
   const [actionsRow, setActionsRow] = useState<any>(null);
   const [assigningEnrollment, setAssigningEnrollment] = useState<any>(null);
   const [addBookUserId, setAddBookUserId] = useState<string | null>(null);
+  // EnrollmentsContent ke andar, existing states ke sath add karo
+  const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
+  const [programBatches, setProgramBatches] = useState<Record<string, string>>({});
+  const [batchPickerProgram, setBatchPickerProgram] = useState<{ id: string; name: string } | null>(null);
+
+  const toggleProgram = (id: string) => {
+    setSelectedPrograms((prev) => {
+      if (prev.includes(id)) {
+        setProgramBatches((pb) => {
+          const next = { ...pb };
+          delete next[id];
+          return next;
+        });
+        return prev.filter((p) => p !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  // const toggleProgram = (id: string) => {
+  //   setSelectedPrograms((prev) =>
+  //     prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+  //   );
+  // };
 
   const router = useRouter();
   // ── Dropdown data ────────────────────────────────────────────────────────
@@ -139,10 +280,10 @@ function EnrollmentsContent() {
   });
 
   // getAllUsersForRole returns { data: User[] }
-const { data: usersRes } = useQuery({
-  queryKey: ["all-users-role"],
-  queryFn: () => adminGetAllUsers({ limit: 10000 }).then((r) => r.data),
-});
+  const { data: usersRes } = useQuery({
+    queryKey: ["all-users-role"],
+    queryFn: () => adminGetAllUsers({ limit: 10000 }).then((r) => r.data),
+  });
   // const users = (usersRes?.users ?? []).filter((u: any) => u.role === "user");
   const users = (usersRes?.users ?? [])
     .filter((u: any) => u.role === "user")
@@ -172,29 +313,26 @@ const { data: usersRes } = useQuery({
         value: u._id,
       })),
     },
-    {
-      name: "program",
-      label: "Program*",
-      type: "select",
-      required: true,
-      options: programs.map((p: any) => ({
-        label: p.name,
-        value: p._id,
-      })),
-    },
-    {
-      name: "batch",
-      label: "Batch*",
-      required: true,
-      type: "select",
-      options: [
-        { label: "— None —", value: "" },
-        ...activeBatches.map((b: any) => ({
-          label: b.name,
-          value: b._id,
-        })),
-      ],
-    },
+    // {
+    //   name: "programs",
+    //   label: "Program(s)*",
+    //   type: "multi-select",
+    //   required: true,
+    //   options: programs.map((p: any) => ({
+    //     label: p.name,
+    //     value: p._id,
+    //   })),
+    // },
+    // {
+    //   name: "batch",
+    //   label: "Batch*",
+    //   required: true,
+    //   type: "select",
+    //   options: [
+    //     { label: "— None —", value: "" },
+    //     ...activeBatches.map((b: any) => ({ label: b.name, value: b._id })),
+    //   ],
+    // },
   ];
 
   const editFields: ModalField[] = [
@@ -369,6 +507,18 @@ const { data: usersRes } = useQuery({
       },
     });
 
+  const { mutate: addBundleEnrollment, isPending: isAddingBundle } = useMutation({
+    mutationFn: createEnrollmentDirectBundle, // naya API function
+    onSuccess: () => {
+      toast.success("Bundle enrollment created! ✅");
+      setIsAddOpen(false);
+      setSelectedPrograms([]);
+      setProgramBatches({});
+      queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+  });
+
   const currentPage = Number(filters.page);
   const limit = Number(filters.limit);
 
@@ -383,12 +533,38 @@ const { data: usersRes } = useQuery({
   );
 
   const handleAddEnrollment = (formData: any) => {
-    const key = `${formData.user}_${formData.program}`;
-    if (enrolledCombinations.has(key)) {
-      toast.error("user is already enrolled in this program!");
+    const programs: string[] = formData.programs || [];
+    const batches: Record<string, string> = formData.programBatches || {};
+
+    if (programs.length === 0) {
+      toast.error("Select at least one program!");
       return;
     }
-    addEnrollment(formData);
+
+    const missing = programs.find((pid) => !batches[pid]);
+    if (missing) {
+      toast.error("Please select a batch for every selected program!");
+      return;
+    }
+
+    if (programs.length === 1) {
+      const pid = programs[0];
+      if (enrolledCombinations.has(`${formData.user}_${pid}`)) {
+        toast.error("User is already enrolled in this program!");
+        return;
+      }
+      addEnrollment({ user: formData.user, program: pid, batch: batches[pid] });
+    } else {
+      const alreadyEnrolled = programs.some((pid) =>
+        enrolledCombinations.has(`${formData.user}_${pid}`)
+      );
+      if (alreadyEnrolled) {
+        toast.error("User already enrolled in one of the selected programs!");
+        return;
+      }
+      const programBatchPairs = programs.map((pid) => ({ program: pid, batch: batches[pid] }));
+      addBundleEnrollment({ user: formData.user, programBatches: programBatchPairs });
+    }
   };
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -694,7 +870,7 @@ const { data: usersRes } = useQuery({
       />
 
       {/* Add Modal — dropdowns for user, program, batch */}
-      <Modal
+      {/* <Modal
         key={isAddOpen ? "open" : "closed"}
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
@@ -705,7 +881,7 @@ const { data: usersRes } = useQuery({
         onSubmit={(data) => handleAddEnrollment({ ...data, assigned_to: authUser?._id })}
         isLoading={isAdding}
         mode="add"
-      />
+      /> */}
 
       {/* Edit Modal */}
       {editingEnrollment && (
@@ -865,6 +1041,76 @@ const { data: usersRes } = useQuery({
               assigned_to: userId,
             })
           }
+        />
+      )}
+
+      {/* <Modal
+        key={isAddOpen ? "open" : "closed"}
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        title="Create Enrollment"
+        fields={createFields}
+        onSubmit={(data) =>
+          handleAddEnrollment({ ...data, assigned_to: authUser?._id, programs: selectedPrograms })
+        }
+        isLoading={isAdding}
+        mode="add"
+      >
+        <ProgramMultiSelect
+          programs={programs}
+          selected={selectedPrograms}
+          onToggle={toggleProgram}
+        />
+      </Modal> */}
+      {/* <Modal
+        key={isAddOpen ? "open" : "closed"}
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        title="Create Enrollment"
+        fields={createFields}
+        onSubmit={(data) => handleAddEnrollment({ ...data, assigned_to: authUser?._id })}
+        isLoading={isAdding}
+        mode="add"
+      /> */}
+      <Modal
+        key={isAddOpen ? "open" : "closed"}
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+          setSelectedPrograms([]);
+          setProgramBatches({});
+        }}
+        title="Create Enrollment"
+        fields={createFields}
+        onSubmit={(data) =>
+          handleAddEnrollment({
+            user: data.user,
+            programs: selectedPrograms,
+            programBatches,
+          })
+        }
+        isLoading={isAdding || isAddingBundle}
+        mode="add"
+      >
+        <ProgramPicker
+          programs={programs}
+          selected={selectedPrograms}
+          programBatches={programBatches}
+          activeBatches={activeBatches}
+          onToggle={toggleProgram}
+          onPickBatch={(program) => setBatchPickerProgram(program)}
+        />
+      </Modal>
+
+      {batchPickerProgram && (
+        <BatchPickerModal
+          program={batchPickerProgram}
+          batches={activeBatches}
+          currentBatch={programBatches[batchPickerProgram.id]}
+          onConfirm={(batchId) =>
+            setProgramBatches((prev) => ({ ...prev, [batchPickerProgram.id]: batchId }))
+          }
+          onClose={() => setBatchPickerProgram(null)}
         />
       )}
     </>

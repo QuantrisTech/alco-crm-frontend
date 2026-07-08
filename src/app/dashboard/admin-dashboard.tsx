@@ -360,10 +360,10 @@ import {
   getLeadsStats, getAllEnrollments,
   getRevenueReport, getPendingReport, getOverdueInvoices,
   getUpcomingDues,
-  getMonthlyCollections,
-  adminGetAudioAccessRequests
+  getMonthlyCollections
 } from "@/utils/api";
 import Link from "next/link";
+import { adminGetAudioAccessRequests } from "@/utils/api";
 
 function MonthlyBar({ data }: { data: any[] }) {
   const max = Math.max(...data.map((d) => d.totalCollected), 1);
@@ -435,19 +435,19 @@ export default function AdminDashboard() {
     queryFn: () => getUpcomingDues(30).then((r) => r.data),
   });
 
-    const { data: monthly } = useQuery({
-      queryKey: ["finance-monthly"],
-      queryFn: () => getMonthlyCollections().then((r) => r.data.data), // r.data.data = { year, data: [] }
-    });
+  const { data: monthly } = useQuery({
+    queryKey: ["finance-monthly"],
+    queryFn: () => getMonthlyCollections().then((r) => r.data.data), // r.data.data = { year, data: [] }
+  });
 
-    const { data: audioAccessData } = useQuery({
+  const { data: audioAccessData } = useQuery({
     queryKey: ["dashboard-audio-access"],
     queryFn: () => adminGetAudioAccessRequests({ status: "pending" }).then(r => r.data),
   });
 
   // ── Pipeline ──
   const pipelineData = [
-     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
+    { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
     { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
     { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
     { label: "Interested", count: statsData?.interested || 0, color: "bg-orange-400" },
@@ -466,51 +466,42 @@ export default function AdminDashboard() {
   const fmt = (n: number) => `Rs ${(n || 0).toLocaleString()}`;
 
   // ── Stats cards ──
-  const stats = [
-    {
-      title: "Total Users",
-      value: usersData?.total || "0",
-      change: "All roles",
-      icon: Users,
-      bg: "bg-gray-800",
-      text: "text-white",
-      onClick: () => router.push("/dashboard/users"),
-    },
-    {
-      title: "Total Leads",
-      value: statsData?.total?.toString() || "0",
-      change: `${statsData?.new || 0} new`,
-      icon: TrendingUp,
-      bg: "bg-yellow-400",
-      text: "text-gray-900",
-      onClick: () => router.push("/dashboard/leads"),
-    },
-    {
-      title: "Total Programs",
-      value: programsData?.meta?.total?.toString() || "0",
-      change: "Active programs",
-      icon: BookOpen,
-      bg: "bg-indigo-600",
-      text: "text-white",
-      onClick: () => router.push("/dashboard/programs"),
-    },
-    {
-      title: "Total Enrollments",
-      value: enrollmentsData?.meta?.total?.toString() || "0",
-      change: "All time",
-      icon: GraduationCap,
-      bg: "bg-teal-500",
-      text: "text-white",
-      onClick: () => router.push("/dashboard/enrollments"),
-    },
-     {
-    title: "Audio Access Requests",
-    value: audioAccessData?.data?.length?.toString() || "0",
-    change: "Pending review",
-    icon: Headphones,
-    bg: "bg-rose-500",
+const stats = [
+  {
+    title: "Total Users",
+    value: usersData?.total || "0",
+    change: "All roles",
+    icon: Users,
+    bg: "bg-gray-800",
     text: "text-white",
-    onClick: () => router.push("/dashboard/audio-access"),
+    onClick: () => router.push("/dashboard/users"),
+  },
+  {
+    title: "Total Leads",
+    value: statsData?.total?.toString() || "0",
+    change: `${statsData?.new || 0} new`,
+    icon: TrendingUp,
+    bg: "bg-yellow-400",
+    text: "text-gray-900",
+    onClick: () => router.push("/dashboard/leads"),
+  },
+  {
+    title: "Total Programs",
+    value: programsData?.meta?.total?.toString() || "0",
+    change: "Active programs",
+    icon: BookOpen,
+    bg: "bg-indigo-600",
+    text: "text-white",
+    onClick: () => router.push("/dashboard/programs"),
+  },
+  {
+    title: "Total Enrollments",
+    value: enrollmentsData?.meta?.total?.toString() || "0",
+    change: "All time",
+    icon: GraduationCap,
+    bg: "bg-teal-500",
+    text: "text-white",
+    onClick: () => router.push("/dashboard/enrollments"),
   },
     // {
     //   title: "Total Revenue",
@@ -530,7 +521,16 @@ export default function AdminDashboard() {
     //   text: "text-white",
     //   onClick: () => router.push("/dashboard/finance/invoices/overdue"),
     // },
-  ];
+     {
+    title: "Audio Access Requests",
+    value: audioAccessData?.data?.length?.toString() || "0",
+    change: "Pending review",
+    icon: Headphones,
+    bg: "bg-rose-500",
+    text: "text-white",
+    onClick: () => router.push("/dashboard/audio-access"),
+  },
+];
 
   const statsFinance = [
     {
@@ -575,8 +575,8 @@ export default function AdminDashboard() {
         <div className="col-span-2">
           <LeadPipeline data={pipelineData} />
           <div className="my-4">
-          {monthly && <MonthlyBar data={monthly.data || monthly} />}
-        </div>
+            {monthly && <MonthlyBar data={monthly.data || monthly} />}
+          </div>
           <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm mt-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">

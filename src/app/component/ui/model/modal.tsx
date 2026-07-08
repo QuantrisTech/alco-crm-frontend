@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ModalField, ModalProps } from "@/types/ui";
 import UploadInput from "../upload-input";
 import SearchableSelect from "../searchable-select";
+import ProgramMultiSelect from "../program-multi-select";
 
 export default function Modal({
   isOpen,
@@ -25,6 +26,7 @@ export default function Modal({
   // ✅ Tabs ke liye naye props
   tabs,
   zIndex = 50,
+  children,
 }: ModalProps) {
   // const [form, setForm] = useState<Record<string, string | boolean>>(
   //   fields.reduce((acc, field) => {
@@ -33,8 +35,7 @@ export default function Modal({
   //   }, {} as Record<string, string | boolean>)
   // );
   // ✅ Fix — pehle initialValues se seed karo, phir fields se
-  const [form, setForm] = useState<Record<string, string | boolean>>(() => {
-    // Saari possible fields collect karo (regular + tabs dono)
+  const [form, setForm] = useState<Record<string, string | boolean | string[]>>(() => {
     const allFields = tabs
       ? tabs.flatMap((t) => t.fields)
       : fields;
@@ -42,9 +43,8 @@ export default function Modal({
     const base = allFields.reduce((acc, field) => {
       acc[field.name] = field.type === "checkbox" ? false : "";
       return acc;
-    }, {} as Record<string, string | boolean>);
+    }, {} as Record<string, string | boolean | string[]>);
 
-    // initialValues se override karo
     return { ...base, ...initialValues };
   });
 
@@ -93,9 +93,8 @@ export default function Modal({
     activeFieldList.forEach((field) => {
       if (field.required) {
         const val = form[field.name];
-        if (!val || (typeof val === "string" && val.trim() === "")) {
-          newErrors[field.name] = `${field.label.replace("*", "").trim()} is required`;
-        }
+        const isEmpty = Array.isArray(val) ? val.length === 0 : (!val || (typeof val === "string" && val.trim() === ""));
+        if (isEmpty) newErrors[field.name] = `${field.label.replace("*", "").trim()} is required`;
       }
     });
 
@@ -107,9 +106,9 @@ export default function Modal({
     setErrors({});
 
     if (tabs && currentTab?.onSubmit) {
-      currentTab.onSubmit(form);
+      currentTab.onSubmit(form as Record<string, string | boolean>);
     } else {
-      onSubmit(form);
+      onSubmit(form as Record<string, string | boolean>);
     }
   };
 
@@ -251,6 +250,22 @@ export default function Modal({
               : null}
           </div>
         );
+      case "multi-select":
+        return (
+          <ProgramMultiSelect
+            key={field.name}
+            programs={(field.options || []).map((o) => ({ _id: o.value, name: o.label }))}
+            selected={(form[field.name] as string[]) || []}
+            onToggle={(id) => {
+              const current = (form[field.name] as string[]) || [];
+              const updated = current.includes(id)
+                ? current.filter((x) => x !== id)
+                : [...current, id];
+              setForm({ ...form, [field.name]: updated });
+              if (errors[field.name]) setErrors({ ...errors, [field.name]: "" });
+            }}
+          />
+        );
     }
   };
 
@@ -300,6 +315,7 @@ export default function Modal({
         {/* Fields */}
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
           {activeFields.map((field) => renderField(field))}
+          {children}
         </div>
 
         {/* Footer */}

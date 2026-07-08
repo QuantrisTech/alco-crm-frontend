@@ -263,6 +263,8 @@ export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/
 export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);
 export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);
 export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);
+export const createEnrollmentDirectBundle = (data: any) =>
+  API.post("/api/v1/enrollments/direct/bundle", data);
 
 
 // ─── Access Control ───────────────────────────────────────────

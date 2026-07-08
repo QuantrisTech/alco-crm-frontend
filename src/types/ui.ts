@@ -43,13 +43,13 @@ export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   error?: string | { message?: string };
 };
 
-export type FieldType = "input" | "select" | "searchable-select" | "textarea" | "checkbox" | "uploadInput" | "custom";
+export type FieldType = "input" | "select" | "searchable-select" | "textarea" | "checkbox" | "uploadInput" | "custom" | "multi-select";
 
 export type ModalField = {
   name: string;
   label: string;
   type: FieldType;
-  defaultValue?: string | boolean;
+  defaultValue?: string | boolean | string[];
   placeholder?: string;
   inputType?: string; // "text" | "email" | "password" | "number"
   options?: { label: string; value: string, disabled?: boolean }[]; // select ke liye
@@ -57,7 +57,7 @@ export type ModalField = {
   disabled?: boolean;
   autoComplete?: string;
   uploadType?: "audio" | "video" | "document",
-  render?: (value: string | boolean, onChange: (updatedValue: string | boolean) => void) => React.ReactNode; // custom field ke liye
+  render?: (value: string | boolean | string[], onChange: (updatedValue: string | boolean | string[]) => void) => React.ReactNode; // custom field ke liye
 };
 
 export type ModalTab = {
@@ -81,5 +81,7 @@ export type ModalProps = {
   onBack?: () => void;
   tabs?: ModalTab[];
   zIndex?: number;
+  children?: React.ReactNode;  
+  // type?: "input" | "select" | "searchable-select" | "textarea" | "checkbox" | "uploadInput" | "custom" | "multi-select";
 };
 
