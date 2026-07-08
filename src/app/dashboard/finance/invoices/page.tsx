@@ -259,7 +259,14 @@ export default function InvoicesPage() {
         onPageChange={(page) => setFilters((f) => ({ ...f, page: String(page) }))}
         columns={[
           ...(isAdmin
-            ? [{
+            ? [
+              {
+                key: "invoiceNumber", label: "Invoice #",
+                render: (inv: any) => (
+                  <div className="font-medium text-sm text-gray-800 flex h-full pt-1"><div>{inv.invoiceNumber}</div></div>
+                ),
+              },
+              {
               key: "user", label: "Student",
               render: (inv: any) => (
                 <div>
