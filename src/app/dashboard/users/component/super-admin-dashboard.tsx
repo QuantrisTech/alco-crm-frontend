@@ -170,7 +170,7 @@ export default function UsersPage() {
         titleIcon={<UserCog size={24} />}
         totalCount={data?.total ?? 0}
         onAdd={() => setIsAddOpen(true)}
-        onDeleteAll={() => setShowDeleteAll(true)}
+        // onDeleteAll={() => setShowDeleteAll(true)}
         filters={filters}
         setFilters={setFilters}
         filterFields={[
