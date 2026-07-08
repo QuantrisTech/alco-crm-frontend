@@ -582,4 +582,23 @@ export const adminUpsertSeoPage = (slug: string, label: string, data: any) =>
 export const adminDeleteSeoPage = (slug: string) =>
   API.delete(`/api/v1/seo/${slug}`);
 
+// ─── Audio File Access ───────────────────────────────────────
+export const adminEnrollAudioProgram = (id: string, data: { programId: string; batchId: string }) =>
+  API.post(`/api/v1/audio-access/${id}/enroll-program`, data);
+
+export const adminRejectAudioProgram = (id: string, data: { programId: string; reason: string }) =>
+  API.patch(`/api/v1/audio-access/${id}/reject-program`, data);
+
+export const adminGetAudioAccessRequests = (params?: { status?: string }) =>
+  API.get("/api/v1/audio-access", { params });
+
+export const adminGrantAudioAccess = (id: string, programsGranted: string[]) =>
+  API.patch(`/api/v1/audio-access/${id}/grant`, { programsGranted });
+
+export const adminRejectAudioAccess = (id: string, reason: string) =>
+  API.patch(`/api/v1/audio-access/${id}/reject`, { reason });
+
+export const adminUpdateAudioPin = (pin: string) =>
+  API.put("/api/v1/audio-access/pin", { pin });
+
 export default API;

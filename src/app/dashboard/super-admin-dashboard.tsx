@@ -401,7 +401,7 @@
 
 "use client";
 
-import { Users, TrendingUp, BookOpen, GraduationCap, UserCog, Wallet, AlertCircle, FileText } from "lucide-react";
+import { Users, TrendingUp, BookOpen, GraduationCap, UserCog, Wallet, AlertCircle, FileText, Headphones } from "lucide-react";
 import { StatCard, StatCarduser } from "../component/dashboard/stat-card";
 import PageHeader from "../component/dashboard/page-header";
 import LeadPipeline from "../component/dashboard/lead-pipeline";
@@ -416,6 +416,7 @@ import {
   getMonthlyCollections
 } from "@/utils/api";
 import Link from "next/link";
+import { adminGetAudioAccessRequests } from "@/utils/api";
 
 function MonthlyBar({ data }: { data: any[] }) {
   const max = Math.max(...data.map((d) => d.totalCollected), 1);
@@ -494,6 +495,11 @@ export default function SuperAdminDashboard() {
       queryFn: () => getMonthlyCollections().then((r) => r.data.data), // r.data.data = { year, data: [] }
     });
 
+      const { data: audioAccessData } = useQuery({
+    queryKey: ["dashboard-audio-access"],
+    queryFn: () => adminGetAudioAccessRequests({ status: "pending" }).then(r => r.data),
+  });
+
   // ── Pipeline ──
  const pipelineData = [
     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
@@ -570,6 +576,15 @@ export default function SuperAdminDashboard() {
     //   text: "text-white",
     //   onClick: () => router.push("/dashboard/finance/invoices/overdue"),
     // },
+     {
+    title: "Audio Access Requests",
+    value: audioAccessData?.data?.length?.toString() || "0",
+    change: "Pending review",
+    icon: Headphones,
+    bg: "bg-rose-500",
+    text: "text-white",
+    onClick: () => router.push("/dashboard/audio-access"),
+  },
   ];
 
   const statsFinance = [
@@ -604,7 +619,7 @@ export default function SuperAdminDashboard() {
       />
 
       {/* Stats — 6 cards, 3 per row */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         {stats.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
