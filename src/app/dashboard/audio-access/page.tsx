@@ -319,7 +319,7 @@ export default function AudioAccessAdminPage() {
       {/* Program access modal — per-program Enroll / Reject + manual Add */}
       {viewingRequest && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+          <div className="bg-white rounded-2xl w-full max-w-sm md:max-w-md p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-1">Program Access</h2>
             <p className="text-sm text-gray-400 mb-1">
               {viewingRequest.first_name} {viewingRequest.last_name} — {viewingRequest.email}
