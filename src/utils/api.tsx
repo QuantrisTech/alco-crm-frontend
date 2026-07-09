@@ -594,13 +594,17 @@ export const adminRejectAudioProgram = (id: string, data: { programId: string; r
 export const adminGetAudioAccessRequests = (params?: { status?: string }) =>
   API.get("/api/v1/audio-access", { params });
 
+export const adminUpdateAudioPin = (pin: string) =>
+  API.put("/api/v1/audio-access/pin", { pin });
+
+export const adminAddProgramToAudioRequest = (id: string, programId: string) =>
+  API.post(`/api/v1/audio-access/${id}/add-program`, { programId });
+
 export const adminGrantAudioAccess = (id: string, programsGranted: string[]) =>
   API.patch(`/api/v1/audio-access/${id}/grant`, { programsGranted });
 
 export const adminRejectAudioAccess = (id: string, reason: string) =>
   API.patch(`/api/v1/audio-access/${id}/reject`, { reason });
 
-export const adminUpdateAudioPin = (pin: string) =>
-  API.put("/api/v1/audio-access/pin", { pin });
 
 export default API;
