@@ -13,6 +13,7 @@ interface Installment {
   status: "PAID" | "PENDING";
   isAdvance: boolean;
   paidAmount: number;
+  notes?: string | null;
 }
 
 interface Props {
@@ -35,10 +36,12 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
 
   // ── ALL HOOKS FIRST — early return se pehle ─────────────────
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm]   = useState({ label: "", amount: "", dueDate: "" });
+  const [editForm, setEditForm]   = useState({ label: "", amount: "", dueDate: "", notes: "" });
+  const [notesOnlyId, setNotesOnlyId] = useState<string | null>(null);
+  const [notesOnlyValue, setNotesOnlyValue] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm]         = useState({
-    label: "", amount: "", dueDate: "", isAdvance: false,
+    label: "", amount: "", dueDate: "", isAdvance: false, notes: "",
   });
 
   const { mutate: saveEdit, isPending: isSaving } = useMutation({
@@ -47,6 +50,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
     onSuccess: () => {
       toast.success("Installment updated!");
       setEditingId(null);
+      setNotesOnlyId(null);
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
     },
@@ -59,7 +63,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
     onSuccess: () => {
       toast.success("Installment added!");
       setShowAddForm(false);
-      setAddForm({ label: "", amount: "", dueDate: "", isAdvance: false });
+      setAddForm({ label: "", amount: "", dueDate: "", isAdvance: false, notes: "" });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
     },
@@ -77,6 +81,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
       label:   inst.label,
       amount:  String(inst.amount),
       dueDate: inst.dueDate ? inst.dueDate.split("T")[0] : "",
+      notes:   inst.notes || "",
     });
   };
 
@@ -89,7 +94,20 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
         label:   editForm.label,
         amount:  Number(editForm.amount),
         dueDate: editForm.dueDate || undefined,
+        notes:   editForm.notes || undefined,
       },
+    });
+  };
+
+  const openNotesOnly = (inst: Installment) => {
+    setNotesOnlyId(inst._id);
+    setNotesOnlyValue(inst.notes || "");
+  };
+
+  const handleSaveNotesOnly = (instId: string) => {
+    saveEdit({
+      instId,
+      data: { notes: notesOnlyValue || undefined },
     });
   };
 
@@ -101,6 +119,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
       amount:    Number(addForm.amount),
       dueDate:   addForm.dueDate || undefined,
       isAdvance: addForm.isAdvance,
+      notes:     addForm.notes || undefined,
     });
   };
 
@@ -143,7 +162,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                   : "border-gray-100 bg-gray-50/60"
               }`}
             >
-              {editingId !== inst._id ? (
+              {editingId !== inst._id && notesOnlyId !== inst._id ? (
                 /* ── Normal Row ─────────────────────────────── */
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -171,6 +190,11 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                       <p className="text-xs text-gray-400 mt-0.5">
                         Due: {fmtDate(inst.dueDate)}
                       </p>
+                      {inst.notes && (
+                        <p className="text-xs text-gray-500 mt-1 italic truncate">
+                          "{inst.notes}"
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -187,13 +211,61 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                         <Pencil size={13} />
                       </button>
                     ) : (
-                      <span className="w-7 h-7 rounded-lg flex items-center justify-center text-green-500 bg-green-50">
-                        <Check size={13} />
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => openNotesOnly(inst)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition"
+                          title="Edit notes"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <span className="w-7 h-7 rounded-lg flex items-center justify-center text-green-500 bg-green-50">
+                          <Check size={13} />
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
 
+              ) : notesOnlyId === inst._id ? (
+                /* ── Notes-only Edit (for PAID installments) ── */
+                <div className="px-4 py-4 space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-gray-800 text-sm">{inst.label}</p>
+                    <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                      PAID
+                    </span>
+                    <span className="font-mono font-bold text-sm text-gray-800 ml-auto">
+                      {fmt(inst.amount)}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
+                    <textarea
+                      rows={2}
+                      value={notesOnlyValue}
+                      onChange={(e) => setNotesOnlyValue(e.target.value)}
+                      placeholder="Any note about this payment..."
+                      className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-1">
+                    <button
+                      onClick={() => setNotesOnlyId(null)}
+                      className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSaveNotesOnly(inst._id)}
+                      disabled={isSaving}
+                      className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Save size={12} />
+                      {isSaving ? "Saving..." : "Save Notes"}
+                    </button>
+                  </div>
+                </div>
               ) : (
                 /* ── Edit Form ──────────────────────────────── */
                 <div className="px-4 py-4 space-y-3">
@@ -227,6 +299,16 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                       value={editForm.dueDate}
                       onChange={(e) => setEditForm((p) => ({ ...p, dueDate: e.target.value }))}
                       className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
+                    <textarea
+                      rows={2}
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))}
+                      placeholder="Any note about this installment..."
+                      className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
                     />
                   </div>
                   <div className="flex gap-2 justify-end pt-1">
@@ -284,6 +366,16 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                   value={addForm.dueDate}
                   onChange={(e) => setAddForm((p) => ({ ...p, dueDate: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={addForm.notes}
+                  onChange={(e) => setAddForm((p) => ({ ...p, notes: e.target.value }))}
+                  placeholder="Any note about this installment..."
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer w-fit">

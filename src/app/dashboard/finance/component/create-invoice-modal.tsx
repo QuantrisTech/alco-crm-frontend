@@ -480,27 +480,23 @@
 //   );
 // }
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X, Search, CreditCard, Plus, Trash2, ChevronLeft, User, BookOpen, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { searchEnrollments, createInvoice, addInstallment } from "@/utils/api";
 import toast from "react-hot-toast";
 
-// ── Types ────────────────────────────────────────────────────────
 interface NewInstallment {
   label: string;
   amount: number;
   dueDate: string;
 }
 
-interface FreshForm {
-  totalAmount: number;
-  advanceAmount: number;
-  advanceDueDate: string;
-  installments: NewInstallment[];
-  notes: string;
-  invoiceNumber: string;
-  issueDate: string;
+interface BundleItem {
+  program: string;
+  programName: string;
+  enrollment: string;
+  amount: number;
 }
 
 interface Props {
@@ -508,138 +504,186 @@ interface Props {
   onClose: () => void;
 }
 
-const toDateInput = (d?: string) => {
-  if (!d) return "";
-  try { return new Date(d).toISOString().split("T")[0]; } catch { return ""; }
-};
+type Mode = "fresh" | "append" | "bundle";
 
+const todayStr = () => new Date().toISOString().split("T")[0];
 const fmt = (n: number) => Number(n || 0).toLocaleString("en-PK");
+const statusColor = (s: string) => (s === "PAID" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600");
 
-const statusColor = (s: string) =>
-  s === "PAID" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600";
-
-// ── Component ────────────────────────────────────────────────────
 export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const queryClient = useQueryClient();
 
-  // ── Step & search state ──────────────────────────────────────
+  // ── Step & search ──────────────────────────────────────────
   const [step, setStep] = useState<1 | 2>(1);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null);
+  const [selectedEnrollments, setSelectedEnrollments] = useState<any[]>([]);
+  const [mode, setMode] = useState<Mode>("fresh");
 
-  // ── Mode: "fresh" = naya invoice | "append" = existing pe add ─
-  const [mode, setMode] = useState<"fresh" | "append">("fresh");
-  const todayStr = () => new Date().toISOString().split("T")[0];
-  // ── Fresh invoice form ───────────────────────────────────────
-  const [freshForm, setFreshForm] = useState<FreshForm>({
+  // ── Fresh invoice form (single enrollment, no existing invoice) ──
+  const [freshForm, setFreshForm] = useState({
     totalAmount: 0,
     advanceAmount: 0,
     advanceDueDate: "",
-    installments: [],
+    installments: [] as NewInstallment[],
     notes: "",
     invoiceNumber: "",
     issueDate: todayStr(),
   });
 
-  // ── Append mode: sirf New Installments ─────────────────────
+  // ── Bundle invoice form (multiple enrollments) ───────────────
+  const [bundleForm, setBundleForm] = useState({
+    invoiceNumber: "",
+    issueDate: todayStr(),
+    items: [] as BundleItem[],
+    discount: 0,
+    advanceAmount: 0,
+    advanceDueDate: "",
+    installments: [] as NewInstallment[],
+    notes: "",
+  });
+
+  // ── Append mode: sirf new installments on existing invoice ──
   const [appendInstallments, setAppendInstallments] = useState<NewInstallment[]>([
     { label: "Installment 1", amount: 0, dueDate: "" },
   ]);
 
-  // ── Debounce search ──────────────────────────────────────────
+  // ── Debounced search ──────────────────────────────────────────
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    if (val.trim().length < 2) { setResults([]); return; }
+    if (val.trim().length < 2) {
+      setResults([]);
+      return;
+    }
     debounceTimer.current = setTimeout(async () => {
       setIsSearching(true);
       try {
         const res = await searchEnrollments(val);
         setResults(res.data?.data || []);
-      } catch { toast.error("Search Operation failed"); }
-      finally { setIsSearching(false); }
+      } catch {
+        toast.error("Search Operation failed");
+      } finally {
+        setIsSearching(false);
+      }
     }, 400);
   };
 
-  // ── Select enrollment → decide mode ─────────────────────────
-  const selectEnrollment = (enrollment: any) => {
-    setSelectedEnrollment(enrollment);
-    const inv = enrollment.invoice;
-    if (inv && inv.remainingAmount > 0) {
-      // Existing invoice hai, remaining bhi hai → append mode
-      setMode("append");
-      setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
-    } else {
-      // No invoice ya fully paid → fresh
-      setMode("fresh");
-      setFreshForm({
-        totalAmount: 0,
-        advanceAmount: 0,
-        advanceDueDate: "",
-        installments: [],
-        notes: "",
-        invoiceNumber: "",
-        issueDate: todayStr(),
-      });
-    }
-    setResults([]);
-    setQuery("");
-    setStep(2);
+  const toggleEnrollmentSelect = (enrollment: any) => {
+    setSelectedEnrollments((prev) => {
+      const exists = prev.find((e) => e._id === enrollment._id);
+      if (exists) return prev.filter((e) => e._id !== enrollment._id);
+      // Different student select kiya to purana selection clear karo
+      if (prev.length > 0 && prev[0].user._id !== enrollment.user._id) {
+        return [enrollment];
+      }
+      return [...prev, enrollment];
+    });
   };
 
-  // ── Fresh form helpers ───────────────────────────────────────
-  // Remaining = kitna abhi tak unallocated hai (advance + installments ke baad).
-  // Yeh negative nahi honi chahiye (over-allocation), lekin zero hona zaroori nahi —
-  // baqi amount future me "Add Installments" (append mode) se add ho sakta hai.
+  const proceedToStep2 = () => {
+    if (selectedEnrollments.length === 0) {
+      toast.error("Select at least one enrollment");
+      return;
+    }
+    if (selectedEnrollments.length === 1) {
+      const inv = selectedEnrollments[0].invoice;
+      if (inv && inv.remainingAmount > 0) {
+        setMode("append");
+        setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
+      } else {
+        setMode("fresh");
+        setFreshForm({
+          totalAmount: 0,
+          advanceAmount: 0,
+          advanceDueDate: "",
+          installments: [],
+          notes: "",
+          invoiceNumber: "",
+          issueDate: todayStr(),
+        });
+      }
+    } else {
+      setMode("bundle");
+    }
+    setStep(2);
+    setResults([]);
+    setQuery("");
+  };
+
+  // selectedEnrollments badalne pe bundle items auto-populate karo
+  useEffect(() => {
+    if (mode === "bundle" && step === 2) {
+      setBundleForm((p) => ({
+        ...p,
+        items: selectedEnrollments.map((e) => ({
+          program: e.program?._id,
+          programName: e.program?.name,
+          enrollment: e._id,
+          amount: e.program?.price || 0,
+        })),
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, step]);
+
+  // ── Fresh form derived values ────────────────────────────────
   const freshRemaining =
-    freshForm.totalAmount -
-    freshForm.advanceAmount -
-    freshForm.installments.reduce((s, i) => s + Number(i.amount), 0);
+    freshForm.totalAmount - freshForm.advanceAmount - freshForm.installments.reduce((s, i) => s + Number(i.amount), 0);
 
   const addFreshInstallment = () =>
     setFreshForm((p) => ({
       ...p,
       installments: [...p.installments, { label: `Installment ${p.installments.length + 1}`, amount: 0, dueDate: "" }],
     }));
-
   const removeFreshInstallment = (idx: number) =>
     setFreshForm((p) => ({ ...p, installments: p.installments.filter((_, i) => i !== idx) }));
-
   const updateFreshInstallment = (idx: number, field: string, value: any) =>
-    setFreshForm((p) => ({
-      ...p,
-      installments: p.installments.map((inst, i) => i === idx ? { ...inst, [field]: value } : inst),
-    }));
+    setFreshForm((p) => ({ ...p, installments: p.installments.map((inst, i) => (i === idx ? { ...inst, [field]: value } : inst)) }));
 
-  // ── Append form helpers ──────────────────────────────────────
-  const existingInvoice = selectedEnrollment?.invoice;
+  // ── Bundle form derived values ───────────────────────────────
+  const itemsSubtotal = bundleForm.items.reduce((s, i) => s + Number(i.amount), 0);
+  const bundleTotal = Math.max(0, itemsSubtotal - bundleForm.discount);
+  const bundleRemaining =
+    bundleTotal - bundleForm.advanceAmount - bundleForm.installments.reduce((s, i) => s + Number(i.amount), 0);
+
+  const updateItemAmount = (idx: number, amount: number) =>
+    setBundleForm((p) => ({ ...p, items: p.items.map((it, i) => (i === idx ? { ...it, amount } : it)) }));
+
+  const addBundleInstallment = () =>
+    setBundleForm((p) => ({
+      ...p,
+      installments: [...p.installments, { label: `Installment ${p.installments.length + 1}`, amount: 0, dueDate: "" }],
+    }));
+  const removeBundleInstallment = (idx: number) =>
+    setBundleForm((p) => ({ ...p, installments: p.installments.filter((_, i) => i !== idx) }));
+  const updateBundleInstallment = (idx: number, field: string, value: any) =>
+    setBundleForm((p) => ({ ...p, installments: p.installments.map((inst, i) => (i === idx ? { ...inst, [field]: value } : inst)) }));
+
+  // ── Append form derived values ───────────────────────────────
+  const existingInvoice = selectedEnrollments[0]?.invoice;
   const appendTotal = appendInstallments.reduce((s, i) => s + Number(i.amount), 0);
   const appendRemaining = (existingInvoice?.remainingAmount || 0) - appendTotal;
 
-  const addAppendInstallment = () =>
-    setAppendInstallments((p) => [...p, { label: `Installment ${p.length + 1}`, amount: 0, dueDate: "" }]);
-
-  const removeAppendInstallment = (idx: number) =>
-    setAppendInstallments((p) => p.filter((_, i) => i !== idx));
-
+  const addAppendInstallment = () => setAppendInstallments((p) => [...p, { label: `Installment ${p.length + 1}`, amount: 0, dueDate: "" }]);
+  const removeAppendInstallment = (idx: number) => setAppendInstallments((p) => p.filter((_, i) => i !== idx));
   const updateAppendInstallment = (idx: number, field: string, value: any) =>
-    setAppendInstallments((p) => p.map((inst, i) => i === idx ? { ...inst, [field]: value } : inst));
+    setAppendInstallments((p) => p.map((inst, i) => (i === idx ? { ...inst, [field]: value } : inst)));
 
-  // ── Submit: Fresh invoice ─────────────────────────────────────
+  // ── Mutations ──────────────────────────────────────────────
   const { mutate: submitFresh, isPending: isFreshPending } = useMutation({
     mutationFn: () => {
+      const enrollment = selectedEnrollments[0];
       const allInstallments = [
         { label: "Advance Payment", amount: freshForm.advanceAmount, dueDate: freshForm.advanceDueDate, isAdvance: true, status: "PENDING", paidAmount: 0 },
         ...freshForm.installments.map((inst) => ({ label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false, status: "PENDING", paidAmount: 0 })),
       ];
       return createInvoice({
-        user: selectedEnrollment.user._id,
-        enrollment: selectedEnrollment._id,
+        user: enrollment.user._id,
+        enrollment: enrollment._id,
         totalAmount: freshForm.totalAmount,
         dueDate: freshForm.advanceDueDate,
         installments: allInstallments,
@@ -656,18 +700,37 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
   });
 
-  // ── Submit: Append installments ──────────────────────────────
+  const { mutate: submitBundle, isPending: isBundlePending } = useMutation({
+    mutationFn: () => {
+      const allInstallments = [
+        { label: "Advance Payment", amount: bundleForm.advanceAmount, dueDate: bundleForm.advanceDueDate, isAdvance: true, status: "PENDING", paidAmount: 0 },
+        ...bundleForm.installments.map((inst) => ({ label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false, status: "PENDING", paidAmount: 0 })),
+      ];
+      return createInvoice({
+        user: selectedEnrollments[0].user._id,
+        enrollments: selectedEnrollments.map((e) => e._id),
+        items: bundleForm.items,
+        totalAmount: bundleTotal,
+        dueDate: bundleForm.advanceDueDate,
+        installments: allInstallments,
+        notes: bundleForm.notes,
+        invoiceNumber: bundleForm.invoiceNumber.trim() || undefined,
+        issueDate: bundleForm.issueDate,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Bundle invoice created! ✅");
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      handleClose();
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
+  });
+
   const { mutate: submitAppend, isPending: isAppendPending } = useMutation({
     mutationFn: async () => {
       const invoiceId = existingInvoice._id;
-      // Ek ek installment add karo sequentially
       for (const inst of appendInstallments) {
-        await addInstallment(invoiceId, {
-          label: inst.label,
-          amount: inst.amount,
-          dueDate: inst.dueDate,
-          isAdvance: false,
-        });
+        await addInstallment(invoiceId, { label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false });
       }
     },
     onSuccess: () => {
@@ -678,22 +741,28 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     onError: (e: any) => toast.error(e?.response?.data?.message || "Operation failed!"),
   });
 
-  // Full allocation force nahi karte — sirf basic fields aur over-allocation check.
-  // Advance-only invoice (bina installments ke) bhi valid hai; remaining baad me
-  // "Add Installments" (append mode) se cover ho sakta hai.
+  const isPending = isFreshPending || isBundlePending || isAppendPending;
+
   const handleFreshSubmit = () => {
-    if (freshForm.totalAmount <= 0) { toast.error("Please enter total program fee"); return; }
-    if (freshForm.advanceAmount <= 0) { toast.error("Please enter advance amount"); return; }
-    if (!freshForm.advanceDueDate) { toast.error("Please select advance due date"); return; }
-    if (freshRemaining < 0) { toast.error(`Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`); return; }
+    if (freshForm.totalAmount <= 0) return toast.error("Please enter total program fee");
+    if (freshForm.advanceAmount <= 0) return toast.error("Please enter advance amount");
+    if (!freshForm.advanceDueDate) return toast.error("Please select advance due date");
+    if (freshRemaining < 0) return toast.error(`Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`);
     submitFresh();
   };
 
+  const handleBundleSubmit = () => {
+    if (bundleTotal <= 0) return toast.error("Please check program amounts");
+    if (bundleForm.advanceAmount <= 0) return toast.error("Please enter advance amount");
+    if (!bundleForm.advanceDueDate) return toast.error("Please select advance due date");
+    if (bundleRemaining < 0) return toast.error(`Over-allocated by Rs ${fmt(Math.abs(bundleRemaining))}`);
+    submitBundle();
+  };
+
   const handleAppendSubmit = () => {
-    if (appendTotal <= 0) { toast.error("Please add at least one installment"); return; }
+    if (appendTotal <= 0) return toast.error("Please add at least one installment");
     if (appendTotal > (existingInvoice?.remainingAmount || 0)) {
-      toast.error(`Allocated amount exceeds the remaining amount (Rs ${fmt(existingInvoice?.remainingAmount)})`);
-      return;
+      return toast.error(`Allocated amount exceeds the remaining amount (Rs ${fmt(existingInvoice?.remainingAmount)})`);
     }
     submitAppend();
   };
@@ -702,16 +771,17 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     setStep(1);
     setQuery("");
     setResults([]);
-    setSelectedEnrollment(null);
+    setSelectedEnrollments([]);
     setMode("fresh");
     setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "", issueDate: todayStr() });
+    setBundleForm({ invoiceNumber: "", issueDate: todayStr(), items: [], discount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "" });
     setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
     onClose();
   };
 
   if (!isOpen) return null;
 
-  const isPending = isFreshPending || isAppendPending;
+  const primaryEnrollment = selectedEnrollments[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -730,14 +800,16 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
             <div>
               <h2 className="text-sm font-bold text-gray-800">
-                {step === 1 ? "Create Invoice" : mode === "append" ? "Add Installments" : "New Invoice"}
+                {step === 1 ? "Create Invoice" : mode === "append" ? "Add Installments" : mode === "bundle" ? "Bundle Invoice" : "New Invoice"}
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
                 {step === 1
                   ? "Step 1: Select Student / Enrollment"
                   : mode === "append"
-                    ? `Add to Existing Invoice — ${selectedEnrollment?.user?.name}`
-                    : `New Payment Plan — ${selectedEnrollment?.user?.name}`}
+                  ? `Add to Existing Invoice — ${primaryEnrollment?.user?.name}`
+                  : mode === "bundle"
+                  ? `${selectedEnrollments.length} programs — ${primaryEnrollment?.user?.name}`
+                  : `New Payment Plan — ${primaryEnrollment?.user?.name}`}
               </p>
             </div>
           </div>
@@ -754,7 +826,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* ══════════════════════════════════════════════
-            STEP 1 — Search
+            STEP 1 — Search & multi-select
         ══════════════════════════════════════════════ */}
         {step === 1 && (
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
@@ -775,18 +847,20 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             {!isSearching && results.length > 0 && (
               <div className="space-y-2">
                 {results.map((enrollment: any) => {
+                  const isSelected = selectedEnrollments.some((e) => e._id === enrollment._id);
                   const inv = enrollment.invoice;
                   const hasInvoice = !!inv;
                   const hasRemaining = hasInvoice && inv.remainingAmount > 0;
-
                   return (
                     <button
                       key={enrollment._id}
-                      onClick={() => selectEnrollment(enrollment)}
-                      className="w-full text-left border border-gray-100 rounded-xl p-3 hover:border-orange-300 hover:bg-orange-50 transition-all group"
+                      onClick={() => toggleEnrollmentSelect(enrollment)}
+                      className={`w-full text-left border rounded-xl p-3 transition-all group ${
+                        isSelected ? "border-orange-400 bg-orange-50" : "border-gray-100 hover:border-orange-300 hover:bg-orange-50"
+                      }`}
                     >
-                      {/* ── Student info row ── */}
                       <div className="flex items-start gap-3">
+                        <input type="checkbox" checked={isSelected} readOnly className="mt-1.5" />
                         <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
                           <User size={14} className="text-gray-500 group-hover:text-orange-500" />
                         </div>
@@ -803,24 +877,25 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                             )}
                           </div>
                         </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${enrollment.accessStatus === "ACTIVE" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"}`}>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
+                            enrollment.accessStatus === "ACTIVE" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"
+                          }`}
+                        >
                           {enrollment.accessStatus}
                         </span>
                       </div>
 
-                      {/* ── Existing invoice summary ── */}
+                      {/* Existing invoice summary */}
                       {hasInvoice && (
                         <div className="mt-2.5 pt-2.5 border-t border-gray-100">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
                               Invoice: {inv.invoiceNumber}
                             </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor(inv.status)}`}>
-                              {inv.status}
-                            </span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusColor(inv.status)}`}>{inv.status}</span>
                           </div>
 
-                          {/* Amounts row */}
                           <div className="grid grid-cols-3 gap-1.5 mb-2">
                             <div className="bg-gray-50 rounded-lg px-2 py-1.5 text-center">
                               <p className="text-[9px] text-gray-400 mb-0.5">Total</p>
@@ -836,36 +911,31 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                             </div>
                           </div>
 
-                          {/* Installments list */}
                           <div className="space-y-1">
                             {inv.installments?.map((inst: any, i: number) => (
                               <div key={i} className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
-                                  {inst.status === "PAID"
-                                    ? <CheckCircle size={10} className="text-green-500 shrink-0" />
-                                    : <Clock size={10} className="text-yellow-500 shrink-0" />}
-                                  <span className="text-[11px] text-gray-600">
-                                    {inst.isAdvance ? "Advance" : inst.label}
-                                  </span>
+                                  {inst.status === "PAID" ? (
+                                    <CheckCircle size={10} className="text-green-500 shrink-0" />
+                                  ) : (
+                                    <Clock size={10} className="text-yellow-500 shrink-0" />
+                                  )}
+                                  <span className="text-[11px] text-gray-600">{inst.isAdvance ? "Advance" : inst.label}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[11px] font-medium text-gray-700">Rs {fmt(inst.amount)}</span>
-                                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${statusColor(inst.status)}`}>
-                                    {inst.status}
-                                  </span>
+                                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${statusColor(inst.status)}`}>{inst.status}</span>
                                 </div>
                               </div>
                             ))}
                           </div>
 
-                          {/* Action hint */}
-                          {hasRemaining && (
+                          {hasRemaining ? (
                             <div className="mt-2 flex items-center gap-1.5 text-orange-500">
                               <Plus size={10} />
                               <span className="text-[10px] font-semibold">Rs {fmt(inv.remainingAmount)} remaining — more installments can be added</span>
                             </div>
-                          )}
-                          {!hasRemaining && (
+                          ) : (
                             <div className="mt-2 flex items-center gap-1.5 text-teal-500">
                               <CheckCircle size={10} />
                               <span className="text-[10px] font-semibold">Fully paid — a new invoice can be created</span>
@@ -874,7 +944,6 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                         </div>
                       )}
 
-                      {/* No invoice yet */}
                       {!hasInvoice && (
                         <div className="mt-2 flex items-center gap-1.5 text-orange-400 pt-2 border-t border-gray-100">
                           <AlertCircle size={10} />
@@ -906,8 +975,16 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
           </div>
         )}
 
+        {step === 1 && selectedEnrollments.length > 0 && (
+          <div className="px-5 py-4 border-t border-gray-100">
+            <button onClick={proceedToStep2} className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600">
+              Continue with {selectedEnrollments.length} program{selectedEnrollments.length > 1 ? "s" : ""} →
+            </button>
+          </div>
+        )}
+
         {/* ══════════════════════════════════════════════
-            STEP 2A — Fresh Invoice Form
+            STEP 2A — Fresh Invoice (single enrollment, no invoice)
         ══════════════════════════════════════════════ */}
         {step === 2 && mode === "fresh" && (
           <>
@@ -916,26 +993,23 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 <User size={14} className="text-orange-500" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-800 truncate">{selectedEnrollment?.user?.name}</p>
+                <p className="text-sm font-semibold text-gray-800 truncate">{primaryEnrollment?.user?.name}</p>
                 <p className="text-xs text-gray-500 truncate">
-                  {selectedEnrollment?.program?.name}
-                  {selectedEnrollment?.batch?.name ? ` · ${selectedEnrollment.batch.name}` : ""}
+                  {primaryEnrollment?.program?.name}
+                  {primaryEnrollment?.batch?.name ? ` · ${primaryEnrollment.batch.name}` : ""}
                 </p>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                {/* Total */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Old Invoice Number
-                  </label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Invoice Number</label>
                   <input
                     type="text"
                     value={freshForm.invoiceNumber}
                     onChange={(e) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                    placeholder="e.g. INV-2023-0045"
+                    placeholder="e.g. INV-2026-0045"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
@@ -963,7 +1037,6 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 />
               </div>
 
-              {/* Advance */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Amount (Rs)</label>
@@ -988,18 +1061,20 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Remaining badge — informational only, doesn't block submit unless negative */}
               {freshForm.totalAmount > 0 && (
-                <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${freshRemaining < 0 ? "bg-rose-50 text-rose-600" : freshRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"}`}>
+                <div
+                  className={`text-xs font-semibold px-3 py-2 rounded-lg ${
+                    freshRemaining < 0 ? "bg-rose-50 text-rose-600" : freshRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
+                  }`}
+                >
                   {freshRemaining < 0
                     ? `Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`
                     : freshRemaining === 0
-                      ? "✓ Fully allocated"
-                      : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
+                    ? "✓ Fully allocated"
+                    : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
                 </div>
               )}
 
-              {/* Installments — optional */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold text-gray-600">Installments (Optional)</label>
@@ -1009,7 +1084,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 </div>
 
                 {freshForm.installments.length === 0 && (
-                  <p className="text-[11px] text-gray-400 italic px-1">No installments added — this will be an advance-only invoice. More installments can be added anytime later.</p>
+                  <p className="text-[11px] text-gray-400 italic px-1">
+                    No installments added — this will be an advance-only invoice. More installments can be added anytime later.
+                  </p>
                 )}
 
                 <div className="space-y-2">
@@ -1049,7 +1126,6 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Notes (Optional)</label>
                 <textarea
@@ -1063,39 +1139,218 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
 
             <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-              <button onClick={handleClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                Cancel
+              </button>
               <button
                 onClick={handleFreshSubmit}
                 disabled={isPending || freshRemaining < 0 || freshForm.totalAmount <= 0 || freshForm.advanceAmount <= 0}
                 className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50"
               >
-                {isPending ? "Saving..." : "Create Invoice"}
+                {isFreshPending ? "Saving..." : "Create Invoice"}
               </button>
             </div>
           </>
         )}
 
         {/* ══════════════════════════════════════════════
-            STEP 2B — Append Installments Form
+            STEP 2B — Bundle Invoice (multiple enrollments)
+        ══════════════════════════════════════════════ */}
+        {step === 2 && mode === "bundle" && (
+          <>
+            <div className="mx-5 mt-3 p-3 bg-orange-50 rounded-xl border border-orange-100">
+              <p className="text-sm font-semibold text-gray-800">{primaryEnrollment?.user?.name}</p>
+              <p className="text-xs text-gray-500">{selectedEnrollments.length} programs bundled</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Invoice Number</label>
+                  <input
+                    type="text"
+                    value={bundleForm.invoiceNumber}
+                    onChange={(e) => setBundleForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                    placeholder="e.g. INV-2026-0045"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
+                  <input
+                    type="date"
+                    value={bundleForm.issueDate}
+                    onChange={(e) => setBundleForm((p) => ({ ...p, issueDate: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-2 block">Programs & Amounts</label>
+                <div className="space-y-2">
+                  {bundleForm.items.map((item, idx) => (
+                    <div key={item.enrollment} className="flex items-center gap-2 border border-gray-100 rounded-lg p-2.5 bg-gray-50">
+                      <span className="text-sm text-gray-700 flex-1">{item.programName}</span>
+                      <input
+                        type="number"
+                        value={item.amount || ""}
+                        onChange={(e) => updateItemAmount(idx, Number(e.target.value))}
+                        className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-right text-gray-900 placeholder:text-gray-900"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Subtotal (Rs)</label>
+                  <div className="border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">Rs {fmt(itemsSubtotal)}</div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Discount (Rs)</label>
+                  <input
+                    type="number"
+                    value={bundleForm.discount || ""}
+                    onChange={(e) => setBundleForm((p) => ({ ...p, discount: Number(e.target.value) }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    placeholder="e.g. 10000"
+                  />
+                </div>
+              </div>
+
+              <div className="text-sm font-bold text-gray-800 px-3 py-2 bg-teal-50 rounded-lg">
+                Total after discount: Rs {fmt(bundleTotal)}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Amount (Rs)</label>
+                  <input
+                    type="number"
+                    value={bundleForm.advanceAmount || ""}
+                    onChange={(e) => setBundleForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Due Date</label>
+                  <input
+                    type="date"
+                    value={bundleForm.advanceDueDate}
+                    onChange={(e) => setBundleForm((p) => ({ ...p, advanceDueDate: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              {bundleTotal > 0 && (
+                <div
+                  className={`text-xs font-semibold px-3 py-2 rounded-lg ${
+                    bundleRemaining < 0 ? "bg-rose-50 text-rose-600" : bundleRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
+                  }`}
+                >
+                  {bundleRemaining < 0
+                    ? `Over-allocated by Rs ${fmt(Math.abs(bundleRemaining))}`
+                    : bundleRemaining === 0
+                    ? "✓ Fully allocated"
+                    : `Rs ${fmt(bundleRemaining)} not yet allocated — can add installments later`}
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-gray-600">Installments (Optional)</label>
+                  <button type="button" onClick={addBundleInstallment} className="flex items-center gap-1 text-xs text-orange-500 hover:text-orange-600 font-medium">
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {bundleForm.installments.map((inst, idx) => (
+                    <div key={idx} className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <input
+                          type="text"
+                          value={inst.label}
+                          onChange={(e) => updateBundleInstallment(idx, "label", e.target.value)}
+                          className="text-xs font-medium text-gray-700 bg-transparent border-none outline-none flex-1"
+                          placeholder="Label e.g. Month 1"
+                        />
+                        <button type="button" onClick={() => removeBundleInstallment(idx)} className="text-rose-400 hover:text-rose-600 ml-2">
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          placeholder="Amount (Rs)"
+                          value={inst.amount || ""}
+                          onChange={(e) => updateBundleInstallment(idx, "amount", Number(e.target.value))}
+                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900 placeholder:text-gray-400"
+                          required
+                        />
+                        <input
+                          type="date"
+                          value={inst.dueDate}
+                          onChange={(e) => updateBundleInstallment(idx, "dueDate", e.target.value)}
+                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900"
+                          required
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+                <textarea
+                  rows={2}
+                  value={bundleForm.notes}
+                  onChange={(e) => setBundleForm((p) => ({ ...p, notes: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                />
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+              <button onClick={handleClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500">
+                Cancel
+              </button>
+              <button
+                onClick={handleBundleSubmit}
+                disabled={isPending || bundleRemaining < 0 || bundleTotal <= 0}
+                className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-50"
+              >
+                {isBundlePending ? "Saving..." : "Create Bundle Invoice"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ══════════════════════════════════════════════
+            STEP 2C — Append Installments (existing invoice)
         ══════════════════════════════════════════════ */}
         {step === 2 && mode === "append" && (
           <>
-            {/* Student + invoice summary */}
             <div className="mx-5 mt-3 space-y-2">
               <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
                   <User size={14} className="text-orange-500" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{selectedEnrollment?.user?.name}</p>
+                  <p className="text-sm font-semibold text-gray-800 truncate">{primaryEnrollment?.user?.name}</p>
                   <p className="text-xs text-gray-500 truncate">
-                    {selectedEnrollment?.program?.name}
-                    {selectedEnrollment?.batch?.name ? ` · ${selectedEnrollment.batch.name}` : ""}
+                    {primaryEnrollment?.program?.name}
+                    {primaryEnrollment?.batch?.name ? ` · ${primaryEnrollment.batch.name}` : ""}
                   </p>
                 </div>
               </div>
 
-              {/* Existing invoice mini summary */}
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
                   Existing Invoice — {existingInvoice?.invoiceNumber}
@@ -1115,14 +1370,11 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Existing installments */}
                 <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
                   {existingInvoice?.installments?.map((inst: any, i: number) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        {inst.status === "PAID"
-                          ? <CheckCircle size={10} className="text-green-500" />
-                          : <Clock size={10} className="text-yellow-500" />}
+                        {inst.status === "PAID" ? <CheckCircle size={10} className="text-green-500" /> : <Clock size={10} className="text-yellow-500" />}
                         <span className="text-[11px] text-gray-600">{inst.isAdvance ? "Advance" : inst.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -1136,16 +1388,18 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-              {/* Remaining allocation badge — informational, only blocks on over-allocation */}
-              <div className={`text-xs font-semibold px-3 py-2 rounded-lg ${appendRemaining < 0 ? "bg-rose-50 text-rose-600" : appendRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"}`}>
+              <div
+                className={`text-xs font-semibold px-3 py-2 rounded-lg ${
+                  appendRemaining < 0 ? "bg-rose-50 text-rose-600" : appendRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
+                }`}
+              >
                 {appendRemaining < 0
                   ? `Over-allocated by Rs ${fmt(Math.abs(appendRemaining))}`
                   : appendRemaining === 0
-                    ? "✓ Fully allocated"
-                    : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
+                  ? "✓ Fully allocated"
+                  : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
               </div>
 
-              {/* New installments */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold text-gray-600">New Installments</label>
@@ -1194,18 +1448,19 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
 
             <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-              <button onClick={handleClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                Cancel
+              </button>
               <button
                 onClick={handleAppendSubmit}
                 disabled={isPending || appendRemaining < 0 || appendTotal <= 0}
                 className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50"
               >
-                {isPending ? "Saving..." : "Add Installments"}
+                {isAppendPending ? "Saving..." : "Add Installments"}
               </button>
             </div>
           </>
         )}
-
       </div>
     </div>
   );

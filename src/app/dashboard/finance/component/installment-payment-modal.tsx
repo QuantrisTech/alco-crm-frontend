@@ -407,7 +407,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           </p>
                           <textarea
                             rows={2}
-                            placeholder="Notes (optional)"
+                            placeholder="Description"
                             value={paymentForm.notes}
                             onChange={(e) =>
                               setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
@@ -436,7 +436,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           />
                           <textarea
                             rows={2}
-                            placeholder="Notes (optional)"
+                            placeholder="Description"
                             value={paymentForm.notes}
                             onChange={(e) =>
                               setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
@@ -470,7 +470,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           />
                           <textarea
                             rows={2}
-                            placeholder="Notes (optional)"
+                            placeholder="Description"
                             value={paymentForm.notes}
                             onChange={(e) =>
                               setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))
@@ -504,7 +504,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           />
                           <textarea
                             rows={2}
-                            placeholder="Notes (optional)"
+                            placeholder="Description"
                             value={paymentForm.notes}
                             onChange={(e) =>
                               setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))

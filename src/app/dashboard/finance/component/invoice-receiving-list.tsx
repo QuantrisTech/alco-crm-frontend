@@ -13,6 +13,14 @@ import { Send, Pencil, Eye, FileText, FileSpreadsheet } from "lucide-react";
 import toast from "react-hot-toast";
 import EmailAdminDropdown from "@/app/component/ui/email-admin-dropdown";
 
+// ── Helpers for bundle / installment-notes display ────────────────
+const getProgramNames = (inv: any): string[] => {
+  if (inv?.isBundle && Array.isArray(inv?.items) && inv.items.length > 0) {
+    return inv.items.map((it: any) => it.programName || it.program?.name || "—");
+  }
+  return [inv?.enrollment?.program?.name || "—"];
+};
+
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
     PAID: "bg-green-100 text-green-700", PARTIAL: "bg-yellow-100 text-yellow-700",
@@ -47,8 +55,43 @@ export function InvoiceViewModal({ invoice, onClose }: { invoice: any; onClose: 
             <div className="bg-rose-50 rounded-xl p-3"><p className="text-xs text-gray-400">Remaining</p><p className="font-bold text-rose-600">{fmt(invoice.remainingAmount)}</p></div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><span className="text-gray-400">Program: </span><span className="text-gray-700">{invoice.enrollment?.program?.name || "—"}</span></div>
-            <div><span className="text-gray-400">Batch: </span><span className="text-gray-700">{invoice.enrollment?.batch?.name || "—"}</span></div>
+            {/* <div><span className="text-gray-400">Program: </span><span className="text-gray-700">{invoice.enrollment?.program?.name || "—"}</span></div>
+            <div><span className="text-gray-400">Batch: </span><span className="text-gray-700">{invoice.enrollment?.batch?.name || "—"}</span></div> */}
+            <div>
+              <span className="text-gray-400">Program(s): </span>
+
+              <div className="mt-1 space-y-1">
+                {getProgramNames(invoice).map((program, index) => (
+                  <div
+                    key={index}
+                    className="inline-flex mr-2 mb-1 px-2 py-1 rounded-lg bg-sky-50 text-sky-700 text-xs font-medium"
+                  >
+                    {program}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="text-gray-400">Batch: </span>
+
+              <div className="mt-1 space-y-1">
+                {invoice.isBundle ? (
+                  invoice.items.map((item: any) => (
+                    <div
+                      key={item._id}
+                      className="inline-flex mr-2 mb-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium"
+                    >
+                      {item.enrollment?.batch?.name || "—"}
+                    </div>
+                  ))
+                ) : (
+                  <span className="inline-flex mr-2 mb-1 px-2 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium">
+                    {invoice.enrollment?.batch?.name || "—"}
+                  </span>
+                )}
+              </div>
+            </div>
             <div><span className="text-gray-400">Due Date: </span><span className="text-gray-700">{fmtDate(invoice.dueDate)}</span></div>
             <div>
               <span className="text-gray-400">Status: </span>
@@ -73,11 +116,17 @@ export function InvoiceViewModal({ invoice, onClose }: { invoice: any; onClose: 
                       <p className="text-xs text-gray-400">{fmtDate(inst.dueDate)}</p>
                       {inst.method && <p className="text-xs text-gray-400 capitalize">Method: {inst.method}</p>}
                       {inst.referenceNumber && <p className="text-xs font-mono text-gray-400">Ref: {inst.referenceNumber}</p>}
+                      {/* {(inst.description || inst.notes) && ( */}
+                      <p className="text-xs text-gray-500 mt-1">
+                        {inst.description || inst.notes}
+                      </p>
+                      {/* )} */}
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-gray-800">{fmt(inst.amount)}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inst.status === "PAID" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{inst.status}</span>
                     </div>
+
                   </div>
                 ))}
               </div>
@@ -161,12 +210,12 @@ function SendReceiptModal({ invoice, onClose, onSend, isSending }: {
               {paidInstallments.length === 0
                 ? <p className="text-sm text-rose-500">Koi paid installment nahi hai</p>
                 : <select value={selectedInstallmentId} onChange={(e) => setSelectedInstallmentId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400">
-                    <option value="">-- Select --</option>
-                    {paidInstallments.map((inst: any) => (
-                      <option key={inst._id} value={inst._id}>{inst.isAdvance ? "Advance Payment" : inst.label} — {fmt(inst.amount)}</option>
-                    ))}
-                  </select>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                  <option value="">-- Select --</option>
+                  {paidInstallments.map((inst: any) => (
+                    <option key={inst._id} value={inst._id}>{inst.isAdvance ? "Advance Payment" : inst.label} — {fmt(inst.amount)}</option>
+                  ))}
+                </select>
               }
               {selectedInst && (
                 <div className="mt-3 bg-gray-50 rounded-xl p-3 space-y-1">

@@ -169,6 +169,7 @@ export default function PaymentsPage() {
                 { header: "Amount (Rs)", key: "amount", format: (v) => Number(v || 0).toLocaleString() },
                 { header: "Method", key: "method" },
                 { header: "Reference #", key: "referenceNumber" },
+                { header: "Description", key: "notes" },
                 { header: "Status", key: "status" },
                 { header: "Approved By", key: "approvedBy.name" },
                 { header: "Date", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
@@ -205,6 +206,15 @@ export default function PaymentsPage() {
             render: (p) => <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${methodColor(p.method)}`}>{p.method}</span>,
           },
           { key: "referenceNumber", label: "Reference", render: (p) => <span className="text-gray-500 text-sm">{p.referenceNumber || "—"}</span> },
+          {
+            // ── Renamed from "Notes" → "Description" per requirement ──
+            key: "notes", label: "Description",
+            render: (p) => (
+              <span className="text-gray-500 text-sm max-w-[200px] truncate block" title={p.notes || ""}>
+                {p.notes || "—"}
+              </span>
+            ),
+          },
           {
             key: "status", label: "Status",
             render: (p) => <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColor(p.status)}`}>{p.status}</span>,

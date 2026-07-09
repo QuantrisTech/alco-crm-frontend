@@ -66,6 +66,20 @@ const editFields: ModalField[] = [
   },
 ];
 
+// ── Helpers for bundle / installment-notes display ────────────────
+const getProgramNames = (inv: any): string[] => {
+  if (inv?.isBundle && Array.isArray(inv?.items) && inv.items.length > 0) {
+    return inv.items.map((it: any) => it.programName || it.program?.name || "—");
+  }
+  return [inv?.enrollment?.program?.name || "—"];
+};
+
+const getInstallmentNotes = (inv: any): { label: string; notes: string }[] => {
+  return (inv?.installments || [])
+    .filter((i: any) => i?.notes && String(i.notes).trim().length > 0)
+    .map((i: any) => ({ label: i.isAdvance ? "Advance" : (i.label || "Installment"), notes: i.notes }));
+};
+
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
@@ -109,26 +123,6 @@ export default function InvoicesPage() {
         ],
       },
     ];
-
-  // const { data, isLoading, isError } = useQuery({
-  //   queryKey: isStudent ? ["my-invoices"] : ["invoices", filters],
-  //   queryFn: isStudent
-  //     ? () => getMyInvoices().then((r) => r.data)
-  //     : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
-  // });
-
-  // const { data, isLoading, isError } = useQuery({
-  //   queryKey: isStudent
-  //     ? ["my-invoices"]
-  //     : isSalesManager
-  //       ? ["sales-manager-invoices", filters]
-  //       : ["invoices", filters],
-  //   queryFn: isStudent
-  //     ? () => getMyInvoices().then((r) => r.data)
-  //     : isSalesManager
-  //       ? () => getSalesRoleInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data)
-  //       : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
-  // });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: isStudent
@@ -277,11 +271,44 @@ export default function InvoicesPage() {
             }]
             : []),
           {
+            // ── Program(s) — bundle invoices show every program bundled ──
             key: "program", label: "Program",
-            render: (inv: any) => (
-              <span className="text-sm text-gray-600">{inv.enrollment?.program?.name || "—"}</span>
-            ),
+            render: (inv: any) => {
+              const names = getProgramNames(inv);
+              if (names.length <= 1) {
+                return <span className="text-sm text-gray-600">{names[0] || "—"}</span>;
+              }
+              return (
+                <div className="flex flex-col gap-1">
+                  {names.map((name, i) => (
+                    <span
+                      key={i}
+                      className="text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-100 rounded-md px-1.5 py-0.5 w-fit"
+                    >
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              );
+            },
           },
+          // {
+          //   // ── Installment / Advance descriptions (notes) ──
+          //   key: "installmentNotes", label: "Description",
+          //   render: (inv: any) => {
+          //     const notesList = getInstallmentNotes(inv);
+          //     if (!notesList.length) return <span className="text-gray-300 text-xs">—</span>;
+          //     return (
+          //       <div className="flex flex-col gap-1 max-w-[200px]">
+          //         {notesList.map((n, i) => (
+          //           <p key={i} className="text-xs text-gray-500 truncate" title={`${n.label}: ${n.notes}`}>
+          //             <span className="font-semibold text-gray-600">{n.label}:</span> {n.notes}
+          //           </p>
+          //         ))}
+          //       </div>
+          //     );
+          //   },
+          // },
           {
             key: "totalAmount", label: "Total",
             render: (inv: any) => (
@@ -329,40 +356,6 @@ export default function InvoicesPage() {
             }]
             : []),
         ]}
-        // invoices/page.tsx — actions array (complete)
-        // actions={
-        //   isAdmin
-        //     ? [
-        //       {
-        //         icon: <ListOrdered size={14} />,
-        //         label: "Edit Installments",
-        //         onClick: (inv: any) => setEditInstallmentInvoice(inv),
-        //         className: "hover:bg-indigo-50 hover:text-indigo-600",
-        //       },
-        //       {
-        //         icon: <CheckCircle size={14} />,
-        //         label: "Pay Installments",
-        //         onClick: (inv: any) => setInstallmentInvoice(inv),
-        //         className: "hover:bg-green-50 hover:text-green-600",
-        //         hidden: (inv: any) => inv.status === "PAID",
-        //       },
-        //       {
-        //         icon: <Eye size={14} />,
-        //         label: "View Invoice",
-        //         onClick: (inv: any) => setViewInvoice(inv),
-        //         className: "hover:bg-blue-50 hover:text-blue-600",
-        //         disabled: () => isSendingInvoice,
-        //       },
-        //       {
-        //         icon: <Send size={14} />,
-        //         label: "Send Invoice",
-        //         onClick: (inv: any) => handleSendInvoice(inv._id),
-        //         className: "hover:bg-yellow-50 hover:text-yellow-600",
-        //       },
-        //     ]
-        //     : []
-        // }
-
         actions={
           isAdmin
             ? [
@@ -426,16 +419,6 @@ export default function InvoicesPage() {
         <>
 
           <CreateInvoiceModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
-
-          {/* <Modal
-            isOpen={isAddOpen}
-            onClose={() => setIsAddOpen(false)}
-            title="Create Invoice"
-            fields={createFields}
-            onSubmit={addInvoice}
-            isLoading={isAdding}
-            mode="add"
-          /> */}
 
           {editingInvoice && (
             <Modal
