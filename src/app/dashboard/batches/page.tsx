@@ -331,7 +331,7 @@ export default function BatchesPage() {
               <div
                 key={batch._id}
                 className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition"
-                // className={`${getCardColor(batch._id)} rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition`}
+              // className={`${getCardColor(batch._id)} rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition`}
               >
                 {/* Card Header */}
                 <div className="p-5 border-b border-gray-50">
@@ -451,9 +451,9 @@ export default function BatchesPage() {
           fields={batchFields(programs)}
           initialValues={{
             program_id:
-              typeof editingBatch.program_id === "object"
+              editingBatch.program_id && typeof editingBatch.program_id === "object"
                 ? editingBatch.program_id._id
-                : editingBatch.program_id,
+                : editingBatch.program_id ?? "",
             name: editingBatch.name,
             start_date: editingBatch.start_date?.split("T")[0] ?? "",
             end_date: editingBatch.end_date?.split("T")[0] ?? "",

@@ -242,12 +242,12 @@ function SendReceiptModal({ invoice, onClose, onSend, isSending }: {
               </div>
             </div>
           )}
-          {invoice.description && (
+          {/* {invoice.description && (
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-xs text-gray-400 mb-1">Memo</p>
               <p className="text-xs font-mono text-gray-600">{invoice.description}</p>
             </div>
-          )}
+          )} */}
           <div className="flex justify-between items-center bg-gray-50 rounded-xl px-4 py-3">
             <span className="text-sm text-gray-500">Balance Due</span>
             <span className="font-bold text-rose-600">{fmt(invoice.remainingAmount)}</span>
@@ -331,7 +331,9 @@ export default function InvoiceReceivingList() {
   const columns = [
     {
       key: "invoiceNumber", label: "Invoice #",
-      render: (inv: any) => <span className="font-mono text-xs text-gray-600">{inv.invoiceNumber}</span>,
+      render: (inv: any) => (
+        <div className="font-medium text-sm text-gray-800 flex h-full pt-1"><div>{inv.invoiceNumber}</div></div>
+      ),
     },
     {
       key: "user", label: "Student",
@@ -343,8 +345,26 @@ export default function InvoiceReceivingList() {
       ),
     },
     {
+      // ── Program(s) — bundle invoices show every program bundled ──
       key: "program", label: "Program",
-      render: (inv: any) => <span className="text-sm text-gray-600">{inv.enrollment?.program?.name || "—"}</span>,
+      render: (inv: any) => {
+        const names = getProgramNames(inv);
+        if (names.length <= 1) {
+          return <span className="text-sm text-gray-600">{names[0] || "—"}</span>;
+        }
+        return (
+          <div className="flex flex-col gap-1">
+            {names.map((name, i) => (
+              <span
+                key={i}
+                className="text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-100 rounded-md px-1.5 py-0.5 w-fit"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+        );
+      },
     },
     {
       key: "totalAmount", label: "Total",
@@ -364,17 +384,17 @@ export default function InvoiceReceivingList() {
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(inv.status)}`}>{inv.status}</span>
       ),
     },
-    {
-      key: "description", label: "Description",
-      render: (inv: any) => inv.description
-        ? <span className="text-xs text-gray-500 font-mono truncate max-w-[180px] block">{inv.description}</span>
-        : <span className="text-xs text-gray-300 italic">No Description</span>,
-    },
+  //   {
+  //     key: "description", label: "Description",
+  //     render: (inv: any) => inv.description
+  //       ? <span className="text-xs text-gray-500 font-mono truncate max-w-[180px] block">{inv.description}</span>
+  //       : <span className="text-xs text-gray-300 italic">No Description</span>,
+  //   },
   ];
 
   const actions = [
     { icon: <Eye size={14} />, label: "View Invoice", onClick: (inv: any) => setViewInvoice(inv), className: "hover:bg-sky-50 hover:text-sky-600" },
-    { icon: <Pencil size={14} />, label: "Edit Memo", onClick: (inv: any) => setEditMemoInvoice(inv), className: "hover:bg-yellow-50 hover:text-yellow-600" },
+    // { icon: <Pencil size={14} />, label: "Edit Memo", onClick: (inv: any) => setEditMemoInvoice(inv), className: "hover:bg-yellow-50 hover:text-yellow-600" },
     { icon: <Send size={14} />, label: "Send Invoice", onClick: (inv: any) => handleSendInvoice(inv._id), className: "hover:bg-blue-50 hover:text-blue-600", disabled: () => isSendingInvoice },
     { icon: <FileText size={14} />, label: "Send Receipt", onClick: (inv: any) => setSendReceiptInvoice(inv), className: "hover:bg-green-50 hover:text-green-600" },
   ];
