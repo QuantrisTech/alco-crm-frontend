@@ -80,6 +80,10 @@ export const resetPassword = (data: { email: string; otp: string; newPassword: s
 export const getMe = () => API.get("/api/auth/me");
 export const resendVerification = (data: { email: string }) => API.post("/api/auth/resend-verification", data);
 export const selfVerifyEmail = () => API.post("/api/auth/verify-email-self");  // ✅ POST
+// ─── Chatbot Visitors ─────────────────────────────────────────
+export const getAllVisitors = (params?: any) => API.get("/api/v1/visitors", { params });
+export const promoteVisitorToLead = (id: string, data?: any) => API.post(`/api/v1/visitors/${id}/promote`, data);
+
 // Admin APIs
 export const adminGetAllUsers = (params?: any) => API.get("/api/admin/users", { params });
 export const adminGetAllAssignRoles = (params?: any) => API.get("/api/admin/assign-role-users", { params });
