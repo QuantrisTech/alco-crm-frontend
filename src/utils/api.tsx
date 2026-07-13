@@ -82,6 +82,7 @@ export const resendVerification = (data: { email: string }) => API.post("/api/au
 export const selfVerifyEmail = () => API.post("/api/auth/verify-email-self");  // ✅ POST
 // Admin APIs
 export const adminGetAllUsers = (params?: any) => API.get("/api/admin/users", { params });
+export const adminGetAllAssignRoles = (params?: any) => API.get("/api/admin/assign-role-users", { params });
 export const adminGetUserById = (id: string) => API.get(`/api/admin/users/${id}`);
 export const adminUpdateUser = (id: string, data: UpdateUserData) => API.patch(`/api/admin/users/${id}`, data);
 export const adminDeleteUser = (id: string) => API.delete(`/api/admin/users/${id}`);

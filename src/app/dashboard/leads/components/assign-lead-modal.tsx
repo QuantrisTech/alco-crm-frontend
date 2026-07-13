@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { adminGetAllUsers, getAllUsersForRole } from "@/utils/api";
+import { adminGetAllAssignRoles, adminGetAllUsers, getAllUsersForRole } from "@/utils/api";
 import { useAppSelector } from "@/store/hooks";
 import Button from "@/app/component/ui/button";
 import { X, Search } from "lucide-react";
@@ -22,8 +22,8 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
   const { data, isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users-for-assign"],
     queryFn: () =>
-      (authUser.role === "admin" || authUser.role === "super_admin" || authUser.role === "sales_manager"
-        ? adminGetAllUsers({
+      (authUser.role === "admin" || authUser.role === "super_admin" || authUser.role === "sales_manager" || authUser.role === "finance_manager"
+        ? adminGetAllAssignRoles({
           page: 1,
           limit: 5000,
         })
@@ -38,22 +38,23 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
 
   console.log("All users:", data?.users);
   console.log("Current user role:", currentUserRole);
-  const assignableUsers = data?.users?.filter((user: any) => {
-  if (authUser.role === "super_admin") {
-    // super_admin → admin, sales_manager, sales_rep sab dekhe
-    return ["admin", "sales_manager", "sales_rep"].includes(user.role);
-  }
-  if (authUser.role === "admin") {
-    // admin → sales_manager, sales_rep
-    return ["sales_manager", "sales_rep"].includes(user.role);
-  }
-  if (authUser.role === "sales_manager") {
-    // sales_manager → sirf sales_rep
-    // return user.role === "sales_rep";
-     return ["sales_manager", "sales_rep"].includes(user.role);
-  }
-  return false;
-});
+  //   const assignableUsers = data?.users?.filter((user: any) => {
+  //   if (authUser.role === "super_admin") {
+  //     // super_admin → admin, sales_manager, sales_rep sab dekhe
+  //     return ["admin", "sales_manager", "sales_rep"].includes(user.role);
+  //   }
+  //   if (authUser.role === "admin") {
+  //     // admin → sales_manager, sales_rep
+  //     return ["sales_manager", "sales_rep"].includes(user.role);
+  //   }
+  //   if (authUser.role === "sales_manager") {
+  //     // sales_manager → sirf sales_rep
+  //     // return user.role === "sales_rep";
+  //      return ["sales_manager", "sales_rep"].includes(user.role);
+  //   }
+  //   return false;
+  // });
+  const assignableUsers = data?.users || [];
 
   // ✅ Search filter
   const filteredUsers = assignableUsers?.filter((user: any) =>
@@ -69,13 +70,30 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
     }
   };
 
-  const roleColor = (role: string) => {
-    switch (role) {
-      case "sales_manager": return "bg-indigo-100 text-indigo-700";
-      case "sales_rep": return "bg-blue-100 text-blue-700";
-      default: return "bg-gray-100 text-gray-600";
-    }
-  };
+const roleColor = (role: string) => {
+  switch (role) {
+    case "super_admin":
+      return "bg-red-100 text-red-700";
+
+    case "admin":
+      return "bg-purple-100 text-purple-700";
+
+    case "sales_manager":
+      return "bg-indigo-100 text-indigo-700";
+
+    case "sales_rep":
+      return "bg-blue-100 text-blue-700";
+
+    case "finance_manager":
+      return "bg-emerald-100 text-emerald-700";
+
+    case "user":
+      return "bg-gray-100 text-gray-700";
+
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
