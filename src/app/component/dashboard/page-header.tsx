@@ -83,7 +83,7 @@ export default function PageHeader({
           </button>
         )}
 
-        {onDeleteAll && (
+        {/* {onDeleteAll && (
           <button
             onClick={onDeleteAll}
             className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
@@ -92,7 +92,7 @@ export default function PageHeader({
           >
             <Trash2 size={16} color="#854F0B" />
           </button>
-        )}
+        )} */}
 
         {totalCount && (
           <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
