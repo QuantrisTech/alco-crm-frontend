@@ -83,6 +83,7 @@ export const selfVerifyEmail = () => API.post("/api/auth/verify-email-self");  /
 // ─── Chatbot Visitors ─────────────────────────────────────────
 export const getAllVisitors = (params?: any) => API.get("/api/v1/visitors", { params });
 export const promoteVisitorToLead = (id: string, data?: any) => API.post(`/api/v1/visitors/${id}/promote`, data);
+export const updateVisitor = (id: string, data: any) => API.patch(`/api/v1/visitors/${id}`, data);
 
 // Admin APIs
 export const adminGetAllUsers = (params?: any) => API.get("/api/admin/users", { params });

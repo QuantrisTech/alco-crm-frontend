@@ -1,10 +1,18 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllVisitors, promoteVisitorToLead } from "@/utils/api";
+import { getAllVisitors, promoteVisitorToLead, updateVisitor, getNamesPrograms } from "@/utils/api";
 import toast from "react-hot-toast";
-import { Users, ArrowUpRight, Search } from "lucide-react";
+import { Users, ArrowUpRight, Search, Pencil, X } from "lucide-react";
 import ProtectedRoute from "@/app/component/protected-route";
+
+// Fields the Lead model requires. Extend this if your Lead schema needs more
+// than email (per the "required email field" blocker you flagged earlier).
+const REQUIRED_FIELDS = ["email"] as const;
+
+function getMissingFields(visitor: any): string[] {
+  return REQUIRED_FIELDS.filter((f) => !visitor?.[f] || String(visitor[f]).trim() === "");
+}
 
 const statusBadge = (status: string) => {
   if (status === "promoted") {
@@ -13,9 +21,97 @@ const statusBadge = (status: string) => {
   return "bg-gray-100 text-gray-600";
 };
 
+function EditVisitorModal({
+  visitor,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  visitor: any;
+  onClose: () => void;
+  onSave: (payload: any) => void;
+  isSaving: boolean;
+}) {
+  const [form, setForm] = useState({
+    first_name: visitor.first_name || "",
+    last_name: visitor.last_name || "",
+    email: visitor.email || "",
+    phone: visitor.phone || "",
+    program_interest: visitor.program_interest || "",
+  });
+
+  const { data: programs } = useQuery({
+  queryKey: ["program-names"],
+  queryFn: getNamesPrograms,
+});
+
+  const field = (key: keyof typeof form, label: string) => (
+    <div className="mb-3">
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+      <input
+        value={form[key]}
+        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 text-gray-900 placeholder:text-gray-400"
+      />
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-full max-w-md p-5 shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-900">Edit visitor details</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        {field("first_name", "First name")}
+        {field("last_name", "Last name")}
+        {field("email", "Email")}
+        {field("phone", "Phone")}
+        
+
+        <div className="mb-3">
+  <label className="block text-xs font-medium text-gray-500 mb-1">Program interest</label>
+  <select
+    value={form.program_interest}
+    onChange={(e) => setForm((f) => ({ ...f, program_interest: e.target.value }))}
+    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 text-gray-900 bg-white"
+  >
+    <option value="">Select a program</option>
+    {(programs || []).map((p: any) => (
+      <option key={p._id || p.name} value={p.name}>
+        {p.name}
+      </option>
+    ))}
+  </select>
+</div>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={onClose}
+            className="px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(form)}
+            disabled={isSaving}
+            className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VisitorsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [editingVisitor, setEditingVisitor] = useState<any>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["visitors"],
@@ -43,15 +139,31 @@ export default function VisitorsPage() {
       toast.success("Visitor converted to lead! 🎉");
       queryClient.invalidateQueries({ queryKey: ["visitors"] });
     },
+    // No toast on error by design — the disabled button should make this
+    // unreachable. Kept as a silent invalidate so nothing gets stuck if the
+    // backend rejects something the frontend check missed.
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["visitors"] });
+    },
+  });
+
+  const { mutate: saveEdit, isPending: isSavingEdit } = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => updateVisitor(id, payload),
+    onSuccess: () => {
+      toast.success("Visitor details updated");
+      queryClient.invalidateQueries({ queryKey: ["visitors"] });
+      setEditingVisitor(null);
+    },
     onError: (e: any) => {
-      toast.error(e?.response?.data?.error || "Failed to convert visitor");
+      toast.error(e?.response?.data?.error || "Failed to update visitor");
     },
   });
 
   return (
     <ProtectedRoute allowedRoles={["super_admin"]}>
       <div>
-        <div className="flex items-center justify-between mb-5">
+        {/* Header — matches Users page pattern: icon+title+subtitle left, Total + search right */}
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Users size={24} className="text-gray-700" />
             <div>
@@ -61,20 +173,23 @@ export default function VisitorsPage() {
               </p>
             </div>
           </div>
-          <div className="text-sm text-gray-500">
-            Total: <span className="font-semibold text-gray-800">{visitors.length}</span>
-          </div>
-        </div>
 
-        <div className="relative mb-5 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search name, email, phone, program..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400"
-          />
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-500 whitespace-nowrap">
+              Total: <span className="font-semibold text-gray-800">{visitors.length}</span>
+            </div>
+
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search name, email, phone, program..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 w-64 text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -84,7 +199,6 @@ export default function VisitorsPage() {
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3">Program Interest</th>
-                {/* <th className="px-4 py-3">Source</th> */}
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">First Seen</th>
                 <th className="px-4 py-3 text-right">Action</th>
@@ -93,7 +207,7 @@ export default function VisitorsPage() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
                     Loading visitors...
                   </td>
                 </tr>
@@ -101,7 +215,7 @@ export default function VisitorsPage() {
 
               {isError && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-red-400">
+                  <td colSpan={6} className="px-4 py-10 text-center text-red-400">
                     Failed to load visitors.
                   </td>
                 </tr>
@@ -109,54 +223,91 @@ export default function VisitorsPage() {
 
               {!isLoading && !isError && filteredVisitors.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-400">
                     No visitors found.
                   </td>
                 </tr>
               )}
 
-              {filteredVisitors.map((visitor: any) => (
-                <tr key={visitor._id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    {visitor.first_name || visitor.last_name
-                      ? `${visitor.first_name || ""} ${visitor.last_name || ""}`.trim()
-                      : <span className="text-gray-400 font-normal">Not provided</span>}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    <div>{visitor.email || <span className="text-gray-400">Not provided</span>}</div>
-                    <div className="text-xs text-gray-400">{visitor.phone || "Not provided"}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {visitor.program_interest || <span className="text-gray-400">Not provided</span>}
-                  </td>
-                  {/* <td className="px-4 py-3 text-gray-600 capitalize">{visitor.source || "—"}</td> */}
-                  <td className="px-4 py-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge(visitor.status)}`}>
-                      {visitor.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {visitor.createdAt ? new Date(visitor.createdAt).toLocaleDateString("en-PK") : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {visitor.status === "promoted" ? (
-                      <span className="text-xs text-teal-600 font-medium">Converted</span>
-                    ) : (
-                      <button
-                        onClick={() => promote(visitor.visitor_id)}
-                        disabled={isPromoting && promotingId === visitor.visitor_id}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-700 disabled:opacity-50"
-                      >
-                        <ArrowUpRight size={12} />
-                        {isPromoting && promotingId === visitor.visitor_id ? "Converting..." : "Convert to Lead"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {filteredVisitors.map((visitor: any) => {
+                const missing = getMissingFields(visitor);
+                const isComplete = missing.length === 0;
+
+                return (
+                  <tr key={visitor._id} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {visitor.first_name || visitor.last_name
+                        ? `${visitor.first_name || ""} ${visitor.last_name || ""}`.trim()
+                        : <span className="text-gray-400 font-normal">Not provided</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <div>{visitor.email || <span className="text-gray-400">Not provided</span>}</div>
+                      <div className="text-xs text-gray-400">{visitor.phone || "Not provided"}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {visitor.program_interest || <span className="text-gray-400">Not provided</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge(visitor.status)}`}>
+                        {visitor.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {visitor.createdAt ? new Date(visitor.createdAt).toLocaleDateString("en-PK") : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {visitor.status === "promoted" ? (
+                        <span className="text-xs text-teal-600 font-medium">Converted</span>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setEditingVisitor(visitor)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50"
+                          >
+                            <Pencil size={12} />
+                            Edit
+                          </button>
+
+                          <div className="flex flex-col items-end">
+                            <button
+                              onClick={() => promote(visitor.visitor_id)}
+                              disabled={!isComplete || (isPromoting && promotingId === visitor.visitor_id)}
+                              title={!isComplete ? `Missing: ${missing.join(", ")}` : undefined}
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                                isComplete
+                                  ? "bg-gray-900 text-white hover:bg-gray-700"
+                                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              } disabled:opacity-50`}
+                            >
+                              <ArrowUpRight size={12} />
+                              {isPromoting && promotingId === visitor.visitor_id
+                                ? "Converting..."
+                                : "Convert to Lead"}
+                            </button>
+                            {!isComplete && (
+                              <span className="text-[11px] text-gray-400 mt-1">
+                                Missing: {missing.join(", ")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+
+        {editingVisitor && (
+          <EditVisitorModal
+            visitor={editingVisitor}
+            isSaving={isSavingEdit}
+            onClose={() => setEditingVisitor(null)}
+            onSave={(payload) => saveEdit({ id: editingVisitor.visitor_id, payload })}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );
