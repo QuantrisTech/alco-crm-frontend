@@ -759,7 +759,7 @@ function EnrollmentsContent() {
                       {e.batch?.name || "No Batch"}
                     </p>
                     {e.assigned_to ? (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 ">
                         <p className="py-1 text-[10px] text-gray-500">Assigned To</p>
                         <button
                           className="px-2 py-1 text-[10px] rounded bg-indigo-100 text-indigo-600"
@@ -782,10 +782,17 @@ function EnrollmentsContent() {
                         not assigned
                       </button>
                     )}
-                    <div
-                      className={`px-2.5 py-0.5 rounded text-[10px] font-medium w-fit ${statusColor(e.status)} mt-0.5`}
-                    >
-                      {e.status}
+                    <div className="flex gap-2">
+                      <div
+                        className={`px-2.5 py-0.5 rounded text-[10px] font-medium w-fit ${statusColor(e.status)} mt-0.5`}
+                      >
+                        {e.status}
+                      </div>
+                      {e.invoice?.isBundle && (
+                        <div className="px-2.5 py-0.5 rounded text-[10px] font-medium w-fit bg-purple-100 text-purple-600  mt-0.5">
+                          Bundle
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

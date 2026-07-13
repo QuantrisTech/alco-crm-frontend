@@ -169,8 +169,11 @@ export default function AccessControlPage() {
       toast.error(e?.response?.data?.message || "Failed!"),
   });
 
+  const flatData = data?.data?.flatMap((u: any) =>
+    u.enrollments.map((e: any) => ({ ...e, user: u.user }))
+  ) || [];
+
   // ── Grant button click ──────────────────────────────────────
-  // handleGrantClick modify karo
   const handleGrantClick = async (enrollment: any) => {
     if (isFinance) {
       // Pool status pehle check karo
@@ -209,7 +212,7 @@ export default function AccessControlPage() {
       />
 
       <DynamicTable
-        data={data?.data || []}
+        data={flatData}
         isLoading={isLoading}
         isError={isError}
         currentPage={filters.page}

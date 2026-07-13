@@ -262,7 +262,7 @@ export const createEnrollmentDirect = (data: any) => API.post("/api/v1/enrollmen
 export const assignEnrollment = (id: string, assigned_to: string) =>
   API.patch(`/api/v1/enrollments/${id}/assign`, { assigned_to });
 
-export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);
+export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`, data);
 export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
 
 export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);

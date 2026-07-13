@@ -124,6 +124,7 @@ function EnrollmentDetailContent() {
   const e = data.data;
   const invoice = e.invoices?.[0];
   const timeline: any[] = e.timeline || [];
+  const bundleSiblings: any[] = e.bundleSiblings || [];
 
   return (
     <>
@@ -142,7 +143,11 @@ function EnrollmentDetailContent() {
       </div> */}
       <PageHeader
         title={e.user?.name || "—"}
-        subtitle={`${e.program?.name} · ${e.batch?.name || "No Batch"}`}
+        subtitle={
+          e.isBundle
+            ? `${e.program?.name} · ${e.batch?.name || "No Batch"} · 📦 Bundle (${bundleSiblings.length + 1} programs)`
+            : `${e.program?.name} · ${e.batch?.name || "No Batch"}`
+        }
         titleIcon={<ArrowLeft size={24} onClick={() => router.back()} />}
       />
 
@@ -201,7 +206,7 @@ function EnrollmentDetailContent() {
           </div>
 
           {/* Program card */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          {/* <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <BookOpen size={15} className="text-indigo-500" /> Program
             </h2>
@@ -217,6 +222,54 @@ function EnrollmentDetailContent() {
                 <span className="px-2 py-1 text-[11px] rounded bg-indigo-100 text-indigo-600">
                   {e.assigned_to?.name}
                 </span>
+              </div>
+            )}
+          </div> */}
+          {/* Program card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <BookOpen size={15} className="text-indigo-500" /> Program
+              </h2>
+              {e.isBundle && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700">
+                  📦 Bundle
+                </span>
+              )}
+            </div>
+
+            <p className="font-medium text-gray-800 text-sm">{e.program?.name || "—"}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{e.program?.level} · {e.program?.category}</p>
+            <p className="text-xs text-gray-500 mt-3">{e.batch?.name || "No Batch"}</p>
+            <p className="text-[11px] text-gray-400">
+              {fmtDate(e.batch?.start_date)} → {fmtDate(e.batch?.end_date)}
+            </p>
+
+            {e.assigned_to && (
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs text-gray-400">Assigned To</span>
+                <span className="px-2 py-1 text-[11px] rounded bg-indigo-100 text-indigo-600">
+                  {e.assigned_to?.name}
+                </span>
+              </div>
+            )}
+
+            {/* ✅ NAYA — Bundle ke baaki programs */}
+            {e.isBundle && bundleSiblings.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Bundled With</p>
+                <div className="flex flex-col gap-2">
+                  {bundleSiblings.map((sib: any) => (
+                    <button
+                      key={sib._id}
+                      onClick={() => router.push(`/dashboard/enrollments/${sib._id}`)}
+                      className="text-left px-3 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition"
+                    >
+                      <p className="text-xs font-medium text-purple-700">{sib.program?.name}</p>
+                      <p className="text-[10px] text-purple-400">{sib.batch?.name || "No Batch"}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -246,6 +299,19 @@ function EnrollmentDetailContent() {
                   <span className="text-gray-400 text-xs">Remaining</span>
                   <span className="font-medium text-rose-500">{fmtMoney(invoice.remainingAmount)}</span>
                 </div>
+
+                {/* ✅ NAYA — bundle items breakdown */}
+                {invoice.isBundle && invoice.items?.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-400 mb-1.5">Programs in this Invoice</p>
+                    {invoice.items.map((item: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between text-xs py-1">
+                        <span className="text-gray-600">{item.programName}</span>
+                        <span className="text-gray-700 font-medium">{fmtMoney(item.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-4 pt-3 border-t border-gray-100 flex flex-col gap-2">
                   {invoice.installments?.map((inst: any) => (

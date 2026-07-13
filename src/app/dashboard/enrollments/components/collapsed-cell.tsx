@@ -23,17 +23,17 @@ export default function CollapsedCell({
   const visible = items.slice(0, maxVisible);
   const hidden = items.slice(maxVisible);
 
-  const handleMouseEnter = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (badgeRef.current) {
-      const rect = badgeRef.current.getBoundingClientRect();
-      setCoords({
-        top: rect.bottom + window.scrollY + 6,
-        left: rect.left + window.scrollX,
-      });
-    }
-    setOpen(true);
-  };
+const handleMouseEnter = () => {
+  if (timerRef.current) clearTimeout(timerRef.current);
+  if (badgeRef.current) {
+    const rect = badgeRef.current.getBoundingClientRect();
+    setCoords({
+      top: rect.bottom + 6,      // ✅ scrollY hataya
+      left: rect.left,           // ✅ scrollX hataya
+    });
+  }
+  setOpen(true);
+};
 
   const handleMouseLeave = () => {
     timerRef.current = setTimeout(() => setOpen(false), 120);
