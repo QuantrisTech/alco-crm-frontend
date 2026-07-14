@@ -72,18 +72,18 @@ export const simpleAddLeadFields: ModalField[] = [
 
 // ── Edit Lead Fields (Admin / Sales Manager) ─────────────────
 export const editLeadFields: ModalField[] = [
-  { name: "first_name", label: "First Name*", type: "input", inputType: "text", required: true },
-  { name: "last_name", label: "Last Name*", type: "input", inputType: "text", required: true },
-  { name: "email", label: "Email*", type: "input", inputType: "email", required: true },
-  { name: "phone", label: "Phone*", type: "input", inputType: "text", required: true },
+  { name: "first_name", label: "First Name", type: "input", inputType: "text" },
+  { name: "last_name", label: "Last Name", type: "input", inputType: "text" },
+  { name: "email", label: "Email", type: "input", inputType: "email" },
+  { name: "phone", label: "Phone", type: "input", inputType: "text" },
   { name: "nationality", label: "Nationality", type: "input", inputType: "text" },
-  { name: "profession", label: "Profession*", type: "input", inputType: "text", required: true },
+  { name: "profession", label: "Profession", type: "input", inputType: "text" },
   {
-    name: "program_id", label: "Program*", type: "select", required: true,
+    name: "program_id", label: "Program", type: "select",
     options: [],
   },
   {
-    name: "status", label: "status*", type: "select", required: true,
+    name: "status", label: "status", type: "select",
     options: [
       { label: "new", value: "new" },
       { label: "contacted", value: "Contacted" },
@@ -94,7 +94,7 @@ export const editLeadFields: ModalField[] = [
     ]
   },
   {
-    name: "source", label: "Source*", type: "select", required: true,
+    name: "source", label: "Source", type: "select",
     options: [
       { label: "Facebook", value: "facebook" },
       { label: "Google", value: "google" },
