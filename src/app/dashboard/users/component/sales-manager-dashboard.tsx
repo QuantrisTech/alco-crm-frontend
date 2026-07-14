@@ -315,7 +315,7 @@ export default function SalesManagerDashboard() {
               label: "General",
               fields: [
                 { name: "name", label: "Name", type: "input", inputType: "text" },
-                { name: "email", label: "Email", type: "input", inputType: "email", disabled: true },
+                { name: "email", label: "Email", type: "input", inputType: "email" },
               ],
               onSubmit: (data) => updateUser({ id: editingUser._id, data: { name: data.name as string } }),
             },
