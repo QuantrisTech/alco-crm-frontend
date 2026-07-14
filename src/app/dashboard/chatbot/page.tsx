@@ -6,12 +6,22 @@ import toast from "react-hot-toast";
 import { Users, ArrowUpRight, Search, Pencil, X } from "lucide-react";
 import ProtectedRoute from "@/app/component/protected-route";
 
+
 // Fields the Lead model requires. Extend this if your Lead schema needs more
 // than email (per the "required email field" blocker you flagged earlier).
 const REQUIRED_FIELDS = ["email"] as const;
 
-function getMissingFields(visitor: any): string[] {
-  return REQUIRED_FIELDS.filter((f) => !visitor?.[f] || String(visitor[f]).trim() === "");
+function getFieldStatus(visitor: any) {
+  const missingRequired: string[] = [];
+  const missingOptional: string[] = [];
+
+  if (!visitor?.email || String(visitor.email).trim() === "") missingRequired.push("email");
+  if ((!visitor?.first_name || String(visitor.first_name).trim() === "") &&
+      (!visitor?.last_name || String(visitor.last_name).trim() === "")) missingOptional.push("name");
+  if (!visitor?.phone || String(visitor.phone).trim() === "") missingOptional.push("phone");
+  if (!visitor?.program_interest || String(visitor.program_interest).trim() === "") missingOptional.push("program interest");
+
+  return { missingRequired, missingOptional };
 }
 
 const statusBadge = (status: string) => {
@@ -41,9 +51,9 @@ function EditVisitorModal({
   });
 
   const { data: programs } = useQuery({
-  queryKey: ["program-names"],
-  queryFn: getNamesPrograms,
-});
+    queryKey: ["program-names"],
+    queryFn: getNamesPrograms,
+  });
 
   const field = (key: keyof typeof form, label: string) => (
     <div className="mb-3">
@@ -70,23 +80,22 @@ function EditVisitorModal({
         {field("last_name", "Last name")}
         {field("email", "Email")}
         {field("phone", "Phone")}
-        
 
         <div className="mb-3">
-  <label className="block text-xs font-medium text-gray-500 mb-1">Program interest</label>
-  <select
-    value={form.program_interest}
-    onChange={(e) => setForm((f) => ({ ...f, program_interest: e.target.value }))}
-    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 text-gray-900 bg-white"
-  >
-    <option value="">Select a program</option>
-    {(programs || []).map((p: any) => (
-      <option key={p._id || p.name} value={p.name}>
-        {p.name}
-      </option>
-    ))}
-  </select>
-</div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Program interest</label>
+          <select
+            value={form.program_interest}
+            onChange={(e) => setForm((f) => ({ ...f, program_interest: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 text-gray-900 bg-white"
+          >
+            <option value="">Select a program</option>
+            {(programs || []).map((p: any) => (
+              <option key={p._id || p.name} value={p.name}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex justify-end gap-2 mt-4">
           <button
@@ -230,8 +239,8 @@ export default function VisitorsPage() {
               )}
 
               {filteredVisitors.map((visitor: any) => {
-                const missing = getMissingFields(visitor);
-                const isComplete = missing.length === 0;
+                const { missingRequired, missingOptional } = getFieldStatus(visitor);
+                const isComplete = missingRequired.length === 0;
 
                 return (
                   <tr key={visitor._id} className="border-t border-gray-100 hover:bg-gray-50">
@@ -272,7 +281,7 @@ export default function VisitorsPage() {
                             <button
                               onClick={() => promote(visitor.visitor_id)}
                               disabled={!isComplete || (isPromoting && promotingId === visitor.visitor_id)}
-                              title={!isComplete ? `Missing: ${missing.join(", ")}` : undefined}
+                              title={!isComplete ? `Missing: ${missingRequired.join(", ")}` : undefined}
                               className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium ${
                                 isComplete
                                   ? "bg-gray-900 text-white hover:bg-gray-700"
@@ -284,11 +293,12 @@ export default function VisitorsPage() {
                                 ? "Converting..."
                                 : "Convert to Lead"}
                             </button>
-                            {!isComplete && (
-                              <span className="text-[11px] text-gray-400 mt-1">
-                                Missing: {missing.join(", ")}
+                            {missingRequired.length > 0 && (
+                              <span className="text-[11px] text-red-500 mt-1">
+                                Required: {missingRequired.join(", ")}
                               </span>
                             )}
+                            
                           </div>
                         </div>
                       )}
