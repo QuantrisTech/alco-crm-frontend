@@ -205,6 +205,12 @@ export const markInstallmentPaid = (invoiceId: string, installmentId: string, pa
   );
 };
 
+export const correctPaidInstallment = (
+  invoiceId: string,
+  installmentId: string,
+  data: { amount?: number; paidDate?: string; method?: string; referenceNumber?: string; notes?: string; reason: string }
+) => API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/correct`, data);
+
 export const updateInstallment = (invoiceId: string, installmentId: string, data: any) =>
   API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}`, data);
 
@@ -226,6 +232,13 @@ export const sendReceivingInvoiceEmail = (id: string, body: any) =>
 
 export const sendReceivingReportEmail = (body: { invoiceIds?: string[]; filters?: any }) =>
   API.post("/api/v1/finance/invoices/receiving/export-email", body);
+
+export const sendPaymentsReportEmail = (body: {
+  paymentIds?: string[];
+  filters?: any;
+  recipientMode?: "all" | "specific";
+  recipientIds?: string[];
+}) => API.post("/api/v1/finance/payments/report/export-email", body);
 
 // export const getSalesRoleInvoices = (params?: any) =>
 //   axios.get("/finance/invoices/sales", { params });

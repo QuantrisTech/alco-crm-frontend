@@ -29,7 +29,7 @@ export type Option = {
 };
 
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
-  label: string;
+  label?: string;
   options: Option[];
   // error?: FieldError;
   error?: string | { message?: string };

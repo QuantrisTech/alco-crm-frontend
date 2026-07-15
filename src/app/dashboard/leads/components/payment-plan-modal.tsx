@@ -12,6 +12,8 @@ interface Installment {
 }
 
 interface PaymentPlanData {
+  invoiceNumber: string;
+  issueDate: string;
   totalAmount: number;
   discount: number;
   advanceAmount: number;
@@ -43,7 +45,11 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
 
   const baseAmount = lead?.opportunity_value ?? 0;
 
+  const todayStr = () => new Date().toISOString().split("T")[0];
+
   const [form, setForm] = useState<PaymentPlanData>({
+    invoiceNumber: existingPlan?.invoiceNumber ?? "",
+    issueDate: toDateInput(existingPlan?.issueDate) || todayStr(),
     totalAmount: existingPlan?.totalAmount ?? lead?.opportunity_value ?? 0,
     discount: existingPlan?.discount ?? 0,
     advanceAmount: existingPlan?.advanceAmount ?? 0,
@@ -158,6 +164,25 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
           {/* ── Total Amount + Discount ── */}
           <div className="grid grid-cols-2 gap-3">
             <InputField
+              label="Old Invoice Number (Optional)"
+              type="text"
+              value={form.invoiceNumber}
+              onChange={(e) => setForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+              placeholder="e.g. INV-2024-0045"
+            />
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
+              <input
+                type="date"
+                value={form.issueDate}
+                onChange={(e) => setForm((p) => ({ ...p, issueDate: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <InputField
               label="Total Program Fee (Rs)"
               type="number"
               value={String(form.totalAmount)}
@@ -213,10 +238,10 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
           {isAdvanceFilled && (
             <div
               className={`text-xs font-semibold px-3 py-2 rounded-lg ${remaining < 0
-                  ? "bg-rose-50 text-rose-600"
-                  : remaining === 0
-                    ? "bg-teal-50 text-teal-600"
-                    : "bg-orange-50 text-orange-600"
+                ? "bg-rose-50 text-rose-600"
+                : remaining === 0
+                  ? "bg-teal-50 text-teal-600"
+                  : "bg-orange-50 text-orange-600"
                 }`}
             >
               {remaining < 0
@@ -262,8 +287,8 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
                       {isEditMode && inst.status && (
                         <span
                           className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${inst.status === "paid"
-                              ? "bg-teal-100 text-teal-600"
-                              : "bg-yellow-100 text-yellow-600"
+                            ? "bg-teal-100 text-teal-600"
+                            : "bg-yellow-100 text-yellow-600"
                             }`}
                         >
                           {inst.status}

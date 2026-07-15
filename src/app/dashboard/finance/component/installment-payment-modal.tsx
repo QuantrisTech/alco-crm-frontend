@@ -15,7 +15,9 @@ import {
   FileText,
   Settings,
   CreditCard,
+  Pencil,
 } from "lucide-react";
+import CorrectInstallmentModal from "./CorrectInstallmentModal";
 
 interface Installment {
   _id: string;
@@ -113,6 +115,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
     receipt: null,
     paidDate: todayStr(),
   });
+  const [correctingInstallment, setCorrectingInstallment] = useState<any>(null);
 
   // Check if form is valid to enable Confirm button
   const isFormValid = () => {
@@ -254,11 +257,13 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                         : "border-slate-100 bg-white hover:border-slate-200"
                     }`}
                 >
+
                   {/* Top Row */}
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Icon */}
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isPaid ? "bg-emerald-100" : inst.isAdvance ? "bg-amber-100" : "bg-slate-100"
                       }`}>
+
                       {isPaid ? (
                         <CheckCircle2 size={16} className="text-emerald-600" />
                       ) : inst.isAdvance ? (
@@ -294,6 +299,14 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             View Slip
                           </a>
                         )}
+                        {/* {inst.status === "PAID" && (
+                        <button
+                          onClick={() => setCorrectingInstallment(inst)}
+                          className="text-xs text-gray-500 hover:text-gray-600 font-medium flex items-center gap-1"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      )} */}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-slate-400">Due: {formatDate(inst.dueDate)}</span>
@@ -569,6 +582,14 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
             })}
           </div>
         </div>
+
+        {correctingInstallment && (
+          <CorrectInstallmentModal
+            invoice={invoice}
+            installment={correctingInstallment}
+            onClose={() => setCorrectingInstallment(null)}
+          />
+        )}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">

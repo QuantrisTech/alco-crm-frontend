@@ -9,6 +9,7 @@ import {
   updateLeadPaymentPlan,
   adminGetBatches,
   getAllEnrollments,
+  adminGetAllUsers,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -38,6 +39,7 @@ import ExportButton from "@/app/component/ui/export-button";
 export default function AdminLeads() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
+  const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
   const [activeView, setActiveView] = useState<"opportunities" | "list">("opportunities");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
@@ -125,6 +127,18 @@ export default function AdminLeads() {
     queryKey: ["batches-active"],
     queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
   });
+
+  const { data: usersRes } = useQuery({
+    queryKey: ["all-users-role"],
+    queryFn: () => adminGetAllUsers({ limit: 10000 }).then((r) => r.data),
+    enabled: isAdmin, // sirf admin ko chahiye
+  });
+
+  const salesManagers = (usersRes?.users ?? [])
+    .filter((u: any) => ["sales_manager", "sales_rep", "admin", "super_admin"].includes(u.role))
+    .filter((u: any, idx: number, arr: any[]) =>
+      arr.findIndex((x) => x._id === u._id) === idx
+    );
 
   // Inject function
   const injectBatches = (fields: ModalField[]) =>
@@ -264,48 +278,73 @@ export default function AdminLeads() {
         totalCount={leadsData?.meta?.total ?? 0} onAdd={() => setIsAddOpen(true)}
         // pageKey="leads"
         filters={filters} setFilters={setFilters} filterFields={leadFilterFields}
-        exportBtn={
-          <ExportButton
-            filename="leads"
-            label="Export Excel"
-            fetchData={async () => {
-              const res = await getAllLeads({ limit: 10000 });
-              return res.data.data;
-            }}
-            columns={[
-              { header: "First Name", key: "first_name" },
-              { header: "Last Name", key: "last_name" },
-              { header: "Email", key: "email" },
-              { header: "Phone", key: "phone" },
-              { header: "Nationality", key: "nationality" },
-              { header: "Profession", key: "profession" },
-              { header: "Program", key: "program_name" },
-              { header: "Status", key: "status" },
-              { header: "Quality", key: "quality" },
-              { header: "Source", key: "source" },
-              { header: "Assigned To", key: "assigned_to.name" },
-              { header: "Opportunity", key: "opportunity_value", format: (v) => Number(v || 0).toLocaleString() },
-              { header: "Lead Score", key: "lead_score" },
-              { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-            ]}
-          />
-        }
+      // exportBtn={
+
+      // }
       />
 
       {/* ── View Toggle ── */}
-      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-5">
-        <button
-          onClick={() => setActiveView("opportunities")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "opportunities" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          <LayoutGrid size={14} /> Opportunities
-        </button>
-        <button
-          onClick={() => setActiveView("list")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          <List size={14} /> List View
-        </button>
+      <div className="flex items-center justify-between w-full gap-1 bg-gray-100 rounded-xl w-fit mb-4">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setActiveView("opportunities")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "opportunities" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            <LayoutGrid size={14} /> Opportunities
+          </button>
+          <button
+            onClick={() => setActiveView("list")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            <List size={14} /> List View
+          </button>
+        </div>
+
+        {isAdmin && (
+          <div className="flex items-center gap-1">
+            <ExportButton
+              filename="leads"
+              label="Export Excel"
+              fetchData={async () => {
+                const res = await getAllLeads({ limit: 10000 });
+                return res.data.data;
+              }}
+              columns={[
+                { header: "First Name", key: "first_name" },
+                { header: "Last Name", key: "last_name" },
+                { header: "Email", key: "email" },
+                { header: "Phone", key: "phone" },
+                { header: "Nationality", key: "nationality" },
+                { header: "Profession", key: "profession" },
+                { header: "Program", key: "program_name" },
+                { header: "Status", key: "status" },
+                { header: "Quality", key: "quality" },
+                { header: "Source", key: "source" },
+                { header: "Assigned To", key: "assigned_to.name" },
+                { header: "Opportunity", key: "opportunity_value", format: (v) => Number(v || 0).toLocaleString() },
+                { header: "Lead Score", key: "lead_score" },
+                { header: "Created At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              ]}
+            />
+            <div className="min-w-[220px]">
+              <Select
+                placeholder="All Sales Managers"
+                bg="bg-white"
+                value={(filters as any).assigned_to || ""}
+                onChange={(e) =>
+                  setFilters((prev: any) => ({ ...prev, assigned_to: e.target.value }))
+                }
+                options={[
+                  { label: "All Sales Managers", value: "" },
+                  ...salesManagers.map((u: any) => ({
+                    label: `${u.name} (${u.role.replace("_", " ")})`,
+                    value: u._id,
+                  })),
+                ]}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Kanban View ── */}
@@ -325,6 +364,8 @@ export default function AdminLeads() {
           />
         )
       )}
+
+
 
       {/* ── List View ── */}
       {activeView === "list" && (

@@ -53,7 +53,7 @@ export default function PageHeader({
 
   return (
     <>
-    <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}>
+    <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between "}>
       {/* Left Side */}
       <div>
         <div className="flex items-center">
@@ -163,7 +163,7 @@ export default function PageHeader({
                 <RotateCcw size={20}/>
               </button>
             )} */}
-        {Object.values(filters || {}).some((v) => v) && (
+        {/* {Object.values(filters || {}).some((v) => v) && (
           <button
             onClick={() =>
               setFilters?.((prev: any) => ({
@@ -178,12 +178,12 @@ export default function PageHeader({
           >
             <RotateCcw size={20} />
           </button>
-        )}
+        )} */}
       </div>
       
     </div>
-    <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}>
-        <div className="flex items-center justify-end ms-auto me-8">{exportBtn}</div>
+    <div className={`${exportBtn && "mt-2"} ${ isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}`}>
+        <div className="flex items-center justify-end ms-auto ">{exportBtn}</div>
     </div>
     </>
   );

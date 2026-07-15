@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllPayments, addPayment, updatePayment, approvePayment, rejectPayment } from "@/utils/api";
+import {
+  getAllPayments, addPayment, updatePayment, approvePayment, rejectPayment,
+  sendPaymentsReportEmail, // 👈 naya import
+} from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import Modal from "@/app/component/ui/model/modal";
@@ -11,6 +14,7 @@ import toast from "react-hot-toast";
 import { Receipt, CheckCircle, XCircle, Pencil } from "lucide-react";
 import ExportButton from "@/app/component/ui/export-button";
 import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
+import EmailAdminDropdown from "@/app/component/ui/email-admin-dropdown"; // 👈 naya import
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
@@ -75,6 +79,7 @@ export default function PaymentsPage() {
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [approvingPayment, setApprovingPayment] = useState<any>(null);
   const [rejectingPayment, setRejectingPayment] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]); // 👈 naya state — checkbox selection k liye
 
   const filterFields: FilterField[] = [
     {
@@ -105,6 +110,16 @@ export default function PaymentsPage() {
         limit: parseInt(filters.limit),
       }).then((r) => r.data),
   });
+
+  const paymentList = data?.data ?? []; // 👈 select-all k liye
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+
+  const toggleSelectAll = () =>
+    setSelectedIds((prev) =>
+      prev.length === paymentList.length ? [] : paymentList.map((p: any) => p._id)
+    );
 
   const { mutate: addPay, isPending: isAdding } = useMutation({
     mutationFn: addPayment,
@@ -175,6 +190,12 @@ export default function PaymentsPage() {
                 { header: "Date", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
               ]}
             />
+            {/* 👇 Naya: Email report to admins — same dropdown jo invoices mein hai */}
+            <EmailAdminDropdown
+              filters={filters}
+              selectedIds={selectedIds}
+              onEmailSend={(body) => sendPaymentsReportEmail(body)}
+            />
             <div className="flex justify-end">
               <div className="bg-white border border-gray-100 rounded-lg px-4 py-1.5 shadow-sm">
                 <span className="text-xs text-gray-400 uppercase tracking-wide mr-2">Total Amount</span>
@@ -187,17 +208,17 @@ export default function PaymentsPage() {
         }
       />
 
-      {/* Total amount for current filter set (relies on backend meta.totalAmount) */}
-
-
       <DynamicTable
-        data={data?.data || []}
+        data={paymentList}
         isLoading={isLoading}
         isError={isError}
         currentPage={data?.meta?.page || 1}
         pageSize={data?.meta?.limit || 10}
         totalPages={data?.meta?.totalPages || 1}
         onPageChange={(page) => setFilters((f) => ({ ...f, page: String(page) }))}
+        selectedIds={selectedIds}
+        onSelectAll={toggleSelectAll}
+        onToggleSelect={toggleSelect}
         columns={[
           { key: "user", label: "Student", render: (p) => <span className="font-medium text-gray-800">{p.user?.name || "—"}</span> },
           { key: "amount", label: "Amount", render: (p) => <span className="font-bold text-gray-800">Rs {(p.amount || 0).toLocaleString()}</span> },
@@ -207,7 +228,6 @@ export default function PaymentsPage() {
           },
           { key: "referenceNumber", label: "Reference", render: (p) => <span className="text-gray-500 text-sm">{p.referenceNumber || "—"}</span> },
           {
-            // ── Renamed from "Notes" → "Description" per requirement ──
             key: "notes", label: "Description",
             render: (p) => (
               <span className="text-gray-500 text-sm max-w-[200px] truncate block" title={p.notes || ""}>

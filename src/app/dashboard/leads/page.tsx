@@ -7,6 +7,7 @@ import { Users } from 'lucide-react';
 import AdminLeads from './components/admin-leads';
 import SalesManagerLeads from './components/sales-manager-leads';
 import SalesRepLeads from './components/sales-rep-leads';
+import FinanceLeads from './components/finance-lead';
 
 // Role based components — alag alag views
 
@@ -23,6 +24,8 @@ export default function Leads() {
         return <SalesManagerLeads />;
       case "sales_rep":
         return <SalesRepLeads />;
+      case "finance_manager":
+        return <FinanceLeads />;
       default:
         return null;
     }

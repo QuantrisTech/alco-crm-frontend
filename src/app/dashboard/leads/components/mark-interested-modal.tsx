@@ -10,6 +10,8 @@ interface Installment {
 }
 
 interface FormState {
+  invoiceNumber: string;
+  issueDate: string;
   totalAmount: number;
   discount: number;
   advanceAmount: number;
@@ -38,14 +40,24 @@ const toDateInput = (dateStr?: string) => {
 
 export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitting }: Props) {
   const baseAmount = lead?.opportunity_value ?? 0;
+  const existingPlan = lead?.paymentPlan;
+  const todayStr = () => new Date().toISOString().split("T")[0];
 
   const [form, setForm] = useState<FormState>({
-    totalAmount: baseAmount,
-    discount: 0,
-    advanceAmount: 0,
-    advanceDueDate: "",
-    installments: [{ label: "Installment 1", amount: 0, dueDate: "" }],
-    notes: "",
+    invoiceNumber: existingPlan?.invoiceNumber ?? "",
+    issueDate: toDateInput(existingPlan?.issueDate) || todayStr(),
+    totalAmount: existingPlan?.totalAmount ?? baseAmount,
+    discount: existingPlan?.discount ?? 0,
+    advanceAmount: existingPlan?.advanceAmount ?? 0,
+    advanceDueDate: toDateInput(existingPlan?.advanceDueDate) ?? "",
+    installments: existingPlan?.installments?.length
+      ? existingPlan.installments.map((inst: any) => ({
+        label: inst.label || "Installment",
+        amount: inst.amount || 0,
+        dueDate: toDateInput(inst.dueDate),
+      }))
+      : [{ label: "Installment 1", amount: 0, dueDate: "" }],
+    notes: existingPlan?.notes ?? "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -68,23 +80,23 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
     form.installments.reduce((s, i) => s + Number(i.amount), 0);
 
   // ── Validation ─────────────────────────────────────────────────
- const validate = (): boolean => {
-  const newErrors: FormErrors = {};
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {};
 
-  if (!form.advanceAmount || form.advanceAmount <= 0) {
-    newErrors.advanceAmount = "Advance amount is required";
-  }
-  if (!form.advanceDueDate) {
-    newErrors.advanceDueDate = "Advance due date is required";
-  }
+    if (!form.advanceAmount || form.advanceAmount <= 0) {
+      newErrors.advanceAmount = "Advance amount is required";
+    }
+    if (!form.advanceDueDate) {
+      newErrors.advanceDueDate = "Advance due date is required";
+    }
 
-  setErrors(newErrors);
-  return (
-    !newErrors.advanceAmount &&
-    !newErrors.advanceDueDate &&
-    remaining >= 0
-  );
-};
+    setErrors(newErrors);
+    return (
+      !newErrors.advanceAmount &&
+      !newErrors.advanceDueDate &&
+      remaining >= 0
+    );
+  };
 
   const addInstallment = () =>
     setForm((p) => ({
@@ -165,6 +177,24 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
             disabled
             className="bg-gray-50 cursor-not-allowed opacity-70"
           /> */}
+          <div className="grid grid-cols-2 gap-3">
+            <InputField
+              label="Old Invoice Number (Optional)"
+              type="text"
+              value={form.invoiceNumber}
+              onChange={(e) => setForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+              placeholder="e.g. INV-2024-0045"
+            />
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
+              <input
+                type="date"
+                value={form.issueDate}
+                onChange={(e) => setForm((p) => ({ ...p, issueDate: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900"
+              />
+            </div>
+          </div>
           {/* Total Amount + Discount */}
           <div className="grid grid-cols-2 gap-3">
             <InputField

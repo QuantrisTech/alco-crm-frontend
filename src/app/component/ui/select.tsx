@@ -20,9 +20,11 @@ export default function Select({ label, options, error, value, bg, placeholder =
 
   return (
     <div ref={ref}>
+      {label && (
       <label className="text-sm font-medium text-gray-700 mb-1 block">
         {label}
       </label>
+      )}
 
       <div className="relative">
         <button
