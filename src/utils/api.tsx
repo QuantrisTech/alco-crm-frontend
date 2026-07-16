@@ -84,6 +84,8 @@ export const selfVerifyEmail = () => API.post("/api/auth/verify-email-self");  /
 export const getAllVisitors = (params?: any) => API.get("/api/v1/visitors", { params });
 export const promoteVisitorToLead = (id: string, data?: any) => API.post(`/api/v1/visitors/${id}/promote`, data);
 export const updateVisitor = (id: string, data: any) => API.patch(`/api/v1/visitors/${id}`, data);
+export const assignVisitor = (id: string) => API.patch(`/api/v1/visitors/${id}/assign`);
+export const unassignVisitor = (id: string) => API.patch(`/api/v1/visitors/${id}/unassign`);
 
 // Admin APIs
 export const adminGetAllUsers = (params?: any) => API.get("/api/admin/users", { params });

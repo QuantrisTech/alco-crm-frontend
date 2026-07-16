@@ -1,15 +1,17 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { Users, ArrowUpRight, Search, Pencil, X } from "lucide-react";
+import ProtectedRoute from "@/app/component/protected-route";
 import {
   getAllVisitors,
   promoteVisitorToLead,
   updateVisitor,
   getNamesPrograms,
+  assignVisitor,
+  unassignVisitor,
 } from "@/utils/api";
-import toast from "react-hot-toast";
-import { Users, ArrowUpRight, Search, Pencil, X } from "lucide-react";
-import ProtectedRoute from "@/app/component/protected-route";
 
 // Fields the Lead model requires. Extend this if your Lead schema needs more
 // than email (per the "required email field" blocker you flagged earlier).
@@ -199,9 +201,22 @@ export default function VisitorsPage() {
       toast.error(e?.response?.data?.error || "Failed to update visitor");
     },
   });
-
+  const {
+    mutate: assign,
+    isPending: isAssigning,
+    variables: assigningId,
+  } = useMutation({
+    mutationFn: (id: string) => assignVisitor(id),
+    onSuccess: () => {
+      toast.success("Visitor assigned to you");
+      queryClient.invalidateQueries({ queryKey: ["visitors"] });
+    },
+    onError: (e: any) => {
+      toast.error(e?.response?.data?.error || "Failed to assign visitor");
+    },
+  });
   return (
-    <ProtectedRoute allowedRoles={["super_admin"]}>
+    <ProtectedRoute allowedRoles={["super_admin", "admin"]}>
       <div>
         {/* Header — matches Users page pattern: icon+title+subtitle left, Total + search right */}
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -247,6 +262,7 @@ export default function VisitorsPage() {
                 <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3">Program Interest</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Assigned To</th>
                 <th className="px-4 py-3">First Seen</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
@@ -331,8 +347,28 @@ export default function VisitorsPage() {
                         className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge(visitor.status)}`}
                       >
                         {visitor.status}
-                      </span>
-                    </td>
+</span>
+</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {visitor.assigned_to ? (
+                            <span className="text-xs font-medium text-gray-700">
+                              {visitor.assigned_to.name}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => assign(visitor.visitor_id)}
+                              disabled={
+                                isAssigning &&
+                                assigningId === visitor.visitor_id
+                              }
+                              className="text-xs text-blue-600 hover:underline disabled:opacity-50"
+                            >
+                              {isAssigning && assigningId === visitor.visitor_id
+                                ? "Claiming..."
+                                : "Claim"}
+                            </button>
+                          )}
+                        </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {visitor.createdAt
                         ? new Date(visitor.createdAt).toLocaleDateString(
@@ -347,7 +383,10 @@ export default function VisitorsPage() {
                         </span>
                       ) : visitor.is_existing_student ? (
                         <span className="text-xs text-blue-600 font-medium">
-                          Already {visitor.existing_source === "lead" ? "a lead" : "enrolled"}
+                          Already{" "}
+                          {visitor.existing_source === "lead"
+                            ? "a lead"
+                            : "enrolled"}
                         </span>
                       ) : (
                         <div className="flex items-center justify-end gap-2">
@@ -413,3 +452,5 @@ export default function VisitorsPage() {
     </ProtectedRoute>
   );
 }
+
+
