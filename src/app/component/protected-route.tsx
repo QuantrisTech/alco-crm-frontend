@@ -22,7 +22,7 @@ export default function ProtectedRoute({
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // ✅ Sirf ek baar toast show hoga
+  // Sirf ek baar toast show hoga
   const tempToastShown = useRef(false);
 
   // ─────────────────────────────────────────────────────────────
