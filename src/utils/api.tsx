@@ -4,10 +4,8 @@ import { LoginData, RegisterData, UpdateUserData } from "@/types/apiType";
 
 const API = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  // withCredentials: true, 
+  // withCredentials: true, // Set to true to include cookies in requests
 });
-
-
 
 // Token auto-attach
 API.interceptors.request.use((config) => {
