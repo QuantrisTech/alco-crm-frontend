@@ -128,7 +128,7 @@ function YearSelect({
 }) {
   return (
     <select
-      className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-400"
+      className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-400 placeholder:text-gray-600 text-gray-600 bg-white"
       value={year}
       onChange={(e) => onChange(Number(e.target.value))}
     >

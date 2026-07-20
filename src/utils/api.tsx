@@ -277,6 +277,15 @@ export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", d
 export const createEnrollmentDirect = (data: any) => API.post("/api/v1/enrollments/direct", data);
 export const assignEnrollment = (id: string, assigned_to: string) =>
   API.patch(`/api/v1/enrollments/${id}/assign`, { assigned_to });
+// export const voidInstallmentPayment = (
+//   invoiceId: string,
+//   installmentId: string,
+//   data: any
+// ) =>
+//   API.patch(
+//     `/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/void`,
+//     data
+//   );
 
 export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`, data);
 export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
@@ -287,6 +296,8 @@ export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollment
 export const createEnrollmentDirectBundle = (data: any) =>
   API.post("/api/v1/enrollments/direct/bundle", data);
 
+export const getCertificate = (enrollmentId: string) =>
+  API.get(`/certificates/enrollment/${enrollmentId}`);
 
 // ─── Access Control ───────────────────────────────────────────
 // export const grantAccess = (data: { enrollmentId: string; days: number }) => API.post("/api/v1/access/grant", data);

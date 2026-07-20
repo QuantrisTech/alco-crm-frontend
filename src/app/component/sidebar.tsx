@@ -208,6 +208,35 @@ const menuSections: MenuSection[] = [
 
 type SidebarMode = "crm" | "website";
 
+function SidebarScrollStyles() {
+  return (
+    <style jsx global>{`
+      .sidebar-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #ffffff #1f2937;
+      }
+      .sidebar-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+      .sidebar-scroll::-webkit-scrollbar-track {
+        background: #1f2937;
+      }
+      .sidebar-scroll::-webkit-scrollbar-thumb {
+        background-color: #ffffff;
+        border-radius: 9999px;
+      }
+      .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+        background-color: #e5e7eb;
+      }
+      .sidebar-scroll::-webkit-scrollbar-button {
+        display: none;
+        width: 0;
+        height: 0;
+      }
+    `}</style>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { user: authUser } = useAppSelector((state) => state.auth);
@@ -252,20 +281,21 @@ export default function Sidebar() {
   if (isUserForResponsive) {
     return (
       <>
+        <SidebarScrollStyles />
         {/* ── Small screen: icon-only collapsed sidebar ── */}
         <div className="
           lg:hidden
-          w-16 min-h-screen bg-gray-900 text-white flex flex-col
+          w-16 h-screen bg-gray-900 text-white flex flex-col overflow-hidden
         ">
           {/* Logo icon */}
-          <div className="p-3 border-b border-gray-700 flex justify-center">
+          <div className="p-3 border-b border-gray-700 flex justify-center shrink-0">
             <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
               <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
             </div>
           </div>
 
           {/* Nav icons */}
-          <nav className={`flex-1 flex flex-col items-center gap-1 py-4 h-full`}>
+          <nav className={`flex-1 flex flex-col items-center gap-1 py-4 overflow-y-auto min-h-0 sidebar-scroll`}>
             {filteredSections.map((section) => {
               const visibleItems = section.items.filter((item) => item.roles.includes(role));
               if (visibleItems.length === 0) return null;
@@ -295,8 +325,8 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* Logout icon */}
-          <div className="p-3 border-t border-gray-700 flex justify-center">
+          {/* Logout icon - sticky at bottom */}
+          <div className="p-3 border-t border-gray-700 flex justify-center shrink-0">
             <IconTooltip label="Logout">
               <button
                 onClick={() => setShowLogout(true)}
@@ -309,9 +339,9 @@ export default function Sidebar() {
         </div>
 
         {/* ── Large screen: full sidebar (original behaviour) ── */}
-        <div className="hidden lg:flex w-64 min-h-screen bg-gray-900 text-white flex-col">
+        <div className="hidden lg:flex w-64 h-screen bg-gray-900 text-white flex-col overflow-hidden">
           {/* Logo */}
-          <div className="p-5 border-b border-gray-700">
+          <div className="p-5 border-b border-gray-700 shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
                 <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
@@ -324,7 +354,7 @@ export default function Sidebar() {
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+          <nav className="flex-1 p-4 space-y-6 overflow-y-auto min-h-0 sidebar-scroll">
             {filteredSections.map((section) => {
               const visibleItems = section.items.filter((item) => item.roles.includes(role));
               if (visibleItems.length === 0) return null;
@@ -362,8 +392,8 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* Logout */}
-          <div className="p-4 border-t border-gray-700">
+          {/* Logout - sticky at bottom */}
+          <div className="p-4 border-t border-gray-700 shrink-0">
             <button
               onClick={() => setShowLogout(true)}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
@@ -390,9 +420,11 @@ export default function Sidebar() {
 
   // ── Admin / other roles: original full sidebar (unchanged) ─────────────────
   return (
-    <div className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
+    <>
+    <SidebarScrollStyles />
+    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
       {/* Logo */}
-      <div className="p-5 border-b border-gray-700">
+      <div className="p-5 border-b border-gray-700 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
             <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
@@ -406,7 +438,7 @@ export default function Sidebar() {
 
       {/* Mode toggle */}
       {isAdmin && (
-        <div className="px-3 pt-4 pb-1">
+        <div className="px-3 pt-4 pb-1 shrink-0">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">Mode</p>
           <div className="space-y-0.5">
             {(["crm", "website"] as SidebarMode[]).map((m) => (
@@ -429,10 +461,10 @@ export default function Sidebar() {
         </div>
       )}
 
-      {isAdmin && <div className="mx-4 mt-3 border-t border-gray-700/60" />}
+      {isAdmin && <div className="mx-4 mt-3 border-t border-gray-700/60 shrink-0" />}
 
       {/* Nav */}
-      <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-6 overflow-y-auto min-h-0 sidebar-scroll">
         {filteredSections.map((section) => {
           const visibleItems = section.items.filter((item) => item.roles.includes(role));
           if (visibleItems.length === 0) return null;
@@ -567,8 +599,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-gray-700">
+      {/* Logout - sticky at bottom */}
+      <div className="px-4 py-2 border-t border-gray-700 shrink-0">
         <button
           onClick={() => setShowLogout(true)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
@@ -589,5 +621,6 @@ export default function Sidebar() {
         cancelText="Stay"
       />
     </div>
+    </>
   );
 }

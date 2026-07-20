@@ -200,6 +200,30 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
             />
           </div>
 
+          {/* 👇 NAYA — Certificate fee info */}
+          {existingPlan?.certificateFee > 0 && (
+            <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 flex items-center justify-between">
+              <span className="text-xs text-orange-600 font-medium">
+                🎓 Certificate fee (auto-added)
+              </span>
+              <span className="text-xs font-bold text-orange-700">
+                Rs {existingPlan.certificateFee.toLocaleString()}
+              </span>
+            </div>
+          )}
+
+          {/* 👇 NAYA — Manual fee info */}
+          {existingPlan?.manualFee > 0 && (
+            <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 flex items-center justify-between">
+              <span className="text-xs text-orange-600 font-medium">
+                🎓 Manual fee (auto-added)
+              </span>
+              <span className="text-xs font-bold text-orange-700">
+                Rs {existingPlan.manualFee.toLocaleString()}
+              </span>
+            </div>
+          )}
+
 
           {/* ── Advance ── */}
           <div className="grid grid-cols-2 gap-3">

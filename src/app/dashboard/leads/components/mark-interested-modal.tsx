@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { adminGetProgramById } from "@/utils/api";
 import { X, Plus, Trash2, Star } from "lucide-react";
 import InputField from "@/app/component/ui/inputField";
+import toast from "react-hot-toast";
 
 interface Installment {
   dueDate: string;
@@ -18,6 +20,8 @@ interface FormState {
   advanceDueDate: string;
   installments: Installment[];
   notes: string;
+  certificateFee?: number;
+  manualFee?: number
 }
 
 interface FormErrors {
@@ -42,6 +46,20 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
   const baseAmount = lead?.opportunity_value ?? 0;
   const existingPlan = lead?.paymentPlan;
   const todayStr = () => new Date().toISOString().split("T")[0];
+
+  const [includeCertFee, setIncludeCertFee] = useState(false);
+  const [certificateFee, setCertificateFee] = useState(0);
+  const [includeManualFee, setIncludeManualFee] = useState(false);
+  const [manualFee, setManualFee] = useState(5000);
+
+  useEffect(() => {
+    if (!lead?.program_id) return;
+    const programId = typeof lead.program_id === "object" ? lead.program_id._id : lead.program_id;
+    adminGetProgramById(programId).then((res) => {
+      setCertificateFee(res.data?.data?.certificateFee || 0);
+      setManualFee(res.data?.data?.manualFee ?? 5000);
+    }).catch(() => { });
+  }, [lead?.program_id]);
 
   const [form, setForm] = useState<FormState>({
     invoiceNumber: existingPlan?.invoiceNumber ?? "",
@@ -129,11 +147,23 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
     e.preventDefault();
     if (!validate()) return;
 
+    if (includeCertFee && certificateFee <= 0) {
+      toast.error("Certificate fee amount is required if you're including it");
+      return;
+    }
+
     const filledInstallments = form.installments.filter(
       (inst) => inst.amount > 0 || inst.dueDate !== ""
     );
 
-    onSubmit({ paymentPlan: { ...form, installments: filledInstallments } });
+    onSubmit({
+      paymentPlan: {
+        ...form,
+        installments: filledInstallments,
+        certificateFee: includeCertFee ? certificateFee : 0,
+        manualFee: includeManualFee ? manualFee : 0,   
+      },
+    });
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -213,6 +243,80 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
               onChange={(e) => handleDiscountChange(Number(e.target.value))}
               placeholder="0"
             />
+          </div>
+
+          {/* 👇 NAYA — Certificate fee info */}
+          {/* {existingPlan?.certificateFee > 0 && (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex items-center justify-between">
+              <span className="text-xs text-indigo-600 font-medium">
+                Certificate fee (auto-added)
+              </span>
+              <span className="text-xs font-bold text-indigo-700">
+                Rs {existingPlan.certificateFee.toLocaleString()}
+              </span>
+            </div>
+          )} */}
+
+          {/* {certificateFee > 0 && ( */}
+          {/* <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex items-center justify-between">
+            <span className="text-xs text-indigo-600 font-medium">
+              🎓 Certificate fee (auto-added on save)
+            </span>
+            <span className="text-xs font-bold text-indigo-700">
+              Rs {certificateFee.toLocaleString()}
+            </span>
+          </div> */}
+          {/* )} */}
+
+          {/* Certificate Fee — checkbox + editable input */}
+          <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeCertFee}
+                onChange={(e) => setIncludeCertFee(e.target.checked)}
+                className="w-4 h-4 accent-indigo-500 rounded"
+              />
+              <span className="text-xs font-semibold text-gray-700">Include Certificate Fee in this invoice</span>
+            </label>
+
+            {includeCertFee && (
+              <div className="mt-2">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Certificate Fee (Rs)</label>
+                <input
+                  type="number"
+                  value={certificateFee || ""}
+                  onChange={(e) => setCertificateFee(Number(e.target.value))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                  placeholder="e.g. 5000"
+                />
+              </div>
+            )}
+          </div>
+          {/* 👇 NAYA — Manual Fee checkbox, same pattern */}
+          <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeManualFee}
+                onChange={(e) => setIncludeManualFee(e.target.checked)}
+                className="w-4 h-4 accent-teal-500 rounded"
+              />
+              <span className="text-xs font-semibold text-gray-700">Include Manual Fee</span>
+            </label>
+
+            {includeManualFee && (
+              <div className="mt-2">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Manual Fee (Rs)</label>
+                <input
+                  type="number"
+                  value={manualFee || ""}
+                  onChange={(e) => setManualFee(Number(e.target.value))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                  placeholder="e.g. 5000"
+                />
+              </div>
+            )}
           </div>
 
           {/* Advance */}

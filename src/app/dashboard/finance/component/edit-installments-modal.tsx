@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateInstallment, addInstallment } from "@/utils/api";
 import toast from "react-hot-toast";
-import { X, Pencil, Plus, Save, Check } from "lucide-react";
+import { X, Pencil, Plus, Save, Check, GraduationCap } from "lucide-react";
 
 interface Installment {
   _id: string;
@@ -12,6 +12,7 @@ interface Installment {
   dueDate: string | null;
   status: "PAID" | "PENDING";
   isAdvance: boolean;
+  feeType?: "program" | "certificate" | "manual";
   paidAmount: number;
   notes?: string | null;
 }
@@ -25,10 +26,10 @@ const fmt = (n: number) => `Rs ${Number(n || 0).toLocaleString("en-PK")}`;
 const fmtDate = (d: string | null) =>
   d
     ? new Date(d).toLocaleDateString("en-PK", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
     : "—";
 
 export default function EditInstallmentsModal({ invoice, onClose }: Props) {
@@ -36,13 +37,14 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
 
   // ── ALL HOOKS FIRST — early return se pehle ─────────────────
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm]   = useState({ label: "", amount: "", dueDate: "", notes: "" });
+  const [editForm, setEditForm] = useState({ label: "", amount: "", dueDate: "", notes: "" });
   const [notesOnlyId, setNotesOnlyId] = useState<string | null>(null);
   const [notesOnlyValue, setNotesOnlyValue] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm]         = useState({
-    label: "", amount: "", dueDate: "", isAdvance: false, notes: "",
+  const [addForm, setAddForm] = useState({
+    label: "", amount: "", dueDate: "", isAdvance: false, isCertificate: false, isManual: false, notes: "",
   });
+
 
   const { mutate: saveEdit, isPending: isSaving } = useMutation({
     mutationFn: ({ instId, data }: { instId: string; data: any }) =>
@@ -63,7 +65,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
     onSuccess: () => {
       toast.success("Installment added!");
       setShowAddForm(false);
-      setAddForm({ label: "", amount: "", dueDate: "", isAdvance: false, notes: "" });
+      setAddForm({ label: "", amount: "", dueDate: "", isAdvance: false, isCertificate: false, isManual: false, notes: "" });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
     },
@@ -78,23 +80,27 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
   const openEdit = (inst: Installment) => {
     setEditingId(inst._id);
     setEditForm({
-      label:   inst.label,
-      amount:  String(inst.amount),
+      label: inst.label,
+      amount: String(inst.amount),
       dueDate: inst.dueDate ? inst.dueDate.split("T")[0] : "",
-      notes:   inst.notes || "",
+      notes: inst.notes || "",
     });
   };
 
   const handleSaveEdit = (instId: string) => {
     if (!editForm.label || !editForm.amount)
       return toast.error("Label and amount are required!");
+
+    const inst = installments.find((i) => i._id === instId);
+    const isCertAndManu = inst?.feeType === "certificate" || inst?.feeType === "manual";
+
     saveEdit({
       instId,
       data: {
-        label:   editForm.label,
-        amount:  Number(editForm.amount),
-        dueDate: editForm.dueDate || undefined,
-        notes:   editForm.notes || undefined,
+        label: editForm.label,
+        amount: Number(editForm.amount),
+        dueDate: isCertAndManu ? null : (editForm.dueDate || undefined),
+        notes: editForm.notes || undefined,
       },
     });
   };
@@ -115,11 +121,12 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
     if (!addForm.label || !addForm.amount)
       return toast.error("Label and amount required!");
     saveAdd({
-      label:     addForm.label,
-      amount:    Number(addForm.amount),
-      dueDate:   addForm.dueDate || undefined,
+      label: addForm.label,
+      amount: Number(addForm.amount),
+      dueDate: (addForm.isCertificate || addForm.isManual) ? null : (addForm.dueDate || undefined),
       isAdvance: addForm.isAdvance,
-      notes:     addForm.notes || undefined,
+      feeType: addForm.isCertificate ? "certificate" : addForm.isManual ? "manual" : "program",
+      notes: addForm.notes || undefined,
     });
   };
 
@@ -156,11 +163,10 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
           {installments.map((inst, idx) => (
             <div
               key={inst._id}
-              className={`rounded-xl border transition-all ${
-                editingId === inst._id
-                  ? "border-indigo-300 bg-indigo-50/40"
-                  : "border-gray-100 bg-gray-50/60"
-              }`}
+              className={`rounded-xl border transition-all ${editingId === inst._id
+                ? "border-indigo-300 bg-indigo-50/40"
+                : "border-gray-100 bg-gray-50/60"
+                }`}
             >
               {editingId !== inst._id && notesOnlyId !== inst._id ? (
                 /* ── Normal Row ─────────────────────────────── */
@@ -177,12 +183,16 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                             Advance
                           </span>
                         )}
+                        {inst.feeType === "certificate" && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider bg-purple-200 text-purple-700 px-2 py-0.5 rounded-full">
+                            🎓 Certificate
+                          </span>
+                        )}
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            inst.status === "PAID"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-sky-100 text-sky-700"
-                          }`}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${inst.status === "PAID"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-sky-100 text-sky-700"
+                            }`}
                         >
                           {inst.status}
                         </span>
@@ -292,7 +302,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                       />
                     </div>
                   </div>
-                  <div>
+                  {/* <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
                     <input
                       type="date"
@@ -300,7 +310,18 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                       onChange={(e) => setEditForm((p) => ({ ...p, dueDate: e.target.value }))}
                       className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     />
-                  </div>
+                  </div> */}
+                  {inst.feeType !== "certificate" && inst.feeType !== "manual" && ( 
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
+                      <input
+                        type="date"
+                        value={editForm.dueDate}
+                        onChange={(e) => setEditForm((p) => ({ ...p, dueDate: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
                     <textarea
@@ -359,7 +380,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                   />
                 </div>
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
                 <input
                   type="date"
@@ -367,7 +388,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                   onChange={(e) => setAddForm((p) => ({ ...p, dueDate: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 />
-              </div>
+              </div> */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
                 <textarea
@@ -378,7 +399,29 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
                 />
               </div>
-              <label className="flex items-center gap-2 cursor-pointer w-fit">
+
+              {/* 👇 Due Date — sirf tab dikhao jab certificate na ho */}
+              {!addForm.isCertificate && !addForm.isManual && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={addForm.dueDate}
+                    onChange={(e) => setAddForm((p) => ({ ...p, dueDate: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+              )}
+              {/* <label className="flex items-center gap-2 cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  checked={addForm.isAdvance}
+                  onChange={(e) => setAddForm((p) => ({ ...p, isAdvance: e.target.checked }))}
+                  className="w-4 h-4 accent-amber-500 rounded"
+                />
+                <span className="text-xs font-semibold text-amber-700">Mark as Advance Payment</span>
+              </label> */}
+              <label className="flex items-center gap-2 cursor-pointer w-fit mt-2">
                 <input
                   type="checkbox"
                   checked={addForm.isAdvance}
@@ -387,6 +430,41 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                 />
                 <span className="text-xs font-semibold text-amber-700">Mark as Advance Payment</span>
               </label>
+
+              {/* 👇 Certificate fee checkbox */}
+              <label className="flex items-center gap-2 cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  checked={addForm.isCertificate}
+                  onChange={(e) =>
+                    setAddForm((p) => ({
+                      ...p,
+                      isCertificate: e.target.checked,
+                      dueDate: e.target.checked ? "" : p.dueDate, // ✅ clear on check
+                    }))
+                  }
+                  className="w-4 h-4 accent-purple-500 rounded"
+                />
+                <span className="text-xs font-semibold text-purple-700">Mark as Certificate Fee</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  checked={addForm.isManual}
+                  onChange={(e) =>
+                    setAddForm((p) => ({
+                      ...p,
+                      isManual: e.target.checked,
+                      dueDate: e.target.checked ? "" : p.dueDate,
+                    }))
+                  }
+                  className="w-4 h-4 accent-teal-500 rounded"
+                />
+                <span className="text-xs font-semibold text-teal-700">Mark as Manual Fee</span>
+              </label>
+
+
               <div className="flex gap-2 justify-end pt-1">
                 <button
                   onClick={() => setShowAddForm(false)}

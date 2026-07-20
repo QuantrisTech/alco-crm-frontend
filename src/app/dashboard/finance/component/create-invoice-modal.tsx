@@ -497,6 +497,8 @@ interface BundleItem {
   programName: string;
   enrollment: string;
   amount: number;
+  certFee: { include: boolean; amount: number };
+  manuFee: { include: boolean; amount: number };
 }
 
 interface Props {
@@ -508,7 +510,8 @@ type Mode = "fresh" | "append" | "bundle";
 
 const todayStr = () => new Date().toISOString().split("T")[0];
 const fmt = (n: number) => Number(n || 0).toLocaleString("en-PK");
-const statusColor = (s: string) => (s === "PAID" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600");
+const statusColor = (s: string) => (s === "PAID" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600");// State mein add karo
+// const [freshCertFee, setFreshCertFee] = useState({ include: false, amount: 0 });
 
 export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -520,6 +523,29 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedEnrollments, setSelectedEnrollments] = useState<any[]>([]);
   const [mode, setMode] = useState<Mode>("fresh");
+  const [freshCertFee, setFreshCertFee] = useState({
+    include: false,
+    amount: 0,
+  });
+
+  const [bundleCertFee, setBundleCertFee] = useState({
+    include: false,
+    amount: 0,
+  });
+
+  const [appendCertFee, setAppendCertFee] = useState({ include: false, amount: 0 });
+
+  const [freshManuFee, setFreshManuFee] = useState({
+    include: false,
+    amount: 0,
+  });
+
+  const [bundleManuFee, setBundleManuFee] = useState({
+    include: false,
+    amount: 0,
+  });
+
+  const [appendManuFee, setAppendManuFee] = useState({ include: false, amount: 0 });
 
   // ── Fresh invoice form (single enrollment, no existing invoice) ──
   const [freshForm, setFreshForm] = useState({
@@ -624,11 +650,29 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
           programName: e.program?.name,
           enrollment: e._id,
           amount: e.program?.price || 0,
+          certFee: { include: false, amount: e.program?.certificateFee || 0 },
+          manuFee: { include: false, amount: e.program?.manualFee || 0 },
         })),
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, step]);
+
+  const updateItemCertFee = (idx: number, field: "include" | "amount", value: any) =>
+    setBundleForm((p) => ({
+      ...p,
+      items: p.items.map((it, i) =>
+        i === idx ? { ...it, certFee: { ...it.certFee, [field]: value } } : it
+      ),
+    }));
+
+  const updateItemManuFee = (idx: number, field: "include" | "amount", value: any) =>
+    setBundleForm((p) => ({
+      ...p,
+      items: p.items.map((it, i) =>
+        i === idx ? { ...it, manuFee: { ...it.manuFee, [field]: value } } : it
+      ),
+    }));
 
   // ── Fresh form derived values ────────────────────────────────
   const freshRemaining =
@@ -646,7 +690,17 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
   // ── Bundle form derived values ───────────────────────────────
   const itemsSubtotal = bundleForm.items.reduce((s, i) => s + Number(i.amount), 0);
-  const bundleTotal = Math.max(0, itemsSubtotal - bundleForm.discount);
+  const certFeeSubtotal = bundleForm.items.reduce(
+    (s, i) => s + (i.certFee.include ? Number(i.certFee.amount) : 0),
+    0
+  )
+
+  const manuFeeSubtotal = bundleForm.items.reduce(
+    (s, i) => s + (i.manuFee.include ? Number(i.manuFee.amount) : 0),
+    0
+  );
+
+  const bundleTotal = Math.max(0, itemsSubtotal + certFeeSubtotal + manuFeeSubtotal - bundleForm.discount);
   const bundleRemaining =
     bundleTotal - bundleForm.advanceAmount - bundleForm.installments.reduce((s, i) => s + Number(i.amount), 0);
 
@@ -677,14 +731,20 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const { mutate: submitFresh, isPending: isFreshPending } = useMutation({
     mutationFn: () => {
       const enrollment = selectedEnrollments[0];
+      const certAmount = freshCertFee.include ? freshCertFee.amount : 0;
+      const manuAmount = freshManuFee.include ? freshManuFee.amount : 0;
+
       const allInstallments = [
         { label: "Advance Payment", amount: freshForm.advanceAmount, dueDate: freshForm.advanceDueDate, isAdvance: true, status: "PENDING", paidAmount: 0 },
         ...freshForm.installments.map((inst) => ({ label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false, status: "PENDING", paidAmount: 0 })),
+        ...(certAmount > 0 ? [{ label: "Certificate Fee", amount: certAmount, dueDate: null, isAdvance: false, status: "PENDING", paidAmount: 0, feeType: "certificate" }] : []),
+        ...(manuAmount > 0 ? [{ label: "Manual Fee", amount: manuAmount, dueDate: null, isAdvance: false, status: "PENDING", paidAmount: 0, feeType: "manual" }] : []),
       ];
+
       return createInvoice({
         user: enrollment.user._id,
         enrollment: enrollment._id,
-        totalAmount: freshForm.totalAmount,
+        totalAmount: freshForm.totalAmount + certAmount + manuAmount,
         dueDate: freshForm.advanceDueDate,
         installments: allInstallments,
         notes: freshForm.notes,
@@ -702,14 +762,84 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
   const { mutate: submitBundle, isPending: isBundlePending } = useMutation({
     mutationFn: () => {
+      // Program items
+      const programItems = bundleForm.items.map((it) => ({
+        program: it.program,
+        programName: it.programName,
+        enrollment: it.enrollment,
+        amount: it.amount,
+        feeType: "program",
+      }));
+
+      // Certificate items — sirf jinka checkbox on hai, har ek alag
+      const certItems = bundleForm.items
+        .filter((it) => it.certFee.include && it.certFee.amount > 0)
+        .map((it) => ({
+          program: it.program,
+          programName: `${it.programName} — Certificate Fee`,
+          enrollment: it.enrollment,
+          amount: it.certFee.amount,
+          feeType: "certificate",
+        }));
+
+      // manual items — sirf jinka checkbox on hai, har ek alag
+      const manuItems = bundleForm.items
+        .filter((it) => it.manuFee.include && it.manuFee.amount > 0)
+        .map((it) => ({
+          program: it.program,
+          programName: `${it.programName} — manual Fee`,
+          enrollment: it.enrollment,
+          amount: it.manuFee.amount,
+          feeType: "manual",
+        }));
+
+      const allItems = [...programItems, ...certItems, ...manuItems];
+
       const allInstallments = [
-        { label: "Advance Payment", amount: bundleForm.advanceAmount, dueDate: bundleForm.advanceDueDate, isAdvance: true, status: "PENDING", paidAmount: 0 },
-        ...bundleForm.installments.map((inst) => ({ label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false, status: "PENDING", paidAmount: 0 })),
+        {
+          label: "Advance Payment",
+          amount: bundleForm.advanceAmount,
+          dueDate: bundleForm.advanceDueDate,
+          isAdvance: true,
+          status: "PENDING",
+          paidAmount: 0,
+        },
+        ...bundleForm.installments.map((inst) => ({
+          label: inst.label,
+          amount: inst.amount,
+          dueDate: inst.dueDate,
+          isAdvance: false,
+          status: "PENDING",
+          paidAmount: 0,
+        })),
+        ...certItems.map((c) => ({
+          label: `CDP Fee — ${c.programName.replace(" — Certificate Fee", "")}`,
+          amount: c.amount,
+          dueDate: null,
+          isAdvance: false,
+          status: "PENDING",
+          paidAmount: 0,
+          feeType: "certificate",
+          program: c.program,
+          enrollment: c.enrollment,
+        })),
+        ...manuItems.map((c) => ({
+          label: `manual Fee — ${c.programName.replace(" — manual Fee", "")}`,
+          amount: c.amount,
+          dueDate: null,
+          isAdvance: false,
+          status: "PENDING",
+          paidAmount: 0,
+          feeType: "manual",
+          program: c.program,
+          enrollment: c.enrollment,
+        })),
       ];
+
       return createInvoice({
         user: selectedEnrollments[0].user._id,
         enrollments: selectedEnrollments.map((e) => e._id),
-        items: bundleForm.items,
+        items: allItems,
         totalAmount: bundleTotal,
         dueDate: bundleForm.advanceDueDate,
         installments: allInstallments,
@@ -731,6 +861,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
       const invoiceId = existingInvoice._id;
       for (const inst of appendInstallments) {
         await addInstallment(invoiceId, { label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false });
+      }
+      if (appendCertFee.include && appendCertFee.amount > 0) {
+        await addInstallment(invoiceId, { label: "Certificate Fee", amount: appendCertFee.amount, dueDate: null, isAdvance: false, feeType: "certificate" });
+      }
+      if (appendManuFee.include && appendManuFee.amount > 0) {
+        await addInstallment(invoiceId, { label: "Manual Fee", amount: appendManuFee.amount, dueDate: null, isAdvance: false, feeType: "manual" });
       }
     },
     onSuccess: () => {
@@ -773,6 +909,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     setResults([]);
     setSelectedEnrollments([]);
     setMode("fresh");
+    setFreshCertFee({ include: false, amount: 0 });
+    setFreshManuFee({ include: false, amount: 0 });
     setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "", issueDate: todayStr() });
     setBundleForm({ invoiceNumber: "", issueDate: todayStr(), items: [], discount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "" });
     setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
@@ -806,10 +944,10 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 {step === 1
                   ? "Step 1: Select Student / Enrollment"
                   : mode === "append"
-                  ? `Add to Existing Invoice — ${primaryEnrollment?.user?.name}`
-                  : mode === "bundle"
-                  ? `${selectedEnrollments.length} programs — ${primaryEnrollment?.user?.name}`
-                  : `New Payment Plan — ${primaryEnrollment?.user?.name}`}
+                    ? `Add to Existing Invoice — ${primaryEnrollment?.user?.name}`
+                    : mode === "bundle"
+                      ? `${selectedEnrollments.length} programs — ${primaryEnrollment?.user?.name}`
+                      : `New Payment Plan — ${primaryEnrollment?.user?.name}`}
               </p>
             </div>
           </div>
@@ -855,9 +993,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                     <button
                       key={enrollment._id}
                       onClick={() => toggleEnrollmentSelect(enrollment)}
-                      className={`w-full text-left border rounded-xl p-3 transition-all group ${
-                        isSelected ? "border-orange-400 bg-orange-50" : "border-gray-100 hover:border-orange-300 hover:bg-orange-50"
-                      }`}
+                      className={`w-full text-left border rounded-xl p-3 transition-all group ${isSelected ? "border-orange-400 bg-orange-50" : "border-gray-100 hover:border-orange-300 hover:bg-orange-50"
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         <input type="checkbox" checked={isSelected} readOnly className="mt-1.5" />
@@ -878,9 +1015,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                           </div>
                         </div>
                         <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
-                            enrollment.accessStatus === "ACTIVE" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"
-                          }`}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${enrollment.accessStatus === "ACTIVE" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"
+                            }`}
                         >
                           {enrollment.accessStatus}
                         </span>
@@ -911,7 +1047,51 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                             </div>
                           </div>
 
-                          <div className="space-y-1">
+                          {/* Certificate Fee — checkbox + amount */}
+                          <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={appendCertFee.include}
+                                onChange={(e) => setAppendCertFee((p) => ({ ...p, include: e.target.checked }))}
+                                className="w-4 h-4 accent-indigo-500 rounded"
+                              />
+                              <span className="text-xs font-semibold text-gray-700">🎓 Include Certificate Fee</span>
+                            </label>
+                            {appendCertFee.include && (
+                              <input
+                                type="number"
+                                value={appendCertFee.amount || ""}
+                                onChange={(e) => setAppendCertFee((p) => ({ ...p, amount: Number(e.target.value) }))}
+                                placeholder="e.g. 5000"
+                                className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                              />
+                            )}
+                          </div>
+
+                          {/* Manual Fee — checkbox + amount */}
+                          <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={appendManuFee.include}
+                                onChange={(e) => setAppendManuFee((p) => ({ ...p, include: e.target.checked }))}
+                                className="w-4 h-4 accent-indigo-500 rounded"
+                              />
+                              <span className="text-xs font-semibold text-gray-700">🛠️ Include Manual Fee</span>
+                            </label>
+                            {appendManuFee.include && (
+                              <input
+                                type="number"
+                                value={appendManuFee.amount || ""}
+                                onChange={(e) => setAppendManuFee((p) => ({ ...p, amount: Number(e.target.value) }))}
+                                placeholder="e.g. 5000"
+                                className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                              />
+                            )}
+                          </div>
+
+                          <div className="space-y-1 ">
                             {inv.installments?.map((inst: any, i: number) => (
                               <div key={i} className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
@@ -1063,17 +1243,78 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
               {freshForm.totalAmount > 0 && (
                 <div
-                  className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-                    freshRemaining < 0 ? "bg-rose-50 text-rose-600" : freshRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
-                  }`}
+                  className={`text-xs font-semibold px-3 py-2 rounded-lg ${freshRemaining < 0 ? "bg-rose-50 text-rose-600" : freshRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
+                    }`}
                 >
                   {freshRemaining < 0
                     ? `Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`
                     : freshRemaining === 0
-                    ? "✓ Fully allocated"
-                    : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
+                      ? "✓ Fully allocated"
+                      : `Rs ${fmt(freshRemaining)} not yet allocated — can be added later as installments`}
                 </div>
               )}
+
+              <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={freshCertFee.include}
+                    onChange={(e) =>
+                      setFreshCertFee((p) => ({ ...p, include: e.target.checked }))
+                    }
+                    className="w-4 h-4 accent-indigo-500 rounded"
+                  />
+                  <span className="text-xs font-semibold text-gray-700">
+                    🎓 Include Certificate Fee
+                  </span>
+                </label>
+
+                {freshCertFee.include && (
+                  <input
+                    type="number"
+                    value={freshCertFee.amount || ""}
+                    onChange={(e) =>
+                      setFreshCertFee((p) => ({
+                        ...p,
+                        amount: Number(e.target.value),
+                      }))
+                    }
+                    placeholder="e.g. 5000"
+                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                  />
+                )}
+              </div>
+
+              <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={freshManuFee.include}
+                    onChange={(e) =>
+                      setFreshManuFee((p) => ({ ...p, include: e.target.checked }))
+                    }
+                    className="w-4 h-4 accent-indigo-500 rounded"
+                  />
+                  <span className="text-xs font-semibold text-gray-700">
+                    🎓 Include Manual Fee
+                  </span>
+                </label>
+
+                {freshManuFee.include && (
+                  <input
+                    type="number"
+                    value={freshManuFee.amount || ""}
+                    onChange={(e) =>
+                      setFreshManuFee((p) => ({
+                        ...p,
+                        amount: Number(e.target.value),
+                      }))
+                    }
+                    placeholder="e.g. 5000"
+                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                  />
+                )}
+              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -1191,14 +1432,62 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 <label className="text-xs font-semibold text-gray-600 mb-2 block">Programs & Amounts</label>
                 <div className="space-y-2">
                   {bundleForm.items.map((item, idx) => (
-                    <div key={item.enrollment} className="flex items-center gap-2 border border-gray-100 rounded-lg p-2.5 bg-gray-50">
-                      <span className="text-sm text-gray-700 flex-1">{item.programName}</span>
-                      <input
-                        type="number"
-                        value={item.amount || ""}
-                        onChange={(e) => updateItemAmount(idx, Number(e.target.value))}
-                        className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-right text-gray-900 placeholder:text-gray-900"
-                      />
+                    <div key={item.enrollment} className="border border-gray-100 rounded-lg p-2.5 bg-gray-50 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-700 flex-1">{item.programName}</span>
+                        <input
+                          type="number"
+                          value={item.amount || ""}
+                          onChange={(e) => updateItemAmount(idx, Number(e.target.value))}
+                          className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-right text-gray-900"
+                        />
+                      </div>
+
+                      <div className="pl-1">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.certFee.include}
+                            onChange={(e) => updateItemCertFee(idx, "include", e.target.checked)}
+                            className="w-3.5 h-3.5 accent-indigo-500 rounded"
+                          />
+                          <span className="text-[11px] font-semibold text-gray-600">
+                            🎓 CPD Fee — {item.programName}
+                          </span>
+                        </label>
+                        {item.certFee.include && (
+                          <input
+                            type="number"
+                            value={item.certFee.amount || ""}
+                            onChange={(e) => updateItemCertFee(idx, "amount", Number(e.target.value))}
+                            placeholder="e.g. 5000"
+                            className="w-full mt-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900"
+                          />
+                        )}
+                      </div>
+
+                      <div className="pl-1">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.manuFee.include}
+                            onChange={(e) => updateItemManuFee(idx, "include", e.target.checked)}
+                            className="w-3.5 h-3.5 accent-teal-500 rounded"
+                          />
+                          <span className="text-[11px] font-semibold text-gray-600">
+                            🛠️ Manual Fee — {item.programName}
+                          </span>
+                        </label>
+                        {item.manuFee.include && (
+                          <input
+                            type="number"
+                            value={item.manuFee.amount || ""}
+                            onChange={(e) => updateItemManuFee(idx, "amount", Number(e.target.value))}
+                            placeholder="e.g. 5000"
+                            className="w-full mt-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900"
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1250,17 +1539,61 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
               {bundleTotal > 0 && (
                 <div
-                  className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-                    bundleRemaining < 0 ? "bg-rose-50 text-rose-600" : bundleRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
-                  }`}
+                  className={`text-xs font-semibold px-3 py-2 rounded-lg ${bundleRemaining < 0 ? "bg-rose-50 text-rose-600" : bundleRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
+                    }`}
                 >
                   {bundleRemaining < 0
                     ? `Over-allocated by Rs ${fmt(Math.abs(bundleRemaining))}`
                     : bundleRemaining === 0
-                    ? "✓ Fully allocated"
-                    : `Rs ${fmt(bundleRemaining)} not yet allocated — can add installments later`}
+                      ? "✓ Fully allocated"
+                      : `Rs ${fmt(bundleRemaining)} not yet allocated — can add installments later`}
                 </div>
               )}
+
+              <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
+                {/* <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bundleCertFee.include}
+                    onChange={(e) =>
+                      setBundleCertFee((p) => ({ ...p, include: e.target.checked }))
+                    }
+                    className="w-4 h-4 accent-indigo-500 rounded"
+                  />
+                  <span className="text-xs font-semibold text-gray-700">
+                    🎓 Include Certificate Fee
+                  </span>
+                </label> */}
+
+                {bundleCertFee.include && (
+                  <input
+                    type="number"
+                    value={bundleCertFee.amount || ""}
+                    onChange={(e) =>
+                      setBundleCertFee((p) => ({
+                        ...p,
+                        amount: Number(e.target.value),
+                      }))
+                    }
+                    placeholder="e.g. 5000"
+                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                  />
+                )}
+                {bundleManuFee.include && (
+                  <input
+                    type="number"
+                    value={bundleManuFee.amount || ""}
+                    onChange={(e) =>
+                      setBundleManuFee((p) => ({
+                        ...p,
+                        amount: Number(e.target.value),
+                      }))
+                    }
+                    placeholder="e.g. 5000"
+                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                  />
+                )}
+              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -1389,15 +1722,14 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               <div
-                className={`text-xs font-semibold px-3 py-2 rounded-lg ${
-                  appendRemaining < 0 ? "bg-rose-50 text-rose-600" : appendRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
-                }`}
+                className={`text-xs font-semibold px-3 py-2 rounded-lg ${appendRemaining < 0 ? "bg-rose-50 text-rose-600" : appendRemaining === 0 ? "bg-teal-50 text-teal-600" : "bg-orange-50 text-orange-600"
+                  }`}
               >
                 {appendRemaining < 0
                   ? `Over-allocated by Rs ${fmt(Math.abs(appendRemaining))}`
                   : appendRemaining === 0
-                  ? "✓ Fully allocated"
-                  : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
+                    ? "✓ Fully allocated"
+                    : `Rs ${fmt(appendRemaining)} still unallocated — can be added later too`}
               </div>
 
               <div>

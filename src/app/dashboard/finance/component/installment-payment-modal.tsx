@@ -18,6 +18,7 @@ import {
   Pencil,
 } from "lucide-react";
 import CorrectInstallmentModal from "./CorrectInstallmentModal";
+// import VoidInstallmentModal from "./VoidInstallmentModal";
 
 interface Installment {
   _id: string;
@@ -26,6 +27,7 @@ interface Installment {
   dueDate: string;
   status: "PENDING" | "PAID" | "OVERDUE";
   isAdvance: boolean;
+  feeType?: "program" | "certificate" | "manual";   // 👈 add
   paidAmount?: number;
   receiptUrl?: string | null;
 }
@@ -116,6 +118,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
     paidDate: todayStr(),
   });
   const [correctingInstallment, setCorrectingInstallment] = useState<any>(null);
+  const [voidingInstallment, setVoidingInstallment] = useState<any>(null);
 
   // Check if form is valid to enable Confirm button
   const isFormValid = () => {
@@ -299,14 +302,26 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             View Slip
                           </a>
                         )}
-                        {/* {inst.status === "PAID" && (
-                        <button
-                          onClick={() => setCorrectingInstallment(inst)}
-                          className="text-xs text-gray-500 hover:text-gray-600 font-medium flex items-center gap-1"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                      )} */}
+                        {/* <div className="flex gap-2 ms-auto">
+                       
+                        {inst.status === "PAID" && (
+                          <button
+                            onClick={() => setVoidingInstallment(inst)}
+                            className="text-[9px] font-bold uppercase tracking-wider bg-red-200 text-red-700 px-2 py-0.5 rounded-full"
+                          >
+                            Void
+                          </button>
+                        )}
+
+                         {inst.status === "PAID" && (
+                          <button
+                            onClick={() => setCorrectingInstallment(inst)}
+                            className="text-xs text-gray-500 hover:text-gray-600 font-medium flex items-center gap-1"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        )}
+                      </div> */}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-slate-400">Due: {formatDate(inst.dueDate)}</span>
@@ -590,6 +605,14 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
             onClose={() => setCorrectingInstallment(null)}
           />
         )}
+
+        {/* {voidingInstallment && (
+          <VoidInstallmentModal
+            invoice={invoice}
+            installment={voidingInstallment}
+            onClose={() => setVoidingInstallment(null)}
+          />
+        )} */}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">

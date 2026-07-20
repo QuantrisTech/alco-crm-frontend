@@ -1,3 +1,4 @@
+// dashboard/enrollments/[id]/page.tsx
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -337,6 +338,63 @@ function EnrollmentDetailContent() {
               <p className="text-xs text-gray-400">No invoice generated yet.</p>
             )}
           </div>
+
+          {/* Certificate card — NAYA */}
+          {e.certificate && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <GraduationCap size={15} className="text-purple-500" /> Certificate
+                </h2>
+                <span
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${e.certificate.status === "issued"
+                      ? "bg-green-100 text-green-700"
+                      : e.certificate.status === "unlocked"
+                        ? "bg-teal-100 text-teal-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                >
+                  {e.certificate.status}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-gray-400 text-xs">Fee</span>
+                <span className="font-medium text-gray-800">{fmtMoney(e.certificate.certificateFee)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-gray-400 text-xs">Fee Paid</span>
+                <span className={`font-medium ${e.certificate.feePaid ? "text-green-600" : "text-rose-500"}`}>
+                  {e.certificate.feePaid ? "Yes" : "No"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <span className="text-gray-400 text-xs">Course Completed</span>
+                <span className={`font-medium ${e.certificate.courseCompleted ? "text-green-600" : "text-gray-500"}`}>
+                  {e.certificate.courseCompleted ? "Yes" : "No"}
+                </span>
+              </div>
+
+              {e.certificate.status === "locked" && (
+                <p className="text-[11px] text-gray-400 mt-2">
+                  {!e.certificate.feePaid
+                    ? "Certificate fee pending — pay to unlock after graduation."
+                    : "Course not completed yet."}
+                </p>
+              )}
+
+              {e.certificate.certificateUrl && (
+                <a
+                  href={e.certificate.certificateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 text-xs font-semibold text-purple-600 hover:underline"
+                >
+                  View Certificate →
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── RIGHT: Activity timeline ────────────────────────────── */}
