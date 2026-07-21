@@ -118,7 +118,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
     paidDate: todayStr(),
   });
   const [correctingInstallment, setCorrectingInstallment] = useState<any>(null);
-  const [voidingInstallment, setVoidingInstallment] = useState<any>(null);
+  // const [voidingInstallment, setVoidingInstallment] = useState<any>(null);
 
   // Check if form is valid to enable Confirm button
   const isFormValid = () => {
@@ -302,16 +302,16 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             View Slip
                           </a>
                         )}
-                        {/* <div className="flex gap-2 ms-auto">
+                        <div className="flex gap-2 ms-auto">
                        
-                        {inst.status === "PAID" && (
+                        {/* {inst.status === "PAID" && (
                           <button
                             onClick={() => setVoidingInstallment(inst)}
                             className="text-[9px] font-bold uppercase tracking-wider bg-red-200 text-red-700 px-2 py-0.5 rounded-full"
                           >
                             Void
                           </button>
-                        )}
+                        )} */}
 
                          {inst.status === "PAID" && (
                           <button
@@ -321,7 +321,7 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                             <Pencil size={12} />
                           </button>
                         )}
-                      </div> */}
+                      </div>
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-slate-400">Due: {formatDate(inst.dueDate)}</span>

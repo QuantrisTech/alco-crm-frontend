@@ -12,10 +12,11 @@ export default function CorrectInstallmentModal({ invoice, installment, onClose 
     installment?.paidAt ? new Date(installment.paidAt).toISOString().split("T")[0] : ""
   );
   const [reason, setReason] = useState("");
+  const [adjustTotal, setAdjustTotal] = useState(false);
 
   const { mutate: correct, isPending } = useMutation({
     mutationFn: () =>
-      correctPaidInstallment(invoice._id, installment._id, { amount, paidDate, reason }),
+      correctPaidInstallment(invoice._id, installment._id, { amount, paidDate, reason, adjustTotal }),
     onSuccess: () => {
       toast.success("Payment corrected — journal & balances updated ✅");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
@@ -71,6 +72,22 @@ export default function CorrectInstallmentModal({ invoice, installment, onClose 
             />
           </div>
         </div>
+
+        <label className="flex items-start gap-2 text-xs text-gray-600 mt-2">
+          <input
+            type="checkbox"
+            checked={adjustTotal}
+            onChange={(e) => setAdjustTotal(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            The <strong>fee amount has been changed automatically</strong>. Please adjust the invoice total accordingly.
+            <br />
+            <span className="text-gray-400">
+              If only the collection/receipt was recorded incorrectly, leave this unchecked.
+            </span>
+          </span>
+        </label>
 
         <div className="flex gap-2 mt-5">
           <button onClick={onClose} className="flex-1 py-2 rounded-lg border text-sm text-gray-500">Cancel</button>
