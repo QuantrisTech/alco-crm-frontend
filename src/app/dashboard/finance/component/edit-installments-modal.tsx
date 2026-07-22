@@ -43,6 +43,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({
     label: "", amount: "", dueDate: "", isAdvance: false, isCertificate: false, isManual: false, notes: "",
+    programId: "", // 👈 sirf bundle invoices ke liye — kis program/enrollment ke liye fee hai
   });
 
 
@@ -65,7 +66,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
     onSuccess: () => {
       toast.success("Installment added!");
       setShowAddForm(false);
-      setAddForm({ label: "", amount: "", dueDate: "", isAdvance: false, isCertificate: false, isManual: false, notes: "" });
+      setAddForm({ label: "", amount: "", dueDate: "", isAdvance: false, isCertificate: false, isManual: false, notes: "", programId: "" });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
     },
@@ -75,6 +76,20 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
 
   // ── EARLY RETURN — hooks ke baad ─────────────────────────────
   if (!invoice) return null;
+
+  // ── Bundle invoice ke andar mojood programs (dropdown ke liye) ──
+  // items[] mein har entry ka apna program + enrollment hota hai (bundle invoices mein multiple ho sakte hain)
+  const programOptions: { programId: string; enrollmentId: string; label: string }[] =
+    (invoice.items || [])
+      .filter((it: any) => it.feeType === "program") // sirf base program items — certificate/manual duplicate items nahi
+      .map((it: any) => ({
+        programId: typeof it.program === "string" ? it.program : it.program?._id,
+        enrollmentId: it.enrollment?._id || it.enrollment,
+        label: it.programName || it.enrollment?.program?.name || "Program",
+      }))
+      .filter((opt: any) => opt.programId);
+
+  const isBundleWithMultiplePrograms = invoice.isBundle && programOptions.length > 1;
 
   // ── Handlers ─────────────────────────────────────────────────
   const openEdit = (inst: Installment) => {
@@ -120,13 +135,28 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
   const handleAddInstallment = () => {
     if (!addForm.label || !addForm.amount)
       return toast.error("Label and amount required!");
+
+    const isExtraFee = addForm.isCertificate || addForm.isManual;
+
+    // 👇 Bundle invoice mein certificate/manual fee ke liye program select karna zaroori hai,
+    // warna backend ko pata nahi chalega ye fee kis program ke liye hai
+    if (isExtraFee && isBundleWithMultiplePrograms && !addForm.programId) {
+      return toast.error("Please select which program this fee belongs to!");
+    }
+
+    const selectedOption = programOptions.find((o) => o.programId === addForm.programId);
+
     saveAdd({
       label: addForm.label,
       amount: Number(addForm.amount),
-      dueDate: (addForm.isCertificate || addForm.isManual) ? null : (addForm.dueDate || undefined),
+      dueDate: isExtraFee ? null : (addForm.dueDate || undefined),
       isAdvance: addForm.isAdvance,
       feeType: addForm.isCertificate ? "certificate" : addForm.isManual ? "manual" : "program",
       notes: addForm.notes || undefined,
+      // 👇 sirf tab bhejo jab extra fee ho aur program select kiya gaya ho
+      ...(isExtraFee && selectedOption
+        ? { programId: selectedOption.programId, enrollmentId: selectedOption.enrollmentId }
+        : {}),
     });
   };
 
@@ -440,6 +470,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                     setAddForm((p) => ({
                       ...p,
                       isCertificate: e.target.checked,
+                      isManual: e.target.checked ? false : p.isManual,
                       dueDate: e.target.checked ? "" : p.dueDate, // ✅ clear on check
                     }))
                   }
@@ -456,6 +487,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                     setAddForm((p) => ({
                       ...p,
                       isManual: e.target.checked,
+                      isCertificate: e.target.checked ? false : p.isCertificate,
                       dueDate: e.target.checked ? "" : p.dueDate,
                     }))
                   }
@@ -464,6 +496,29 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                 <span className="text-xs font-semibold text-teal-700">Mark as Manual Fee</span>
               </label>
 
+              {/* 👇 NEW: Program selector — sirf bundle invoice (multiple programs) + certificate/manual fee ke liye */}
+              {(addForm.isCertificate || addForm.isManual) && isBundleWithMultiplePrograms && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Which program is this fee for? <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={addForm.programId}
+                    onChange={(e) => setAddForm((p) => ({ ...p, programId: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  >
+                    <option value="">Select program…</option>
+                    {programOptions.map((opt) => (
+                      <option key={opt.programId} value={opt.programId}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Ye invoice bundle hai — is fee ko sahi program se attach karne ke liye select karein.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2 justify-end pt-1">
                 <button

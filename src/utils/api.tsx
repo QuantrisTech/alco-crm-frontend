@@ -385,7 +385,8 @@ export const adminGetLmsSessions = (params?: any) => API.get("/admin/v1/lms/live
 export const adminCreateLmsSession = (data: any) => API.post("/admin/v1/lms/live-sessions", data);
 export const adminUpdateLmsSession = (id: string, data: any) => API.put(`/admin/v1/lms/live-sessions/${id}`, data);
 export const adminDeleteLmsSession = (id: string) => API.delete(`/admin/v1/lms/live-sessions/${id}`);
-
+export const toggleLessonStatus = (lessonId: string) =>
+  API.patch(`/admin/v1/lms/lessons/${lessonId}/toggle-status`);
 export const adminGetLmsAssignments = (params?: any) => API.get("/admin/v1/lms/assignments", { params });
 export const adminCreateLmsAssignment = (data: any) => API.post("/admin/v1/lms/assignments", data);
 export const adminUpdateLmsAssignment = (id: string, data: any) => API.put(`/admin/v1/lms/assignments/${id}`, data);
