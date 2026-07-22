@@ -227,6 +227,45 @@ function EnrollModal({ lead, onConfirm, onClose, isLoading }: {
 // hongi taake admin lead convert hone se pehle contract edit/fill kar sake.
 
 
+// ── Invoice Number Warning Modal ──────────────────────────────────
+function InvoiceWarningModal({ onConfirm, onClose }: {
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <CreditCard size={16} className="text-amber-500" />
+          <h3 className="text-sm font-semibold text-gray-800">No Invoice Number Set</h3>
+        </div>
+        <p className="text-[11px] text-gray-400 mb-4">
+          Finance hasn't assigned an invoice number for this payment plan yet.
+          Converting this lead will <span className="font-medium text-gray-600">auto-generate an invoice number</span>. Are you sure you want to continue?
+        </p>
+
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition"
+          >
+            Yes, Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main KanbanCard ───────────────────────────────────────────────
 export default function KanbanCard({
   lead, programMap,
@@ -256,6 +295,7 @@ export default function KanbanCard({
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [showInvoiceWarningModal, setShowInvoiceWarningModal] = useState(false);
 
   const runAction = async (actionKey: string, fn: () => void | Promise<void>) => {
     setPendingAction(actionKey);
@@ -274,6 +314,18 @@ export default function KanbanCard({
       toast.error("Please get the contract signed before converting this lead.");
       return;
     }
+
+    // ✅ Agar payment plan me invoice number nahi hai to warning dikhao
+    if (!lead.paymentPlan?.invoiceNumber) {
+      setShowInvoiceWarningModal(true);
+      return;
+    }
+
+    proceedToConvert();
+  };
+
+  // Batch check ka existing logic ab isme extract kar liya
+  const proceedToConvert = () => {
     if (!lead.batch_id) {
       setShowBatchModal(true);
     } else {
@@ -537,6 +589,16 @@ export default function KanbanCard({
             className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 flex ml-auto absolute bottom-2 right-2">
             view Payment plan
           </button>
+        )}
+
+        {showInvoiceWarningModal && (
+          <InvoiceWarningModal
+            onConfirm={() => {
+              setShowInvoiceWarningModal(false);
+              proceedToConvert();
+            }}
+            onClose={() => setShowInvoiceWarningModal(false)}
+          />
         )}
       </div>
     </>

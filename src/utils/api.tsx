@@ -127,7 +127,8 @@ export const markLeadInterested = (id: string, data: any) => API.patch(`/api/v1/
 export const updateLeadPaymentPlan = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/payment-plan`, data);
 export const submitLeadContract = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/contract`, data);
 export const getMyLeadContract = () => API.get(`/api/v1/leads/my-contract`);
-
+export const sendPaymentPlanInvoice = (invoiceId: string) =>
+  API.post(`/api/v1/leads/invoices/${invoiceId}/send-payment-plan-email`);
 // Program APIs
 export const adminGetPrograms = (params?: any) => API.get("/api/v1/programs", { params });
 export const adminCreateProgram = (data: any) => API.post("/api/v1/programs", data);

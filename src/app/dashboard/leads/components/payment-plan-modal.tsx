@@ -1,8 +1,13 @@
 // components/leads/shared/PaymentPlanModal.tsx
 "use client";
-import { useState } from "react";
-import { X, Plus, Trash2, CreditCard } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { X, Plus, Trash2, CreditCard, Send, Download, Loader2 } from "lucide-react";
 import InputField from "@/app/component/ui/inputField";
+import { debounce } from "lodash";
+import { useAppSelector } from "@/store/hooks";
+import DownloadInvoice from "@/app/dashboard/payments/component/download-invoice";
+import API from "@/utils/api";
+import toast from "react-hot-toast";
 
 interface Installment {
   dueDate: string;
@@ -39,6 +44,8 @@ const toDateInput = (dateStr?: string) => {
 };
 
 export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting }: Props) {
+  const { user } = useAppSelector((state) => state.auth);
+  const canSeeInvoiceMeta = ["admin", "super_admin", "finance_manager"].includes(user?.role);
 
   const existingPlan = lead?.paymentPlan;
   const isEditMode = !!existingPlan;
@@ -46,6 +53,56 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
   const baseAmount = lead?.opportunity_value ?? 0;
 
   const todayStr = () => new Date().toISOString().split("T")[0];
+
+  const [checkingNumber, setCheckingNumber] = useState(false);
+  const [numberError, setNumberError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState(false);
+  const isFinanceRole = ["admin", "super_admin", "finance_manager"].includes(user?.role);
+  const isSalesManager = user?.role === "sales_manager";
+  const invoiceAssigned = Boolean(existingPlan?.invoiceNumber);
+  const showInvoiceSection = isFinanceRole || (isSalesManager && invoiceAssigned);
+
+  // ── API call function ──
+  const handleSendInvoice = async () => {
+    if (!lead?._id) return;
+
+    setSendingInvoice(true);
+    try {
+      await API.post(`/api/v1/leads/${lead._id}/send-payment-plan-email`);
+      toast.success("Invoice sent successfully!");
+    } catch (err) {
+      toast.error("Failed to send invoice. Please try again.");
+    } finally {
+      setSendingInvoice(false);
+    }
+  };
+
+
+  // ✅ Pehle function define karo
+  const checkInvoiceNumber = async (value: string) => {
+    if (!value.trim()) {
+      setNumberError(null);
+      return;
+    }
+    setCheckingNumber(true);
+    try {
+      const res = await API.get(`/api/v1/finance/invoices/check-number?invoiceNumber=${encodeURIComponent(value.trim())}`);
+      if (!res.data.available) {
+        setNumberError("This invoice number already exists. Please enter a different one");
+      } else {
+        setNumberError(null);
+      }
+    } catch {
+      setNumberError(null);
+    } finally {
+      setCheckingNumber(false);
+    }
+  };
+
+  // ✅ Ab isko reference karo — ab TDZ error nahi aayega
+  const debouncedCheck = useMemo(() => debounce(checkInvoiceNumber, 500), []);
+
 
   const [form, setForm] = useState<PaymentPlanData>({
     invoiceNumber: existingPlan?.invoiceNumber ?? "",
@@ -113,40 +170,144 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     }));
   };
 
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const res = await API.get(`/api/v1/finance/invoices/generate-number`);
+      setForm((p) => ({ ...p, invoiceNumber: res.data.invoiceNumber }));
+      setNumberError(null);
+    } catch {
+      // toast error dikha do
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // ── component ke andar, handleSendInvoice ke paas hi ──
+  const handleDownloadInvoice = () => {
+    const plan = form; // current form state use karo (latest edited values)
+
+    const mockInvoice = {
+      invoiceNumber: plan.invoiceNumber,
+      status: "PENDING",
+      createdAt: plan.issueDate,
+      dueDate: plan.advanceDueDate,
+      totalAmount: plan.totalAmount,
+      paidAmount: 0,
+      remainingAmount: plan.totalAmount,
+      installments: [
+        // Advance ko bhi ek installment row ki tarah dikhao
+        ...(plan.advanceAmount > 0
+          ? [{
+            label: "Advance Payment",
+            amount: plan.advanceAmount,
+            dueDate: plan.advanceDueDate,
+            status: "PENDING",
+            isAdvance: true,
+          }]
+          : []),
+        ...plan.installments.map((inst) => ({
+          label: inst.label,
+          amount: inst.amount,
+          dueDate: inst.dueDate,
+          status: inst.status === "paid" ? "PAID" : "PENDING",
+        })),
+      ],
+      enrollment: {
+        _id: lead?._id, // real enrollment nahi hai abhi, lead ID reference ke tor pe
+        program: { name: lead?.program_id?.name || "—" },
+        batch: null,
+      },
+    };
+
+    const mockUser = {
+      name: `${lead?.first_name || ""} ${lead?.last_name || ""}`.trim(),
+      email: lead?.email,
+      phone: lead?.phone,
+    };
+
+    DownloadInvoice(mockInvoice, mockUser);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form);
   };
+
+  // ── Kab enable hoga ──
+  const isInvoiceSaved = Boolean(existingPlan?.invoiceNumber);
+
+  const canEditInvoiceMeta = isFinanceRole;
+
+  const canSendInvoice =
+    isInvoiceSaved &&
+    !!form.issueDate;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-              <CreditCard size={15} className="text-orange-500" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-gray-800">
-                  {isEditMode ? "Edit Payment Plan" : "Set Payment Plan"}
-                </h2>
-                {isEditMode && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600">
-                    Editing
-                  </span>
-                )}
+        <div className="border-b border-gray-100">
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                <CreditCard size={15} className="text-orange-500" />
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {lead?.first_name} {lead?.last_name}
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-gray-800">
+                    {isEditMode ? "Edit Payment Plan" : "Set Payment Plan"}
+                  </h2>
+                  {isEditMode && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600">
+                      Editing
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {lead?.first_name} {lead?.last_name}
+                </p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <X size={16} />
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
-            <X size={16} />
-          </button>
+
+          {/* ✅ NAYA — Send/Download row, header ke andar fix rahega */}
+          {showInvoiceSection && (
+            <div className="px-5 pb-3 flex gap-2">
+              <button
+                type="button"
+                onClick={handleSendInvoice}
+                disabled={!canSendInvoice || sendingInvoice}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-green-50 border border-green-200 text-green-600 text-xs font-semibold hover:bg-green-100 hover:border-green-300 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-50 disabled:active:scale-100 transition-all"
+              >
+                {sendingInvoice ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={13} />
+                    Send Email
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadInvoice}
+                disabled={!canSendInvoice}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-100 hover:border-gray-300 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:active:scale-100 transition-all"
+              >
+                <Download size={13} />
+                Download PDF
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Body ── */}
@@ -162,24 +323,86 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
             className="bg-gray-50 cursor-not-allowed opacity-70"
           /> */}
           {/* ── Total Amount + Discount ── */}
-          <div className="grid grid-cols-2 gap-3">
-            <InputField
-              label="Old Invoice Number (Optional)"
-              type="text"
-              value={form.invoiceNumber}
-              onChange={(e) => setForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-              placeholder="e.g. INV-2024-0045"
-            />
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
-              <input
-                type="date"
-                value={form.issueDate}
-                onChange={(e) => setForm((p) => ({ ...p, issueDate: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900"
-              />
+          {showInvoiceSection && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-gray-600">
+                    Invoice Number
+                  </label>
+                </div>
+                <div>
+                  {(() => {
+                    const isInvoiceLocked = Boolean(existingPlan?.invoiceNumber) || !canEditInvoiceMeta;
+                    return (
+                      <>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={form.invoiceNumber}
+                            disabled={isInvoiceLocked}
+                            readOnly={isInvoiceLocked}
+                            onChange={(e) => {
+                              if (isInvoiceLocked) return;
+                              const val = e.target.value;
+                              setForm((p) => ({ ...p, invoiceNumber: val }));
+                              debouncedCheck(val);
+                            }}
+                            placeholder="e.g. 2091"
+                            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none placeholder:text-gray-400 ${isInvoiceLocked
+                              ? "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200"
+                              : numberError
+                                ? "border-rose-400 text-gray-900"
+                                : "border-gray-200 focus:border-orange-400 text-gray-900"
+                              }`}
+                          />
+                          {/* ✅ Generate button sirf finance ko, aur sirf jab locked na ho */}
+                          {canEditInvoiceMeta && !Boolean(existingPlan?.invoiceNumber) && (
+                            <button
+                              type="button"
+                              onClick={handleGenerate}
+                              disabled={generating}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-orange-500 hover:text-orange-600 px-2 py-1 rounded-md hover:bg-orange-50 disabled:opacity-50"
+                            >
+                              {generating ? "..." : "Auto"}
+                            </button>
+                          )}
+                        </div>
+
+                        {Boolean(existingPlan?.invoiceNumber) && (
+                          <p className="text-[10px] text-gray-400 mt-1">Invoice number already assigned</p>
+                        )}
+                        {canEditInvoiceMeta && !Boolean(existingPlan?.invoiceNumber) && checkingNumber && (
+                          <p className="text-[10px] text-gray-400 mt-1">Checking...</p>
+                        )}
+                        {canEditInvoiceMeta && !Boolean(existingPlan?.invoiceNumber) && numberError && (
+                          <p className="text-[10px] text-rose-500 mt-1 font-medium">{numberError}</p>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
+                <input
+                  type="date"
+                  value={form.issueDate}
+                  disabled={!canEditInvoiceMeta}
+                  readOnly={!canEditInvoiceMeta}
+                  onChange={(e) => {
+                    if (!canEditInvoiceMeta) return;
+                    setForm((p) => ({ ...p, issueDate: e.target.value }));
+                  }}
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 ${canEditInvoiceMeta
+                    ? "border-gray-200 focus:border-orange-400"
+                    : "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200"
+                    }`}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <InputField
@@ -376,7 +599,7 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || remaining < 0 || !isAdvanceFilled}
+            disabled={isSubmitting || remaining < 0 || !isAdvanceFilled || !!numberError || checkingNumber}
             className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 disabled:opacity-50"
           >
             {isSubmitting ? "Saving..." : isEditMode ? "Update Plan" : "Save Plan"}

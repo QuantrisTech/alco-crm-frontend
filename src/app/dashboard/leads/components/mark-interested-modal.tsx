@@ -4,6 +4,7 @@ import { adminGetProgramById } from "@/utils/api";
 import { X, Plus, Trash2, Star } from "lucide-react";
 import InputField from "@/app/component/ui/inputField";
 import toast from "react-hot-toast";
+import { useAppSelector } from "@/store/hooks";
 
 interface Installment {
   dueDate: string;
@@ -43,6 +44,8 @@ const toDateInput = (dateStr?: string) => {
 };
 
 export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitting }: Props) {
+  const { user } = useAppSelector((state) => state.auth);
+  const canSeeInvoiceMeta = ["admin", "super_admin", "finance_manager"].includes(user?.role);
   const baseAmount = lead?.opportunity_value ?? 0;
   const existingPlan = lead?.paymentPlan;
   const todayStr = () => new Date().toISOString().split("T")[0];
@@ -207,6 +210,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
             disabled
             className="bg-gray-50 cursor-not-allowed opacity-70"
           /> */}
+          {canSeeInvoiceMeta && (
           <div className="grid grid-cols-2 gap-3">
             <InputField
               label="Old Invoice Number (Optional)"
@@ -216,7 +220,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
               placeholder="e.g. INV-2024-0045"
             />
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1">Issue Date</label>
               <input
                 type="date"
                 value={form.issueDate}
@@ -225,6 +229,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
               />
             </div>
           </div>
+          )}
           {/* Total Amount + Discount */}
           <div className="grid grid-cols-2 gap-3">
             <InputField

@@ -135,8 +135,14 @@ export default function FinanceLeads() {
                 totalPages={Math.ceil((leadsData?.meta?.total ?? 0) / limit)}
                 onPageChange={handlePageChange}
                 columns={[
-                    { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
-                    { key: "email", label: "Email" },
+                    {
+                        key: "name", label: "Name", render: (lead) => (   // row = { user, enrollments[] }
+                            <div>
+                                <p className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</p>
+                                <p className="text-xs text-gray-400">{lead?.email}</p>
+                            </div>)
+                    },
+                    { key: "program", label: "Program", render: (lead) => lead.program_id?.name || "—", },
                     { key: "phone", label: "Phone" },
                     { key: "status", label: "Status", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
                     {
