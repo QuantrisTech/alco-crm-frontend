@@ -191,6 +191,7 @@ interface AppDatePickerProps {
   required?: boolean;
   min?: string;
   max?: string;
+  textFormat?: string;
   error?: string;
   className?: string;
   disabled?: boolean;
@@ -259,12 +260,13 @@ export default function AppDatePicker({
   max,
   error,
   className = "",
+  textFormat,
   disabled = false,
 }: AppDatePickerProps) {
   return (
     <div className={`space-y-1.5 ${className}`}>
       {label && (
-        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        <label className={textFormat ? textFormat : "text-[10px] font-bold uppercase tracking-wider text-slate-500"}>
           {label}
           {required && <span className="text-rose-500 ml-1">*</span>}
         </label>
@@ -291,9 +293,9 @@ export default function AppDatePicker({
           w-full
           rounded-lg
           border
-          px-3
-          py-2
-          text-xs
+          px-4
+          py-2.5
+          text-sm
           bg-white
           text-slate-700
           focus:outline-none
