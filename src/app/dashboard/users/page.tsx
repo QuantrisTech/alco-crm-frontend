@@ -6,6 +6,7 @@ import SalesManagerDashboard from "@/app/dashboard/users/component/sales-manager
 import SuperAdminDashboard from "@/app/dashboard/users/component/super-admin-dashboard";
 import SalesRepDashboard from "@/app/dashboard/users/component/sales-rep-dashboard";
 import SupportDashboard from "@/app/dashboard/users/component/support-dashboard";
+import FinanceManagerDashboard from "./component/finance-manager-dashboard";
 
 export default function DashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -22,6 +23,8 @@ export default function DashboardPage() {
         return <SalesRepDashboard />;
       case "support":
         return <SupportDashboard />;
+      case "finance_manager":
+        return <FinanceManagerDashboard />;
       default:
         return <UserDashboard />;
     }

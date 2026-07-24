@@ -63,10 +63,8 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
   const invoiceAssigned = Boolean(existingPlan?.invoiceNumber);
   const showInvoiceSection = isFinanceRole || (isSalesManager && invoiceAssigned);
 
-  // ── API call function ──
   const handleSendInvoice = async () => {
     if (!lead?._id) return;
-
     setSendingInvoice(true);
     try {
       await API.post(`/api/v1/leads/${lead._id}/send-payment-plan-email`);
@@ -78,8 +76,6 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     }
   };
 
-
-  // ✅ Pehle function define karo
   const checkInvoiceNumber = async (value: string) => {
     if (!value.trim()) {
       setNumberError(null);
@@ -100,9 +96,7 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     }
   };
 
-  // ✅ Ab isko reference karo — ab TDZ error nahi aayega
   const debouncedCheck = useMemo(() => debounce(checkInvoiceNumber, 500), []);
-
 
   const [form, setForm] = useState<PaymentPlanData>({
     invoiceNumber: existingPlan?.invoiceNumber ?? "",
@@ -131,7 +125,6 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     }));
   };
 
-  // ── Advance fill check ──────────────────────────────────────────
   const isAdvanceFilled = form.advanceAmount > 0 && form.advanceDueDate !== "";
 
   const remaining =
@@ -183,9 +176,8 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     }
   };
 
-  // ── component ke andar, handleSendInvoice ke paas hi ──
   const handleDownloadInvoice = () => {
-    const plan = form; // current form state use karo (latest edited values)
+    const plan = form;
 
     const mockInvoice = {
       invoiceNumber: plan.invoiceNumber,
@@ -196,7 +188,6 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
       paidAmount: 0,
       remainingAmount: plan.totalAmount,
       installments: [
-        // Advance ko bhi ek installment row ki tarah dikhao
         ...(plan.advanceAmount > 0
           ? [{
             label: "Advance Payment",
@@ -214,7 +205,7 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
         })),
       ],
       enrollment: {
-        _id: lead?._id, // real enrollment nahi hai abhi, lead ID reference ke tor pe
+        _id: lead?._id,
         program: { name: lead?.program_id?.name || "—" },
         batch: null,
       },
@@ -234,14 +225,10 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     onSubmit(form);
   };
 
-  // ── Kab enable hoga ──
   const isInvoiceSaved = Boolean(existingPlan?.invoiceNumber);
-
   const canEditInvoiceMeta = isFinanceRole;
-
-  const canSendInvoice =
-    isInvoiceSaved &&
-    !!form.issueDate;
+  const canSendInvoice = isInvoiceSaved && !!form.issueDate;
+  const isInvoiceLocked = Boolean(existingPlan?.invoiceNumber) || !canEditInvoiceMeta;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -275,7 +262,6 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
             </button>
           </div>
 
-          {/* ✅ NAYA — Send/Download row, header ke andar fix rahega */}
           {showInvoiceSection && (
             <div className="px-5 pb-3 flex gap-2">
               <button
@@ -313,94 +299,57 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
         {/* ── Body ── */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
-          {/* ── Total Amount (disabled) ── */}
-          {/* <InputField
-            label="Total Program Fee (Rs)"
-            type="number"
-            value={String(form.totalAmount)}
-            onChange={() => {}}
-            disabled
-            className="bg-gray-50 cursor-not-allowed opacity-70"
-          /> */}
-          {/* ── Total Amount + Discount ── */}
           {showInvoiceSection && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-gray-600">
-                    Invoice Number
-                  </label>
-                </div>
-                <div>
-                  {(() => {
-                    const isInvoiceLocked = Boolean(existingPlan?.invoiceNumber) || !canEditInvoiceMeta;
-                    return (
-                      <>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={form.invoiceNumber}
-                            disabled={isInvoiceLocked}
-                            readOnly={isInvoiceLocked}
-                            onChange={(e) => {
-                              if (isInvoiceLocked) return;
-                              const val = e.target.value;
-                              setForm((p) => ({ ...p, invoiceNumber: val }));
-                              debouncedCheck(val);
-                            }}
-                            placeholder="e.g. 2091"
-                            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none placeholder:text-gray-400 ${isInvoiceLocked
-                              ? "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200"
-                              : numberError
-                                ? "border-rose-400 text-gray-900"
-                                : "border-gray-200 focus:border-orange-400 text-gray-900"
-                              }`}
-                          />
-                          {/* ✅ Generate button sirf finance ko, aur sirf jab locked na ho */}
-                          {canEditInvoiceMeta && !Boolean(existingPlan?.invoiceNumber) && (
-                            <button
-                              type="button"
-                              onClick={handleGenerate}
-                              disabled={generating}
-                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-orange-500 hover:text-orange-600 px-2 py-1 rounded-md hover:bg-orange-50 disabled:opacity-50"
-                            >
-                              {generating ? "..." : "Auto"}
-                            </button>
-                          )}
-                        </div>
-
-                        {Boolean(existingPlan?.invoiceNumber) && (
-                          <p className="text-[10px] text-gray-400 mt-1">Invoice number already assigned</p>
-                        )}
-                        {canEditInvoiceMeta && !Boolean(existingPlan?.invoiceNumber) && checkingNumber && (
-                          <p className="text-[10px] text-gray-400 mt-1">Checking...</p>
-                        )}
-                        {canEditInvoiceMeta && !Boolean(existingPlan?.invoiceNumber) && numberError && (
-                          <p className="text-[10px] text-rose-500 mt-1 font-medium">{numberError}</p>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
-                <input
-                  type="date"
-                  value={form.issueDate}
-                  disabled={!canEditInvoiceMeta}
-                  readOnly={!canEditInvoiceMeta}
-                  onChange={(e) => {
-                    if (!canEditInvoiceMeta) return;
-                    setForm((p) => ({ ...p, issueDate: e.target.value }));
+                <InputField
+                  label="Invoice Number"
+                  type="text"
+                  value={form.invoiceNumber}
+                  disabled={isInvoiceLocked}
+                  readOnly={isInvoiceLocked}
+                  onChange={(e: any) => {
+                    if (isInvoiceLocked) return;
+                    const val = e.target.value;
+                    setForm((p) => ({ ...p, invoiceNumber: val }));
+                    debouncedCheck(val);
                   }}
-                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 ${canEditInvoiceMeta
-                    ? "border-gray-200 focus:border-orange-400"
-                    : "bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200"
-                    }`}
+                  placeholder="e.g. 2091"
+                  error={numberError || undefined}
+                  bg={isInvoiceLocked ? "bg-gray-50" : "bg-white"}
+                  rightIcon={
+                    canEditInvoiceMeta && !isInvoiceSaved ? (
+                      <button
+                        type="button"
+                        onClick={handleGenerate}
+                        disabled={generating}
+                        className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 px-2 py-1 rounded-md hover:bg-orange-50 disabled:opacity-50"
+                      >
+                        {generating ? "..." : "Auto"}
+                      </button>
+                    ) : undefined
+                  }
                 />
+                {isInvoiceSaved && (
+                  <p className="text-[10px] text-gray-400 mt-1">Invoice number already assigned</p>
+                )}
+                {canEditInvoiceMeta && !isInvoiceSaved && checkingNumber && (
+                  <p className="text-[10px] text-gray-400 mt-1">Checking...</p>
+                )}
               </div>
+
+              <InputField
+                label="Issue Date"
+                type="date"
+                value={form.issueDate}
+                disabled={!canEditInvoiceMeta}
+                readOnly={!canEditInvoiceMeta}
+                onChange={(e: any) => {
+                  if (!canEditInvoiceMeta) return;
+                  setForm((p) => ({ ...p, issueDate: e.target.value }));
+                }}
+                bg={!canEditInvoiceMeta ? "bg-gray-50" : "bg-white"}
+              />
             </div>
           )}
 
@@ -409,7 +358,7 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
               label="Total Program Fee (Rs)"
               type="number"
               value={String(form.totalAmount)}
-              onChange={(e) =>
+              onChange={(e: any) =>
                 setForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))
               }
               placeholder="e.g. 50000"
@@ -418,12 +367,11 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
               label="Discount (Rs) — optional"
               type="number"
               value={String(form.discount || "")}
-              onChange={(e) => handleDiscountChange(Number(e.target.value))}
+              onChange={(e: any) => handleDiscountChange(Number(e.target.value))}
               placeholder="0"
             />
           </div>
 
-          {/* 👇 NAYA — Certificate fee info */}
           {existingPlan?.certificateFee > 0 && (
             <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 flex items-center justify-between">
               <span className="text-xs text-orange-600 font-medium">
@@ -435,7 +383,6 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
             </div>
           )}
 
-          {/* 👇 NAYA — Manual fee info */}
           {existingPlan?.manualFee > 0 && (
             <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2 flex items-center justify-between">
               <span className="text-xs text-orange-600 font-medium">
@@ -447,41 +394,29 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
             </div>
           )}
 
-
           {/* ── Advance ── */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Advance Amount (Rs) <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="number"
-                value={form.advanceAmount || ""}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))
-                }
-                placeholder="e.g. 5000"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Advance Due Date <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.advanceDueDate}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, advanceDueDate: e.target.value }))
-                }
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
-                required
-              />
-            </div>
+            <InputField
+              label="Advance Amount (Rs) *"
+              type="number"
+              value={String(form.advanceAmount || "")}
+              onChange={(e: any) =>
+                setForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))
+              }
+              placeholder="e.g. 5000"
+              required
+            />
+            <InputField
+              label="Advance Due Date *"
+              type="date"
+              value={form.advanceDueDate}
+              onChange={(e: any) =>
+                setForm((p) => ({ ...p, advanceDueDate: e.target.value }))
+              }
+              required
+            />
           </div>
 
-          {/* ── Remaining badge ── */}
           {isAdvanceFilled && (
             <div
               className={`text-xs font-semibold px-3 py-2 rounded-lg ${remaining < 0
@@ -499,7 +434,7 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
             </div>
           )}
 
-          {/* ── Installments (advance fill hone ke baad unlock) ── */}
+          {/* ── Installments ── */}
           <div className={!isAdvanceFilled ? "opacity-50 pointer-events-none select-none" : ""}>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-gray-600">
@@ -553,20 +488,22 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input
+                    <InputField
+                      label=""
                       type="number"
                       placeholder="Amount (Rs)"
-                      value={inst.amount || ""}
-                      onChange={(e) => updateInstallment(idx, "amount", Number(e.target.value))}
-                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900 placeholder:text-gray-400"
+                      value={String(inst.amount || "")}
+                      onChange={(e: any) => updateInstallment(idx, "amount", Number(e.target.value))}
                       required
+                      bg="bg-white"
                     />
-                    <input
+                    <InputField
+                      label=""
                       type="date"
                       value={inst.dueDate}
-                      onChange={(e) => updateInstallment(idx, "dueDate", e.target.value)}
-                      className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900 placeholder:text-gray-400"
+                      onChange={(e: any) => updateInstallment(idx, "dueDate", e.target.value)}
                       required
+                      bg="bg-white"
                     />
                   </div>
                 </div>

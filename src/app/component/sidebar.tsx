@@ -23,7 +23,8 @@ import {
   SearchCheck,
   Landmark,
   BarChart3,
-  BadgeDollarSign
+  BadgeDollarSign,
+  UserPen
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
@@ -76,6 +77,7 @@ const menuSections: MenuSection[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager", "seo"] },
       { label: "Accounts", href: "/dashboard/accounts", icon: Landmark, roles: ["super_admin", "admin", "finance_manager"] },
+      { label: "Users", href: "/dashboard/users", icon: UserPen, roles: ["finance_manager"] },
       { label: "Chatbot", href: "/dashboard/chatbot", icon: Users, roles: ["super_admin", "admin"] },
       { label: "Leads", href: "/dashboard/leads", icon: Users, roles: ["super_admin", "admin", "sales_manager", "sales_rep", "finance_manager"] },
       { label: "Programs", href: "/dashboard/programs", icon: GraduationCap, roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"] },
@@ -421,206 +423,206 @@ export default function Sidebar() {
   // ── Admin / other roles: original full sidebar (unchanged) ─────────────────
   return (
     <>
-    <SidebarScrollStyles />
-    <div className="w-64 h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
-      {/* Logo */}
-      <div className="p-5 border-b border-gray-700 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
-            <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-white font-semibold text-sm truncate">Arslan Larik & Company</span>
-            <span className="text-gray-400 text-xs">CRM of the company</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Mode toggle */}
-      {isAdmin && (
-        <div className="px-3 pt-4 pb-1 shrink-0">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">Mode</p>
-          <div className="space-y-0.5">
-            {(["crm", "website"] as SidebarMode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => handleModeSwitch(m)}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${sidebarMode === m
-                  ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
-                  : "border-transparent text-gray-400 hover:bg-gray-800 hover:text-white"
-                  }`}
-              >
-                {m === "crm"
-                  ? <Monitor size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />
-                  : <Globe size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />}
-                <span className="capitalize">{m}</span>
-                {sidebarMode === m && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-400" />}
-              </button>
-            ))}
+      <SidebarScrollStyles />
+      <div className="w-64 h-screen bg-gray-900 text-white flex flex-col overflow-hidden">
+        {/* Logo */}
+        <div className="p-5 border-b border-gray-700 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
+              <Image src={MiniLogo} alt="ALCO CRM Logo" width={28} height={28} className="object-contain" />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-white font-semibold text-sm truncate">Arslan Larik & Company</span>
+              <span className="text-gray-400 text-xs">CRM of the company</span>
+            </div>
           </div>
         </div>
-      )}
 
-      {isAdmin && <div className="mx-4 mt-3 border-t border-gray-700/60 shrink-0" />}
+        {/* Mode toggle */}
+        {isAdmin && (
+          <div className="px-3 pt-4 pb-1 shrink-0">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">Mode</p>
+            <div className="space-y-0.5">
+              {(["crm", "website"] as SidebarMode[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => handleModeSwitch(m)}
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${sidebarMode === m
+                    ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-300"
+                    : "border-transparent text-gray-400 hover:bg-gray-800 hover:text-white"
+                    }`}
+                >
+                  {m === "crm"
+                    ? <Monitor size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />
+                    : <Globe size={16} className={sidebarMode === m ? "text-yellow-400" : ""} />}
+                  <span className="capitalize">{m}</span>
+                  {sidebarMode === m && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-400" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-      {/* Nav */}
-      <nav className="flex-1 p-4 space-y-6 overflow-y-auto min-h-0 sidebar-scroll">
-        {filteredSections.map((section) => {
-          const visibleItems = section.items.filter((item) => item.roles.includes(role));
-          if (visibleItems.length === 0) return null;
+        {isAdmin && <div className="mx-4 mt-3 border-t border-gray-700/60 shrink-0" />}
 
-          return (
-            <div key={section.title ?? section.mode}>
-              {section.title && (
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">
-                  {section.title}
-                </p>
-              )}
-              <div className="space-y-1">
-                {visibleItems.map((item) => {
-                  const Icon = item.icon;
+        {/* Nav */}
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto min-h-0 sidebar-scroll">
+          {filteredSections.map((section) => {
+            const visibleItems = section.items.filter((item) => item.roles.includes(role));
+            if (visibleItems.length === 0) return null;
 
-                  if (item.children) {
-                    const isOpen = !!openMenus[item.label];
+            return (
+              <div key={section.title ?? section.mode}>
+                {section.title && (
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-2">
+                    {section.title}
+                  </p>
+                )}
+                <div className="space-y-1">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon;
 
-                    const isChildActive = item.children.some((c) => {
-                      if (isChildGroup(c)) {
-                        return c.subChildren.some(
-                          (sc) => pathname === sc.href || pathname.startsWith(sc.href)
-                        );
-                      }
-                      return pathname === c.href || pathname.startsWith(c.href);
-                    });
+                    if (item.children) {
+                      const isOpen = !!openMenus[item.label];
+
+                      const isChildActive = item.children.some((c) => {
+                        if (isChildGroup(c)) {
+                          return c.subChildren.some(
+                            (sc) => pathname === sc.href || pathname.startsWith(sc.href)
+                          );
+                        }
+                        return pathname === c.href || pathname.startsWith(c.href);
+                      });
+
+                      return (
+                        <div key={item.label}>
+                          <button
+                            onClick={() => toggleMenu(item.label)}
+                            className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${isChildActive
+                              ? "text-yellow-400"
+                              : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                              }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Icon size={18} />
+                              <span className="text-sm">{item.label}</span>
+                            </div>
+                            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </button>
+
+                          {isOpen && (
+                            <div className="ml-7 mt-1 space-y-1 border-l border-gray-700 pl-3">
+                              {item.children.map((child) => {
+                                if (isChildGroup(child)) {
+                                  const groupKey = `${item.label}::${child.header}`;
+                                  const isGroupOpen = !!openGroups[groupKey];
+                                  const isGroupActive = child.subChildren.some(
+                                    (sc) => pathname === sc.href || pathname.startsWith(sc.href)
+                                  );
+
+                                  return (
+                                    <div key={child.header}>
+                                      <button
+                                        onClick={() => toggleGroup(groupKey)}
+                                        className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${isGroupActive
+                                          ? "text-yellow-400"
+                                          : "text-gray-500 hover:text-gray-300"
+                                          }`}
+                                      >
+                                        <span>{child.header}</span>
+                                        {isGroupOpen
+                                          ? <ChevronDown size={11} />
+                                          : <ChevronRight size={11} />}
+                                      </button>
+
+                                      {isGroupOpen && (
+                                        <div className="ml-2 mt-0.5 space-y-0.5 border-l border-gray-700/60 pl-2">
+                                          {child.subChildren.map((sc) => {
+                                            const isActive = pathname === sc.href;
+                                            return (
+                                              <Link
+                                                key={sc.href}
+                                                href={sc.href}
+                                                className={`block px-3 py-1.5 rounded-md text-sm transition-all ${isActive
+                                                  ? "bg-yellow-400 text-gray-900 font-semibold"
+                                                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                                  }`}
+                                              >
+                                                {sc.label}
+                                              </Link>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+
+                                const isActive = pathname === child.href;
+                                return (
+                                  <Link
+                                    key={child.href}
+                                    href={child.href}
+                                    className={`block px-3 py-2 rounded-md text-sm transition-all ${isActive
+                                      ? "bg-yellow-400 text-gray-900 font-semibold"
+                                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                                      }`}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    if (!item.href) return null;
+                    const isActive = pathname === item.href;
 
                     return (
-                      <div key={item.label}>
-                        <button
-                          onClick={() => toggleMenu(item.label)}
-                          className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all ${isChildActive
-                            ? "text-yellow-400"
-                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                            }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Icon size={18} />
-                            <span className="text-sm">{item.label}</span>
-                          </div>
-                          {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </button>
-
-                        {isOpen && (
-                          <div className="ml-7 mt-1 space-y-1 border-l border-gray-700 pl-3">
-                            {item.children.map((child) => {
-                              if (isChildGroup(child)) {
-                                const groupKey = `${item.label}::${child.header}`;
-                                const isGroupOpen = !!openGroups[groupKey];
-                                const isGroupActive = child.subChildren.some(
-                                  (sc) => pathname === sc.href || pathname.startsWith(sc.href)
-                                );
-
-                                return (
-                                  <div key={child.header}>
-                                    <button
-                                      onClick={() => toggleGroup(groupKey)}
-                                      className={`flex items-center justify-between w-full px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${isGroupActive
-                                        ? "text-yellow-400"
-                                        : "text-gray-500 hover:text-gray-300"
-                                        }`}
-                                    >
-                                      <span>{child.header}</span>
-                                      {isGroupOpen
-                                        ? <ChevronDown size={11} />
-                                        : <ChevronRight size={11} />}
-                                    </button>
-
-                                    {isGroupOpen && (
-                                      <div className="ml-2 mt-0.5 space-y-0.5 border-l border-gray-700/60 pl-2">
-                                        {child.subChildren.map((sc) => {
-                                          const isActive = pathname === sc.href;
-                                          return (
-                                            <Link
-                                              key={sc.href}
-                                              href={sc.href}
-                                              className={`block px-3 py-1.5 rounded-md text-sm transition-all ${isActive
-                                                ? "bg-yellow-400 text-gray-900 font-semibold"
-                                                : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                                }`}
-                                            >
-                                              {sc.label}
-                                            </Link>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              }
-
-                              const isActive = pathname === child.href;
-                              return (
-                                <Link
-                                  key={child.href}
-                                  href={child.href}
-                                  className={`block px-3 py-2 rounded-md text-sm transition-all ${isActive
-                                    ? "bg-yellow-400 text-gray-900 font-semibold"
-                                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                                    }`}
-                                >
-                                  {child.label}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
+                          ? "bg-yellow-400 text-gray-900 font-semibold"
+                          : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                          }`}
+                      >
+                        <Icon size={18} />
+                        <span className="text-sm">{item.label}</span>
+                      </Link>
                     );
-                  }
-
-                  if (!item.href) return null;
-                  const isActive = pathname === item.href;
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
-                        ? "bg-yellow-400 text-gray-900 font-semibold"
-                        : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                        }`}
-                    >
-                      <Icon size={18} />
-                      <span className="text-sm">{item.label}</span>
-                    </Link>
-                  );
-                })}
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </nav>
+            );
+          })}
+        </nav>
 
-      {/* Logout - sticky at bottom */}
-      <div className="px-4 py-2 border-t border-gray-700 shrink-0">
-        <button
-          onClick={() => setShowLogout(true)}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
-        >
-          <LogOut size={18} />
-          <span className="text-sm">Logout</span>
-        </button>
+        {/* Logout - sticky at bottom */}
+        <div className="px-4 py-2 border-t border-gray-700 shrink-0">
+          <button
+            onClick={() => setShowLogout(true)}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
+          >
+            <LogOut size={18} />
+            <span className="text-sm">Logout</span>
+          </button>
+        </div>
+
+        <Popup
+          isOpen={showLogout}
+          onClose={() => setShowLogout(false)}
+          onConfirm={handleLogout}
+          variant="info"
+          title="Log Out"
+          description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
+          confirmText="Yes, Log Out"
+          cancelText="Stay"
+        />
       </div>
-
-      <Popup
-        isOpen={showLogout}
-        onClose={() => setShowLogout(false)}
-        onConfirm={handleLogout}
-        variant="info"
-        title="Log Out"
-        description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
-        confirmText="Yes, Log Out"
-        cancelText="Stay"
-      />
-    </div>
     </>
   );
 }

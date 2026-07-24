@@ -9,6 +9,7 @@ import {
   adminCreateUser,
   adminAssignRole,
   adminUpdateUserPassword,
+  getAllUsersForRole
 } from "@/utils/api";
 import { User, UsersResponse } from "@/types/apiType";
 import ProtectedRoute from "@/app/component/protected-route";
@@ -31,38 +32,24 @@ const addUserFields: ModalField[] = [
     name: "role", label: "Role", type: "select",
     options: [
       { label: "User", value: "user" },
-      { label: "Sales Manager", value: "sales_manager" },
       { label: "Sales Rep", value: "sales_rep" },
-      { label: "Support", value: "support" },
-      { label: "Instructor", value: "instructor" },
-      { label: "Finance Manager", value: "finance_manager" },
     ],
-  },
+  }
 ];
 
 // ── Role color helper ──
 const roleColor = (role: string) => {
   switch (role) {
-    case "super_admin": return "bg-yellow-100 text-yellow-700";
-    case "admin": return "bg-blue-100 text-blue-700";
-    case "sales_manager": return "bg-indigo-100 text-indigo-700";
     case "sales_rep": return "bg-teal-100 text-teal-700";
-    case "support": return "bg-pink-100 text-pink-700";
-    case "instructor": return "bg-purple-100 text-purple-700";
-    case "finance_manager": return "bg-green-100 text-green-700";
-    case "seo": return "bg-orange-100 text-orange-700";
     default: return "bg-gray-100 text-gray-600";
   }
 };
 
-export default function AdminPage() {
+export default function FinanceManagerDashboard() {
   const queryClient = useQueryClient();
 
-  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -71,7 +58,7 @@ export default function AdminPage() {
 
   // ── Fetch Users ──
   const { data, isLoading, isError } = useQuery<UsersResponse>({
-    queryKey: ["admin-users", page, filters.search, filters.role],
+    queryKey: ["sales-manager-users", page, filters.search, filters.role],
     queryFn: () =>
       adminGetAllUsers({
         page,
@@ -80,6 +67,10 @@ export default function AdminPage() {
         role: filters.role || undefined,
       }).then((res) => res.data),
   });
+  //   const { data, isLoading, isError } = useQuery<UsersResponse>({
+  //   queryKey: ["role-users"],
+  //   queryFn: () => getAllUsersForRole().then((res) => res.data),
+  // });
 
   // ── Add User ──
   const { mutate: addUser, isPending: isAdding } = useMutation({
@@ -87,7 +78,7 @@ export default function AdminPage() {
     onSuccess: () => {
       toast.success("User created successfully!");
       setIsAddOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-manager-users"] });
     },
     onError: (error: any) =>
       toast.error(error?.response?.data?.message || "Failed to create user!"),
@@ -98,7 +89,7 @@ export default function AdminPage() {
     mutationFn: ({ id, data }: { id: string; data: any }) => adminUpdateUser(id, data),
     onSuccess: () => {
       toast.success("User updated!");
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-manager-users"] });
       setEditingUser(null);
     },
     onError: () => toast.error("Failed to update user!"),
@@ -110,7 +101,7 @@ export default function AdminPage() {
       adminUpdateUserPassword(id, password),
     onSuccess: () => {
       toast.success("Password updated!");
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-manager-users"] });
       setEditingUser(null);
     },
     onError: () => toast.error("Failed to update password!"),
@@ -121,33 +112,13 @@ export default function AdminPage() {
     mutationFn: ({ id, role }: { id: string; role: string }) => adminAssignRole(id, role),
     onSuccess: () => {
       toast.success("Role updated!");
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-manager-users"] });
       setEditingUser(null);
     },
     onError: () => toast.error("Failed to update role!"),
   });
 
-  // ── Delete User ──
-  const { mutate: deleteUser, isPending: isDeleting } = useMutation({
-    mutationFn: (id: string) => adminDeleteUser(id),
-    onSuccess: () => {
-      toast.success("User deleted!");
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      setDeletingId(null);
-    },
-    onError: () => toast.error("Failed to delete user!"),
-  });
 
-  // ── Delete All ──
-  const { mutate: deleteAll, isPending: isDeletingAll } = useMutation({
-    mutationFn: () => adminDeleteAllUsers(),
-    onSuccess: () => {
-      toast.success("All users deleted!");
-      setShowDeleteAll(false);
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-    },
-    onError: () => toast.error("Failed to delete all users!"),
-  });
 
   // ── Reset page on filter change ──
   useEffect(() => {
@@ -162,12 +133,11 @@ export default function AdminPage() {
     <ProtectedRoute>
       {/* Header */}
       <PageHeader
-        title="Admin Panel"
-        subtitle="Manage all users and roles"
+        title="Users"
+        subtitle="View all registered users"
         titleIcon={<UserCog size={24} />}
         totalCount={data?.total ?? 0}
         onAdd={() => setIsAddOpen(true)}
-        // onDeleteAll={() => setShowDeleteAll(true)}
         filters={filters}
         setFilters={setFilters}
         filterFields={[
@@ -255,44 +225,11 @@ export default function AdminPage() {
             icon: <Pencil size={14} />,
             label: "Edit",
             onClick: (user) => setEditingUser(user),
-            // disabled: (user: User) => user.role === "admin",
-            className: "hover:bg-blue-50 hover:text-blue-500",
-          },
-          {
-            icon: <Trash2 size={14} />,
-            label: "Delete",
-            onClick: (user) => setDeletingUser(user),
             disabled: (user: User) => user.role === "admin",
-            className: "hover:bg-red-50 hover:text-red-500",
+            className: "hover:bg-blue-50 hover:text-blue-500",
           },
         ]}
       />
-
-      {/* Pagination */}
-      {/* {(data?.totalPages ?? 0) > 1 && (
-        <div className="flex items-center justify-between mt-8">
-          <p className="text-xs text-gray-400">
-            Page <span className="font-semibold text-gray-700">{page}</span> of{" "}
-            <span className="font-semibold text-gray-700">{data?.totalPages}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              <ChevronLeft size={14} /> Prev
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(data?.totalPages || 1, p + 1))}
-              disabled={page === data?.totalPages}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              Next <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )} */}
 
       {/* Add User Modal */}
       <Modal
@@ -320,8 +257,7 @@ export default function AdminPage() {
           initialValues={{
             name: editingUser.name,
             email: editingUser.email,
-            role: editingUser.role,
-            newPassword: "",
+            phone: editingUser.phone ?? "",
           }}
           tabs={[
             {
@@ -329,92 +265,23 @@ export default function AdminPage() {
               label: "General",
               fields: [
                 { name: "name", label: "Name", type: "input", inputType: "text" },
-                { name: "email", label: "Email", type: "input", inputType: "email"},
+                { name: "email", label: "Email", type: "input", inputType: "email" },
+                { name: "phone", label: "Phone", type: "input", inputType: "text", placeholder: "Enter phone" },
               ],
-              onSubmit: (data) => updateUser({ id: editingUser._id, data: { name: data.name as string, email: data.email as string } }),
-            },
-            {
-              key: "role",
-              label: "Role",
-              fields: [
-                { name: "name", label: "Name", type: "input", inputType: "text", disabled: true },
-                { name: "email", label: "Email", type: "input", inputType: "email", disabled: true },
-                {
-                  name: "role", label: "Role", type: "select",
-                  options: [
-                    { label: "Sales Manager", value: "sales_manager" },
-                    { label: "Sales Rep", value: "sales_rep" },
-                    { label: "Support", value: "support" },
-                    { label: "Instructor", value: "instructor" },
-                    { label: "Finance Manager", value: "finance_manager" },
-                    { label: "User", value: "user" },
-                  ],
+              onSubmit: (data) => updateUser({
+                id: editingUser._id,
+                data: {
+                  name: data.name as string,
+                  email: data.email as string,
+                  phone: data.phone as string,
                 },
-              ],
-              onSubmit: (data) => assignRole({ id: editingUser._id, role: data.role as string }),
-            },
-            {
-              key: "security",
-              label: "Security",
-              fields: [
-                {
-                  name: "newPassword",
-                  label: "New Password",
-                  type: "input",
-                  inputType: "password",
-                  placeholder: "Enter new password",
-                  autoComplete: "new-password",
-                },
-              ],
-              onSubmit: (data) => changePassword({ id: editingUser._id, password: data.newPassword as string }),
+              }),
             },
           ]}
         />
       )}
 
-      {/* Delete All Popup */}
-      {showDeleteAll && (
-        <Popup
-          isOpen={showDeleteAll}
-          onClose={() => setShowDeleteAll(false)}
-          onConfirm={() => deleteAll()}
-          variant="danger"
-          title="Delete All Users"
-          description={
-            <>
-              Are you sure you want to delete{" "}
-              <span className="font-bold text-red-500">all users</span>? This cannot be undone.
-            </>
-          }
-          confirmText="Yes, Delete All"
-          isLoading={isDeletingAll}
-          loadingText="Deleting..."
-        />
-      )}
-      {deletingUser && (
-        <Popup
-          isOpen={!!deletingUser}
-          onClose={() => setDeletingUser(null)}
-          onConfirm={() => {
-            deleteUser(deletingUser._id);
-            setDeletingUser(null);
-          }}
-          variant="danger"
-          title="Delete User"
-          description={
-            <>
-              Delete{" "}
-              <span className="font-bold text-red-500">
-                {deletingUser.name}
-              </span>
-              ? This cannot be undone.
-            </>
-          }
-          confirmText="Yes, Delete"
-          isLoading={isDeleting}
-          loadingText="Deleting..."
-        />
-      )}
+      
     </ProtectedRoute>
   );
 }

@@ -13,7 +13,7 @@ export default function InputField({ label, error, rightIcon, disabled, bg, ...p
         <input
           {...props}
           className={`w-full px-4 py-2.5 rounded-lg border text-sm outline-none transition
-           text-gray-900 placeholder:text-gray-400 ${disabled && "cursor-not-allowed"}
+           text-gray-900 placeholder:text-gray-400 no-spinner ${disabled && "cursor-not-allowed"}
           ${rightIcon ? "pr-10" : ""}
           ${bg}
            ${errorMessage
