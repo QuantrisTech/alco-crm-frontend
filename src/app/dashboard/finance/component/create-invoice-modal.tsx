@@ -485,6 +485,8 @@ import { X, Search, CreditCard, Plus, Trash2, ChevronLeft, User, BookOpen, Check
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { searchEnrollments, createInvoice, addInstallment } from "@/utils/api";
 import toast from "react-hot-toast";
+import InputField from "@/app/component/ui/inputField";
+import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 interface NewInstallment {
   label: string;
@@ -510,8 +512,7 @@ type Mode = "fresh" | "append" | "bundle";
 
 const todayStr = () => new Date().toISOString().split("T")[0];
 const fmt = (n: number) => Number(n || 0).toLocaleString("en-PK");
-const statusColor = (s: string) => (s === "PAID" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600");// State mein add karo
-// const [freshCertFee, setFreshCertFee] = useState({ include: false, amount: 0 });
+const statusColor = (s: string) => (s === "PAID" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600");
 
 export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -1059,12 +1060,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                               <span className="text-xs font-semibold text-gray-700">🎓 Include Certificate Fee</span>
                             </label>
                             {appendCertFee.include && (
-                              <input
+                              <InputField
+                                label=""
                                 type="number"
-                                value={appendCertFee.amount || ""}
-                                onChange={(e) => setAppendCertFee((p) => ({ ...p, amount: Number(e.target.value) }))}
+                                value={String(appendCertFee.amount || "")}
+                                onChange={(e: any) => setAppendCertFee((p) => ({ ...p, amount: Number(e.target.value) }))}
                                 placeholder="e.g. 5000"
-                                className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                                bg="bg-white"
                               />
                             )}
                           </div>
@@ -1081,12 +1083,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                               <span className="text-xs font-semibold text-gray-700">🛠️ Include Manual Fee</span>
                             </label>
                             {appendManuFee.include && (
-                              <input
+                              <InputField
+                                label=""
                                 type="number"
-                                value={appendManuFee.amount || ""}
-                                onChange={(e) => setAppendManuFee((p) => ({ ...p, amount: Number(e.target.value) }))}
+                                value={String(appendManuFee.amount || "")}
+                                onChange={(e: any) => setAppendManuFee((p) => ({ ...p, amount: Number(e.target.value) }))}
                                 placeholder="e.g. 5000"
-                                className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                                bg="bg-white"
                               />
                             )}
                           </div>
@@ -1183,62 +1186,47 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Invoice Number</label>
-                  <input
-                    type="text"
-                    value={freshForm.invoiceNumber}
-                    onChange={(e) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                    placeholder="e.g. INV-2026-0045"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
-                  <input
-                    type="date"
-                    value={freshForm.issueDate}
-                    onChange={(e) => setFreshForm((p) => ({ ...p, issueDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Total Program Fee (Rs)</label>
-                <input
-                  type="number"
-                  value={freshForm.totalAmount || ""}
-                  onChange={(e) => setFreshForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
-                  placeholder="e.g. 200000"
+                <InputField
+                  label="Invoice Number"
+                  type="text"
+                  value={freshForm.invoiceNumber}
+                  onChange={(e: any) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                  placeholder="e.g. INV-2026-0045"
+                />
+                <AppDatePicker
+                  label="Issue Date"
+                  value={freshForm.issueDate}
+                  onChange={(value) => setFreshForm((p) => ({ ...p, issueDate: value }))}
                   required
                 />
               </div>
 
+              <InputField
+                label="Total Program Fee (Rs)"
+                type="number"
+                value={String(freshForm.totalAmount || "")}
+                onChange={(e: any) => setFreshForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))}
+                placeholder="e.g. 200000"
+                required
+              />
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Amount (Rs)</label>
-                  <input
-                    type="number"
-                    value={freshForm.advanceAmount || ""}
-                    onChange={(e) => setFreshForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900 placeholder:text-gray-400"
-                    placeholder="e.g. 50000"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Due Date</label>
-                  <input
-                    type="date"
-                    value={freshForm.advanceDueDate}
-                    onChange={(e) => setFreshForm((p) => ({ ...p, advanceDueDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400 text-gray-900"
-                    required
-                  />
-                </div>
+                <InputField
+                  label="Advance Amount (Rs)"
+                  type="number"
+                  value={String(freshForm.advanceAmount || "")}
+                  onChange={(e: any) => setFreshForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))}
+                  placeholder="e.g. 50000"
+                  required
+                />
+                <AppDatePicker
+                  label="Advance Due Date"
+                  value={freshForm.advanceDueDate}
+                  onChange={(value) => setFreshForm((p) => ({ ...p, advanceDueDate: value }))}
+                  textFormat="text-sm font-medium text-gray-700 mb-1 block"
+                  className="mt-0"
+                  required
+                />
               </div>
 
               {freshForm.totalAmount > 0 && (
@@ -1270,17 +1258,18 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 </label>
 
                 {freshCertFee.include && (
-                  <input
+                  <InputField
+                    label=""
                     type="number"
-                    value={freshCertFee.amount || ""}
-                    onChange={(e) =>
+                    value={String(freshCertFee.amount || "")}
+                    onChange={(e: any) =>
                       setFreshCertFee((p) => ({
                         ...p,
                         amount: Number(e.target.value),
                       }))
                     }
                     placeholder="e.g. 5000"
-                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                    bg="bg-white"
                   />
                 )}
               </div>
@@ -1301,17 +1290,18 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                 </label>
 
                 {freshManuFee.include && (
-                  <input
+                  <InputField
+                    label=""
                     type="number"
-                    value={freshManuFee.amount || ""}
-                    onChange={(e) =>
+                    value={String(freshManuFee.amount || "")}
+                    onChange={(e: any) =>
                       setFreshManuFee((p) => ({
                         ...p,
                         amount: Number(e.target.value),
                       }))
                     }
                     placeholder="e.g. 5000"
-                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                    bg="bg-white"
                   />
                 )}
               </div>
@@ -1346,19 +1336,18 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                         </button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <input
+                        <InputField
+                          label=""
                           type="number"
                           placeholder="Amount (Rs)"
-                          value={inst.amount || ""}
-                          onChange={(e) => updateFreshInstallment(idx, "amount", Number(e.target.value))}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900 placeholder:text-gray-400"
+                          value={String(inst.amount || "")}
+                          onChange={(e: any) => updateFreshInstallment(idx, "amount", Number(e.target.value))}
                           required
+                          bg="bg-white"
                         />
-                        <input
-                          type="date"
+                        <AppDatePicker
                           value={inst.dueDate}
-                          onChange={(e) => updateFreshInstallment(idx, "dueDate", e.target.value)}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900"
+                          onChange={(value) => updateFreshInstallment(idx, "dueDate", value)}
                           required
                         />
                       </div>
@@ -1406,26 +1395,20 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Invoice Number</label>
-                  <input
-                    type="text"
-                    value={bundleForm.invoiceNumber}
-                    onChange={(e) => setBundleForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                    placeholder="e.g. INV-2026-0045"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Issue Date</label>
-                  <input
-                    type="date"
-                    value={bundleForm.issueDate}
-                    onChange={(e) => setBundleForm((p) => ({ ...p, issueDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
-                    required
-                  />
-                </div>
+                <InputField
+                  label="Invoice Number"
+                  type="text"
+                  value={bundleForm.invoiceNumber}
+                  onChange={(e: any) => setBundleForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                  placeholder="e.g. INV-2026-0045"
+                />
+                <AppDatePicker
+                  label="Issue Date"
+                  value={bundleForm.issueDate}
+                  onChange={(value) => setBundleForm((p) => ({ ...p, issueDate: value }))}
+                  textFormat="text-sm font-medium text-gray-700 mb-1 block"
+                  required
+                />
               </div>
 
               <div>
@@ -1435,12 +1418,16 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                     <div key={item.enrollment} className="border border-gray-100 rounded-lg p-2.5 bg-gray-50 space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-700 flex-1">{item.programName}</span>
-                        <input
-                          type="number"
-                          value={item.amount || ""}
-                          onChange={(e) => updateItemAmount(idx, Number(e.target.value))}
-                          className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-right text-gray-900"
-                        />
+                        <div className="w-28">
+                          <InputField
+                            label=""
+                            type="number"
+                            placeholder="Amount (Rs)"
+                            value={String(item.amount || "")}
+                            onChange={(e: any) => updateItemAmount(idx, Number(e.target.value))}
+                            bg="bg-white"
+                          />
+                        </div>
                       </div>
 
                       <div className="pl-1">
@@ -1456,12 +1443,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                           </span>
                         </label>
                         {item.certFee.include && (
-                          <input
+                          <InputField
+                            label=""
                             type="number"
-                            value={item.certFee.amount || ""}
-                            onChange={(e) => updateItemCertFee(idx, "amount", Number(e.target.value))}
+                            value={String(item.certFee.amount || "")}
+                            onChange={(e: any) => updateItemCertFee(idx, "amount", Number(e.target.value))}
                             placeholder="e.g. 5000"
-                            className="w-full mt-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900"
+                            bg="bg-white"
                           />
                         )}
                       </div>
@@ -1479,12 +1467,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                           </span>
                         </label>
                         {item.manuFee.include && (
-                          <input
+                          <InputField
+                            label=""
                             type="number"
-                            value={item.manuFee.amount || ""}
-                            onChange={(e) => updateItemManuFee(idx, "amount", Number(e.target.value))}
+                            value={String(item.manuFee.amount || "")}
+                            onChange={(e: any) => updateItemManuFee(idx, "amount", Number(e.target.value))}
                             placeholder="e.g. 5000"
-                            className="w-full mt-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-900"
+                            bg="bg-white"
                           />
                         )}
                       </div>
@@ -1498,16 +1487,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Subtotal (Rs)</label>
                   <div className="border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">Rs {fmt(itemsSubtotal)}</div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Discount (Rs)</label>
-                  <input
-                    type="number"
-                    value={bundleForm.discount || ""}
-                    onChange={(e) => setBundleForm((p) => ({ ...p, discount: Number(e.target.value) }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
-                    placeholder="e.g. 10000"
-                  />
-                </div>
+                <InputField
+                  label="Discount (Rs)"
+                  type="number"
+                  value={String(bundleForm.discount || "")}
+                  onChange={(e: any) => setBundleForm((p) => ({ ...p, discount: Number(e.target.value) }))}
+                  placeholder="e.g. 10000"
+                />
               </div>
 
               <div className="text-sm font-bold text-gray-800 px-3 py-2 bg-teal-50 rounded-lg">
@@ -1515,26 +1501,21 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Amount (Rs)</label>
-                  <input
-                    type="number"
-                    value={bundleForm.advanceAmount || ""}
-                    onChange={(e) => setBundleForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Advance Due Date</label>
-                  <input
-                    type="date"
-                    value={bundleForm.advanceDueDate}
-                    onChange={(e) => setBundleForm((p) => ({ ...p, advanceDueDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
-                    required
-                  />
-                </div>
+                <InputField
+                  label="Advance Amount (Rs)"
+                  type="number"
+                  placeholder="Amount (Rs)"
+                  value={String(bundleForm.advanceAmount || "")}
+                  onChange={(e: any) => setBundleForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }))}
+                  required
+                />
+                <AppDatePicker
+                  label="Advance Due Date"
+                  value={bundleForm.advanceDueDate}
+                  onChange={(value) => setBundleForm((p) => ({ ...p, advanceDueDate: value }))}
+                  textFormat="text-sm font-medium text-gray-700 mb-1 block"
+                  required
+                />
               </div>
 
               {bundleTotal > 0 && (
@@ -1551,46 +1532,34 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
               )}
 
               <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
-                {/* <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bundleCertFee.include}
-                    onChange={(e) =>
-                      setBundleCertFee((p) => ({ ...p, include: e.target.checked }))
-                    }
-                    className="w-4 h-4 accent-indigo-500 rounded"
-                  />
-                  <span className="text-xs font-semibold text-gray-700">
-                    🎓 Include Certificate Fee
-                  </span>
-                </label> */}
-
                 {bundleCertFee.include && (
-                  <input
+                  <InputField
+                    label=""
                     type="number"
-                    value={bundleCertFee.amount || ""}
-                    onChange={(e) =>
+                    value={String(bundleCertFee.amount || "")}
+                    onChange={(e: any) =>
                       setBundleCertFee((p) => ({
                         ...p,
                         amount: Number(e.target.value),
                       }))
                     }
                     placeholder="e.g. 5000"
-                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                    bg="bg-white"
                   />
                 )}
                 {bundleManuFee.include && (
-                  <input
+                  <InputField
+                    label=""
                     type="number"
-                    value={bundleManuFee.amount || ""}
-                    onChange={(e) =>
+                    value={String(bundleManuFee.amount || "")}
+                    onChange={(e: any) =>
                       setBundleManuFee((p) => ({
                         ...p,
                         amount: Number(e.target.value),
                       }))
                     }
                     placeholder="e.g. 5000"
-                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900"
+                    bg="bg-white"
                   />
                 )}
               </div>
@@ -1618,19 +1587,19 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                         </button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <input
+                        <InputField
+                          label=""
                           type="number"
                           placeholder="Amount (Rs)"
-                          value={inst.amount || ""}
-                          onChange={(e) => updateBundleInstallment(idx, "amount", Number(e.target.value))}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900 placeholder:text-gray-400"
+                          value={String(inst.amount || "")}
+                          onChange={(e: any) => updateBundleInstallment(idx, "amount", Number(e.target.value))}
                           required
+                          bg="bg-white"
                         />
-                        <input
-                          type="date"
+                        <AppDatePicker
+                        className="mt-1"
                           value={inst.dueDate}
-                          onChange={(e) => updateBundleInstallment(idx, "dueDate", e.target.value)}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900"
+                          onChange={(value) => updateBundleInstallment(idx, "dueDate", value)}
                           required
                         />
                       </div>
@@ -1757,19 +1726,18 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <input
+                        <InputField
+                          label=""
                           type="number"
                           placeholder="Amount (Rs)"
-                          value={inst.amount || ""}
-                          onChange={(e) => updateAppendInstallment(idx, "amount", Number(e.target.value))}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900 placeholder:text-gray-400"
+                          value={String(inst.amount || "")}
+                          onChange={(e: any) => updateAppendInstallment(idx, "amount", Number(e.target.value))}
                           required
+                          bg="bg-white"
                         />
-                        <input
-                          type="date"
+                        <AppDatePicker
                           value={inst.dueDate}
-                          onChange={(e) => updateAppendInstallment(idx, "dueDate", e.target.value)}
-                          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-orange-400 bg-white text-gray-900"
+                          onChange={(value) => updateAppendInstallment(idx, "dueDate", value)}
                           required
                         />
                       </div>
