@@ -110,15 +110,19 @@ function ProgramPicker({
   selected,
   programBatches,
   activeBatches,
+  programAudioAccess,       // ← NAYA
   onToggle,
   onPickBatch,
+  onToggleAudioAccess,      // ← NAYA
 }: {
   programs: any[];
   selected: string[];
   programBatches: Record<string, string>;
   activeBatches: any[];
+  programAudioAccess: Record<string, boolean>;   // ← NAYA
   onToggle: (id: string) => void;
   onPickBatch: (program: { id: string; name: string }) => void;
+  onToggleAudioAccess: (id: string) => void;     // ← NAYA
 }) {
   return (
     <div className="mb-4">
@@ -128,6 +132,7 @@ function ProgramPicker({
           const isChecked = selected.includes(p._id);
           const batchId = programBatches[p._id];
           const batch = activeBatches.find((b: any) => b._id === batchId);
+          const audioAccess = programAudioAccess[p._id] ?? true; // ← default true
           return (
             <div key={p._id} className="flex items-center justify-between px-3 py-2">
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer flex-1">
@@ -135,14 +140,25 @@ function ProgramPicker({
                 {p.name}
               </label>
               {isChecked && (
-                <button
-                  type="button"
-                  onClick={() => onPickBatch({ id: p._id, name: p.name })}
-                  className={`px-2 py-1 text-[10px] rounded ${batch ? "bg-indigo-100 text-indigo-600" : "bg-yellow-100 text-yellow-700"
-                    }`}
-                >
-                  {batch ? batch.name : "Select Batch"}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onPickBatch({ id: p._id, name: p.name })}
+                    className={`px-2 py-1 text-[10px] rounded ${batch ? "bg-indigo-100 text-indigo-600" : "bg-yellow-100 text-yellow-700"
+                      }`}
+                  >
+                    {batch ? batch.name : "Select Batch"}
+                  </button>
+                  <label className="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={audioAccess}
+                      onChange={() => onToggleAudioAccess(p._id)}
+                      className="accent-green-500"
+                    />
+                    Audio
+                  </label>
+                </div>
               )}
             </div>
           );
@@ -182,6 +198,7 @@ function EnrollmentsContent() {
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
   const [programBatches, setProgramBatches] = useState<Record<string, string>>({});
   const [batchPickerProgram, setBatchPickerProgram] = useState<{ id: string; name: string } | null>(null);
+  const [programAudioAccess, setProgramAudioAccess] = useState<Record<string, boolean>>({});
 
   const toggleProgram = (id: string) => {
     setSelectedPrograms((prev) => {
@@ -191,8 +208,14 @@ function EnrollmentsContent() {
           delete next[id];
           return next;
         });
+        setProgramAudioAccess((paa) => {
+          const next = { ...paa };
+          delete next[id];
+          return next;
+        });
         return prev.filter((p) => p !== id);
       }
+      setProgramAudioAccess((paa) => ({ ...paa, [id]: true })); // ← default true
       return [...prev, id];
     });
   };
@@ -468,6 +491,7 @@ function EnrollmentsContent() {
   const handleAddEnrollment = (formData: any) => {
     const programs: string[] = formData.programs || [];
     const batches: Record<string, string> = formData.programBatches || {};
+    const audioAccessMap: Record<string, boolean> = formData.programAudioAccess || {};
 
     if (programs.length === 0) {
       toast.error("Select at least one program!");
@@ -486,7 +510,12 @@ function EnrollmentsContent() {
         toast.error("User is already enrolled in this program!");
         return;
       }
-      addEnrollment({ user: formData.user, program: pid, batch: batches[pid] });
+      addEnrollment({
+        user: formData.user,
+        program: pid,
+        batch: batches[pid],
+        audioAccess: audioAccessMap[pid] ?? true,   // ← NAYA
+      });
     } else {
       const alreadyEnrolled = programs.some((pid) =>
         enrolledCombinations.has(`${formData.user}_${pid}`)
@@ -495,7 +524,11 @@ function EnrollmentsContent() {
         toast.error("User already enrolled in one of the selected programs!");
         return;
       }
-      const programBatchPairs = programs.map((pid) => ({ program: pid, batch: batches[pid] }));
+      const programBatchPairs = programs.map((pid) => ({
+        program: pid,
+        batch: batches[pid],
+        audioAccess: audioAccessMap[pid] ?? true,   // ← NAYA
+      }));
       addBundleEnrollment({ user: formData.user, programBatches: programBatchPairs });
     }
   };
@@ -1027,6 +1060,7 @@ function EnrollmentsContent() {
             user: data.user,
             programs: selectedPrograms,
             programBatches,
+            programAudioAccess,   // ← NAYA
           })
         }
         isLoading={isAdding || isAddingBundle}
@@ -1037,8 +1071,12 @@ function EnrollmentsContent() {
           selected={selectedPrograms}
           programBatches={programBatches}
           activeBatches={activeBatches}
+          programAudioAccess={programAudioAccess}
           onToggle={toggleProgram}
           onPickBatch={(program) => setBatchPickerProgram(program)}
+          onToggleAudioAccess={(id) =>
+            setProgramAudioAccess((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))
+          }
         />
       </Modal>
 

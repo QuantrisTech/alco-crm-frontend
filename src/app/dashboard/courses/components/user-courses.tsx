@@ -67,6 +67,8 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
   const isComplete = enrollment.status === "completed" || pct >= 100;
   const isRestricted = enrollment.accessStatus === "RESTRICTED";
   const isSuspended = enrollment?.status === "suspended";
+  const audioLocked = enrollment.audioAccess === false;
+
 
   const hasContent = ["level 1", "level 2"].includes(enrollment.program?.level);
   return (
@@ -168,8 +170,8 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
         {/* Action Buttons */}
         <div className={isUserForResponsive ? "flex flex-col sm:flex-row gap-2 mt-4 relative" : "flex gap-2 mt-4 relative"}>
           <button
-            onClick={() => !isRestricted && !isSuspended && hasContent && router.push(`/dashboard/courses/${enrollment._id}`)}
-            disabled={isRestricted || isSuspended || !hasContent}
+            onClick={() => !isRestricted && !isSuspended && hasContent && !audioLocked && router.push(`/dashboard/courses/${enrollment._id}`)}
+            disabled={isRestricted || isSuspended || !hasContent || audioLocked}
             className={`flex-1 flex items-center justify-center gap-2 font-semibold text-sm py-2.5 rounded-xl transition-colors
     ${isSuspended ? "bg-rose-100 text-rose-400 cursor-not-allowed"
                 : isRestricted ? "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -184,11 +186,12 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
             } />
             {isSuspended ? "Suspended"
               : isRestricted ? "Access Restricted"
-                : !hasContent ? "Coming Soon"       // ← NEW
-                  : pct === 0 ? "Start Learning"
-                    : "Continue Learning"}
+                : !hasContent ? "Coming Soon"
+                  : audioLocked ? "Audio Locked"
+                    : pct === 0 ? "Start Learning"
+                      : "Continue Learning"}
           </button>
-          {(!isRestricted && !isSuspended && hasContent) && (
+          {(!isRestricted && !isSuspended && !audioLocked && hasContent) && (
             <button
               onClick={() => setOpen(!open)}
               className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
@@ -230,6 +233,21 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
             </div>
           </div>
         )}
+
+        {audioLocked && (
+          <div className="mt-3 flex items-start gap-3 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
+              <Lock size={13} className="text-gray-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-600">Audio Access Restricted</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Your batch hasn't started yet — audio lessons will unlock once it begins.
+              </p>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── Course List (expandable) ── */}
@@ -389,7 +407,6 @@ export default function UserCourses() {
   const active = list.filter((e: any) => e.status === "active");
   const suspended = list.filter((e: any) => e.status === "suspended");
   const completed = list.filter((e: any) => e.status === "completed" || e.isGraduated)
-
   return (
     <>
       <PageHeader

@@ -2,7 +2,7 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getEnrollmentById } from "@/utils/api";
+import { getEnrollmentById, toggleAudioAccess } from "@/utils/api";
 import ProtectedRoute from "@/app/component/protected-route";
 import {
   ArrowLeft,
@@ -26,6 +26,9 @@ import ContractBadge from '@/app/component/dashboard/contract-badge';
 import { useState } from "react";
 import Modal from "@/app/component/ui/model/modal";
 import ViewContractModal from "../../leads/components/view-contract-modal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Mic, MicOff } from "lucide-react"; // naye icons
+import toast from "react-hot-toast";
 
 // ─── Badge helpers (same palette as enrollments list) ───────────────────────
 const statusColor = (status: string) => {
@@ -91,11 +94,24 @@ function EnrollmentDetailContent() {
   const router = useRouter();
   const [viewContract, setViewContract] = useState(false);
 
+  const queryClient = useQueryClient();
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ["enrollment", id],
     queryFn: () => getEnrollmentById(id).then((r) => r.data),
     enabled: !!id,
   });
+
+  const { mutate: toggleAudio, isPending: isTogglingAudio } = useMutation({
+    mutationFn: () => toggleAudioAccess(id),
+    onSuccess: (res) => {
+      const newVal = res.data?.data?.audioAccess;
+      toast.success(newVal ? "Audio access granted" : "Audio access revoked");
+      queryClient.invalidateQueries({ queryKey: ["enrollment", id] });
+    },
+    onError: () => toast.error("Failed to update audio access"),
+  });
+
 
   if (isLoading) {
     return (
@@ -192,6 +208,7 @@ function EnrollmentDetailContent() {
                 <CalendarDays size={12} /> {fmtDate(e.enrolledAt)}
               </span>
             </div>
+
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-gray-400">Progress</span>
               <div className="flex items-center gap-2">
@@ -203,6 +220,21 @@ function EnrollmentDetailContent() {
                 </div>
                 <span className="text-xs text-gray-500">{e.progress || 0}%</span>
               </div>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-gray-400">Audio Access</span>
+              <button
+                onClick={() => toggleAudio()}
+                disabled={isTogglingAudio}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors disabled:opacity-50 ${e.audioAccess !== false
+                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                    : "bg-rose-100 text-rose-600 hover:bg-rose-200"
+                  }`}
+              >
+                {e.audioAccess !== false ? <Mic size={11} /> : <MicOff size={11} />}
+                {e.audioAccess !== false ? "Enabled" : "Disabled"}
+              </button>
             </div>
           </div>
 
@@ -348,10 +380,10 @@ function EnrollmentDetailContent() {
                 </h2>
                 <span
                   className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${e.certificate.status === "issued"
-                      ? "bg-green-100 text-green-700"
-                      : e.certificate.status === "unlocked"
-                        ? "bg-teal-100 text-teal-700"
-                        : "bg-gray-100 text-gray-500"
+                    ? "bg-green-100 text-green-700"
+                    : e.certificate.status === "unlocked"
+                      ? "bg-teal-100 text-teal-700"
+                      : "bg-gray-100 text-gray-500"
                     }`}
                 >
                   {e.certificate.status}

@@ -164,7 +164,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
         ...form,
         installments: filledInstallments,
         certificateFee: includeCertFee ? certificateFee : 0,
-        manualFee: includeManualFee ? manualFee : 0,   
+        manualFee: includeManualFee ? manualFee : 0,
       },
     });
   };
@@ -201,42 +201,31 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
             </p>
           </div>
 
-          {/* Total Amount — disabled, read-only */}
-          {/* <InputField
-            label="Total Program Fee (Rs)"
-            type="number"
-            value={String(form.totalAmount)}
-            onChange={() => { }}
-            disabled
-            className="bg-gray-50 cursor-not-allowed opacity-70"
-          /> */}
-          {canSeeInvoiceMeta && (
-          <div className="grid grid-cols-2 gap-3">
-            <InputField
-              label="Old Invoice Number (Optional)"
-              type="text"
-              value={form.invoiceNumber}
-              onChange={(e) => setForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-              placeholder="e.g. INV-2024-0045"
-            />
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1">Issue Date</label>
-              <input
+          {/* {canSeeInvoiceMeta && (
+            <div className="grid grid-cols-2 gap-3">
+              <InputField
+                label="Old Invoice Number (Optional)"
+                type="text"
+                value={form.invoiceNumber}
+                onChange={(e: any) => setForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                placeholder="e.g. INV-2024-0045"
+              />
+              <InputField
+                label="Issue Date"
                 type="date"
                 value={form.issueDate}
-                onChange={(e) => setForm((p) => ({ ...p, issueDate: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 text-gray-900"
+                onChange={(e: any) => setForm((p) => ({ ...p, issueDate: e.target.value }))}
               />
             </div>
-          </div>
-          )}
+          )} */}
+
           {/* Total Amount + Discount */}
           <div className="grid grid-cols-2 gap-3">
             <InputField
               label="Total Program Fee (Rs)"
               type="number"
               value={String(form.totalAmount)}
-              onChange={(e) =>
+              onChange={(e: any) =>
                 setForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))
               }
               placeholder="e.g. 50000"
@@ -245,33 +234,10 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
               label="Discount (Rs) — optional"
               type="number"
               value={String(form.discount || "")}
-              onChange={(e) => handleDiscountChange(Number(e.target.value))}
+              onChange={(e: any) => handleDiscountChange(Number(e.target.value))}
               placeholder="0"
             />
           </div>
-
-          {/* 👇 NAYA — Certificate fee info */}
-          {/* {existingPlan?.certificateFee > 0 && (
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex items-center justify-between">
-              <span className="text-xs text-indigo-600 font-medium">
-                Certificate fee (auto-added)
-              </span>
-              <span className="text-xs font-bold text-indigo-700">
-                Rs {existingPlan.certificateFee.toLocaleString()}
-              </span>
-            </div>
-          )} */}
-
-          {/* {certificateFee > 0 && ( */}
-          {/* <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex items-center justify-between">
-            <span className="text-xs text-indigo-600 font-medium">
-              🎓 Certificate fee (auto-added on save)
-            </span>
-            <span className="text-xs font-bold text-indigo-700">
-              Rs {certificateFee.toLocaleString()}
-            </span>
-          </div> */}
-          {/* )} */}
 
           {/* Certificate Fee — checkbox + editable input */}
           <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
@@ -287,18 +253,19 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
 
             {includeCertFee && (
               <div className="mt-2">
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Certificate Fee (Rs)</label>
-                <input
+                <InputField
+                  label="Certificate Fee (Rs)"
                   type="number"
-                  value={certificateFee || ""}
-                  onChange={(e) => setCertificateFee(Number(e.target.value))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                  value={String(certificateFee || "")}
+                  onChange={(e: any) => setCertificateFee(Number(e.target.value))}
                   placeholder="e.g. 5000"
+                  bg="bg-white"
                 />
               </div>
             )}
           </div>
-          {/* 👇 NAYA — Manual Fee checkbox, same pattern */}
+
+          {/* Manual Fee checkbox, same pattern */}
           <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -312,13 +279,13 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
 
             {includeManualFee && (
               <div className="mt-2">
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Manual Fee (Rs)</label>
-                <input
+                <InputField
+                  label="Manual Fee (Rs)"
                   type="number"
-                  value={manualFee || ""}
-                  onChange={(e) => setManualFee(Number(e.target.value))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900"
+                  value={String(manualFee || "")}
+                  onChange={(e: any) => setManualFee(Number(e.target.value))}
                   placeholder="e.g. 5000"
+                  bg="bg-white"
                 />
               </div>
             )}
@@ -326,47 +293,27 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
 
           {/* Advance */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Advance Amount (Rs) <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="number"
-                value={form.advanceAmount || ""}
-                onChange={(e) => {
-                  setForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }));
-                  setErrors((p) => ({ ...p, advanceAmount: undefined }));
-                }}
-                placeholder="e.g. 5000"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 placeholder:text-gray-400 ${errors.advanceAmount
-                  ? "border-rose-400 focus:border-rose-400"
-                  : "border-gray-200 focus:border-yellow-400"
-                  }`}
-              />
-              {errors.advanceAmount && (
-                <p className="text-xs text-rose-500 mt-1">{errors.advanceAmount}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Advance Due Date <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="date"
-                value={form.advanceDueDate}
-                onChange={(e) => {
-                  setForm((p) => ({ ...p, advanceDueDate: e.target.value }));
-                  setErrors((p) => ({ ...p, advanceDueDate: undefined }));
-                }}
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none text-gray-900 ${errors.advanceDueDate
-                  ? "border-rose-400 focus:border-rose-400"
-                  : "border-gray-200 focus:border-yellow-400"
-                  }`}
-              />
-              {errors.advanceDueDate && (
-                <p className="text-xs text-rose-500 mt-1">{errors.advanceDueDate}</p>
-              )}
-            </div>
+            <InputField
+              label="Advance Amount (Rs) *"
+              type="number"
+              value={String(form.advanceAmount || "")}
+              onChange={(e: any) => {
+                setForm((p) => ({ ...p, advanceAmount: Number(e.target.value) }));
+                setErrors((p) => ({ ...p, advanceAmount: undefined }));
+              }}
+              placeholder="e.g. 5000"
+              error={errors.advanceAmount}
+            />
+            <InputField
+              label="Advance Due Date *"
+              type="date"
+              value={form.advanceDueDate}
+              onChange={(e: any) => {
+                setForm((p) => ({ ...p, advanceDueDate: e.target.value }));
+                setErrors((p) => ({ ...p, advanceDueDate: undefined }));
+              }}
+              error={errors.advanceDueDate}
+            />
           </div>
 
           {/* Remaining badge */}
@@ -424,43 +371,35 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <input
-                        type="number"
-                        placeholder="Amount (Rs)"
-                        value={inst.amount || ""}
-                        onChange={(e) => updateInstallment(idx, "amount", Number(e.target.value))}
-                        className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none bg-white text-gray-900 placeholder:text-gray-400 ${errors.installments?.[idx]?.amount
-                          ? "border-rose-400"
-                          : "border-gray-200 focus:border-yellow-400"
-                          }`}
-                      />
-                      {errors.installments?.[idx]?.amount && (
-                        <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].amount}</p>
-                      )}
-                    </div>
+                    <InputField
+                      label=""
+                      type="number"
+                      placeholder="Amount (Rs)"
+                      value={String(inst.amount || "")}
+                      onChange={(e: any) => updateInstallment(idx, "amount", Number(e.target.value))}
+                      error={errors.installments?.[idx]?.amount}
+                      bg="bg-white"
+                    />
                     <div className="relative">
-                      <input
+                      <InputField
+                        label=""
                         type="date"
                         value={inst.dueDate}
-                        onChange={(e) => updateInstallment(idx, "dueDate", e.target.value)}
-                        className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-xs focus:outline-none bg-white text-gray-900 ${errors.installments?.[idx]?.dueDate
-                          ? "border-rose-400"
-                          : "border-gray-200 focus:border-yellow-400"
-                          }`}
+                        onChange={(e: any) => updateInstallment(idx, "dueDate", e.target.value)}
+                        error={errors.installments?.[idx]?.dueDate}
+                        bg="bg-white"
+                        rightIcon={
+                          inst.dueDate ? (
+                            <button
+                              type="button"
+                              onClick={() => updateInstallment(idx, "dueDate", "")}
+                              className="text-gray-400 hover:text-rose-500"
+                            >
+                              <X size={12} />
+                            </button>
+                          ) : undefined
+                        }
                       />
-                      {inst.dueDate && (
-                        <button
-                          type="button"
-                          onClick={() => updateInstallment(idx, "dueDate", "")}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rose-500"
-                        >
-                          <X size={12} />
-                        </button>
-                      )}
-                      {errors.installments?.[idx]?.dueDate && (
-                        <p className="text-xs text-rose-500 mt-1">{errors.installments[idx].dueDate}</p>
-                      )}
                     </div>
                   </div>
                 </div>

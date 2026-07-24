@@ -398,6 +398,11 @@ export const adminCreateLmsResource = (data: any) => API.post("/admin/v1/lms/res
 export const adminUpdateLmsResource = (id: string, data: any) => API.put(`/admin/v1/lms/resources/${id}`, data);
 export const adminDeleteLmsResource = (id: string) => API.delete(`/admin/v1/lms/resources/${id}`);
 
+
+export const toggleAudioAccess = (enrollmentId: string) =>
+  API.patch(`/api/v1/lms/enrollments/${enrollmentId}/toggle-audio-access`);
+
+
 export const adminGetResources = (params?: any) =>
   API.get("/api/v1/lms/resources", { params });
 
