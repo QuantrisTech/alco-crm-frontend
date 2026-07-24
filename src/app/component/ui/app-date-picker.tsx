@@ -280,7 +280,8 @@ export default function AppDatePicker({
           minDate: min || undefined,
           maxDate: max || undefined,
           disableMobile: true,
-          parseDate: (datestr: string) => parseFlexibleDate(datestr) || undefined,
+          parseDate: (datestr: string, _format: string) =>
+            parseFlexibleDate(datestr) ?? new Date(NaN),
         }}
         disabled={disabled}
         onChange={(dates: Date[]) => {
