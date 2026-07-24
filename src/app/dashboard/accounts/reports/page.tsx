@@ -20,6 +20,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
+import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -143,11 +144,14 @@ function YearSelect({
 // P&L TAB
 // ─────────────────────────────────────────────────────────────
 function ProfitLossTab() {
-  const [year, setYear] = useState(currentYear);
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report-pl", year],
-    queryFn: () => getProfitLoss({ year }).then((r) => r.data.data),
+    queryKey: ["report-pl", dateRange],
+    queryFn: () =>
+      getProfitLoss({ from: dateRange.from || undefined, to: dateRange.to || undefined }).then(
+        (r) => r.data.data
+      ),
   });
 
   if (isLoading) return <Loader />;
@@ -159,9 +163,15 @@ function ProfitLossTab() {
       {/* Controls */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">
-          Period: Jan {year} — Dec {year}
+          {dateRange.from || dateRange.to
+            ? `Period: ${dateRange.from || "…"} — ${dateRange.to || "…"}`
+            : "Period: All Time"}
         </p>
-        <YearSelect year={year} onChange={setYear} />
+        <DateRangeFilter
+          from={dateRange.from}
+          to={dateRange.to}
+          onChange={(from, to) => setDateRange({ from, to })}
+        />
       </div>
 
       {/* Summary cards */}
@@ -315,11 +325,11 @@ function BalanceSheetTab() {
 // AR AGING TAB
 // ─────────────────────────────────────────────────────────────
 const AGING_CONFIG = [
-  { key: "current",  label: "Current",   color: "bg-green-500",  text: "text-green-700",  bg: "bg-green-50"  },
-  { key: "days_30",  label: "1–30 days", color: "bg-yellow-400", text: "text-yellow-700", bg: "bg-yellow-50" },
-  { key: "days_60",  label: "31–60 days",color: "bg-orange-400", text: "text-orange-700", bg: "bg-orange-50" },
-  { key: "days_90",  label: "61–90 days",color: "bg-red-400",    text: "text-red-700",    bg: "bg-red-50"    },
-  { key: "days_90p", label: "90+ days",  color: "bg-rose-600",   text: "text-rose-700",   bg: "bg-rose-50"   },
+  { key: "current", label: "Current", color: "bg-green-500", text: "text-green-700", bg: "bg-green-50" },
+  { key: "days_30", label: "1–30 days", color: "bg-yellow-400", text: "text-yellow-700", bg: "bg-yellow-50" },
+  { key: "days_60", label: "31–60 days", color: "bg-orange-400", text: "text-orange-700", bg: "bg-orange-50" },
+  { key: "days_90", label: "61–90 days", color: "bg-red-400", text: "text-red-700", bg: "bg-red-50" },
+  { key: "days_90p", label: "90+ days", color: "bg-rose-600", text: "text-rose-700", bg: "bg-rose-50" },
 ];
 
 function ARAgingTab() {
@@ -443,11 +453,14 @@ function ARAgingTab() {
 // CASH FLOW TAB
 // ─────────────────────────────────────────────────────────────
 function CashFlowTab() {
-  const [year, setYear] = useState(currentYear);
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report-cashflow", year],
-    queryFn: () => getCashFlowReport({ year }).then((r) => r.data.data),
+    queryKey: ["report-cashflow", dateRange],
+    queryFn: () =>
+      getCashFlowReport({ from: dateRange.from || undefined, to: dateRange.to || undefined }).then(
+        (r) => r.data.data
+      ),
   });
 
   if (isLoading) return <Loader />;
@@ -457,8 +470,16 @@ function CashFlowTab() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">Period: Jan {year} — Dec {year}</p>
-        <YearSelect year={year} onChange={setYear} />
+        <p className="text-xs text-gray-400">
+          {dateRange.from || dateRange.to
+            ? `Period: ${dateRange.from || "…"} — ${dateRange.to || "…"}`
+            : "Period: All Time"}
+        </p>
+        <DateRangeFilter
+          from={dateRange.from}
+          to={dateRange.to}
+          onChange={(from, to) => setDateRange({ from, to })}
+        />
       </div>
 
       {/* Summary */}
@@ -557,11 +578,15 @@ function CashFlowTab() {
 // REVENUE BY PROGRAM TAB
 // ─────────────────────────────────────────────────────────────
 function RevenueByProgramTab() {
-  const [year, setYear] = useState(currentYear);
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["report-revenue-program", year],
-    queryFn: () => getRevenueByProgram({ year }).then((r) => r.data.data),
+    queryKey: ["report-revenue-program", dateRange],
+    queryFn: () =>
+      getRevenueByProgram({
+        from: dateRange.from || undefined,
+        to: dateRange.to || undefined,
+      }).then((r) => r.data.data),
   });
 
   if (isLoading) return <Loader />;
@@ -572,8 +597,16 @@ function RevenueByProgramTab() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">Period: Jan {year} — Dec {year}</p>
-        <YearSelect year={year} onChange={setYear} />
+        <p className="text-xs text-gray-400">
+          {dateRange.from || dateRange.to
+            ? `Period: ${dateRange.from || "…"} — ${dateRange.to || "…"}`
+            : "Period: All Time"}
+        </p>
+        <DateRangeFilter
+          from={dateRange.from}
+          to={dateRange.to}
+          onChange={(from, to) => setDateRange({ from, to })}
+        />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
@@ -630,11 +663,11 @@ function Loader() {
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────
 const TABS: { key: ReportTab; label: string; icon: any }[] = [
-  { key: "pl",         label: "Profit & Loss",   icon: TrendingUp      },
-  { key: "balance",    label: "Balance Sheet",   icon: Scale           },
-  { key: "ar-aging",   label: "AR Aging",        icon: AlertCircle     },
-  { key: "cashflow",   label: "Cash Flow",       icon: ArrowRightLeft  },
-  { key: "by-program", label: "By Program",      icon: BarChart2       },
+  { key: "pl", label: "Profit & Loss", icon: TrendingUp },
+  { key: "balance", label: "Balance Sheet", icon: Scale },
+  { key: "ar-aging", label: "AR Aging", icon: AlertCircle },
+  { key: "cashflow", label: "Cash Flow", icon: ArrowRightLeft },
+  { key: "by-program", label: "By Program", icon: BarChart2 },
 ];
 
 export default function ReportsPage() {
@@ -654,11 +687,10 @@ export default function ReportsPage() {
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === key
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === key
+              ? "bg-white text-gray-800 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             <Icon size={14} />
             {label}
@@ -667,10 +699,10 @@ export default function ReportsPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "pl"         && <ProfitLossTab />}
-      {activeTab === "balance"    && <BalanceSheetTab />}
-      {activeTab === "ar-aging"   && <ARAgingTab />}
-      {activeTab === "cashflow"   && <CashFlowTab />}
+      {activeTab === "pl" && <ProfitLossTab />}
+      {activeTab === "balance" && <BalanceSheetTab />}
+      {activeTab === "ar-aging" && <ARAgingTab />}
+      {activeTab === "cashflow" && <CashFlowTab />}
       {activeTab === "by-program" && <RevenueByProgramTab />}
     </>
   );
