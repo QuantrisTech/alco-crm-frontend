@@ -18,6 +18,7 @@ import {
   Pencil,
 } from "lucide-react";
 import CorrectInstallmentModal from "./CorrectInstallmentModal";
+import AppDatePicker from "@/app/component/ui/app-date-picker";
 // import VoidInstallmentModal from "./VoidInstallmentModal";
 
 interface Installment {
@@ -123,11 +124,16 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
   // Check if form is valid to enable Confirm button
   const isFormValid = () => {
     if (!paymentForm.method) return false;
+
+    if (!paymentForm.paidDate) return false;
+
     if (
       ["bank", "cheque"].includes(paymentForm.method) &&
       !paymentForm.referenceNumber.trim()
-    )
+    ) {
       return false;
+    }
+
     return true;
   };
 
@@ -303,8 +309,8 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           </a>
                         )}
                         <div className="flex gap-2 ms-auto">
-                       
-                        {/* {inst.status === "PAID" && (
+
+                          {/* {inst.status === "PAID" && (
                           <button
                             onClick={() => setVoidingInstallment(inst)}
                             className="text-[9px] font-bold uppercase tracking-wider bg-red-200 text-red-700 px-2 py-0.5 rounded-full"
@@ -313,15 +319,15 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           </button>
                         )} */}
 
-                         {inst.status === "PAID" && (
-                          <button
-                            onClick={() => setCorrectingInstallment(inst)}
-                            className="text-xs text-gray-500 hover:text-gray-600 font-medium flex items-center gap-1"
-                          >
-                            <Pencil size={12} />
-                          </button>
-                        )}
-                      </div>
+                          {inst.status === "PAID" && (
+                            <button
+                              onClick={() => setCorrectingInstallment(inst)}
+                              className="text-xs text-gray-500 hover:text-gray-600 font-medium flex items-center gap-1"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <span className="text-xs text-slate-400">Due: {formatDate(inst.dueDate)}</span>
@@ -572,16 +578,23 @@ export default function InstallmentPaymentModal({ invoice, onClose }: Props) {
                           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                             Payment Date
                           </p>
-                          <input
-                            type="date"
+                          <AppDatePicker
                             value={paymentForm.paidDate}
-                            max={todayStr()}
-                            onChange={(e) =>
-                              setPaymentForm((prev) => ({ ...prev, paidDate: e.target.value }))
+                            onChange={(value) =>
+                              setPaymentForm((prev) => ({
+                                ...prev,
+                                paidDate: value,
+                              }))
                             }
-                            className="w-full text-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            required
+                            max={todayStr()}
                           />
                         </div>
+                      )}
+                      {!paymentForm.paidDate && (
+                        <p className="text-[10px] text-rose-500 font-medium">
+                          Payment date is required.
+                        </p>
                       )}
 
                       {/* Hint when no method selected */}
