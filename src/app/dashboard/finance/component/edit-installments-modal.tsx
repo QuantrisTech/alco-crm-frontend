@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateInstallment, addInstallment } from "@/utils/api";
 import toast from "react-hot-toast";
 import { X, Pencil, Plus, Save, Check, GraduationCap } from "lucide-react";
+import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 interface Installment {
   _id: string;
@@ -341,16 +342,12 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                       className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     />
                   </div> */}
-                  {inst.feeType !== "certificate" && inst.feeType !== "manual" && ( 
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
-                      <input
-                        type="date"
-                        value={editForm.dueDate}
-                        onChange={(e) => setEditForm((p) => ({ ...p, dueDate: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                      />
-                    </div>
+                  {inst.feeType !== "certificate" && inst.feeType !== "manual" && (
+                    <AppDatePicker
+                      label="Due Date"
+                      value={editForm.dueDate}
+                      onChange={(value) => setEditForm((p) => ({ ...p, dueDate: value }))}
+                    />
                   )}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1">Description</label>
@@ -432,15 +429,11 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
 
               {/* 👇 Due Date — sirf tab dikhao jab certificate na ho */}
               {!addForm.isCertificate && !addForm.isManual && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    value={addForm.dueDate}
-                    onChange={(e) => setAddForm((p) => ({ ...p, dueDate: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  />
-                </div>
+                <AppDatePicker
+                  label="Due Date"
+                  value={addForm.dueDate}
+                  onChange={(value) => setAddForm((p) => ({ ...p, dueDate: value }))}
+                />
               )}
               {/* <label className="flex items-center gap-2 cursor-pointer w-fit">
                 <input

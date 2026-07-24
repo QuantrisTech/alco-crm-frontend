@@ -191,10 +191,10 @@ interface AppDatePickerProps {
   required?: boolean;
   min?: string;
   max?: string;
-  textFormat?: string;
   error?: string;
   className?: string;
   disabled?: boolean;
+  textFormat?: string
 }
 
 // Format a JS Date as YYYY-MM-DD without timezone shifting.
@@ -260,9 +260,25 @@ export default function AppDatePicker({
   max,
   error,
   className = "",
-  textFormat,
   disabled = false,
+  textFormat,
 }: AppDatePickerProps) {
+  const inputClasses = `
+    w-full
+    rounded-lg
+    border
+    px-3
+    py-2
+    text-xs
+    bg-white
+    text-slate-700
+    focus:outline-none
+    focus:ring-2
+    focus:ring-slate-300
+    ${error ? "border-rose-300 focus:ring-rose-300" : "border-slate-200"}
+    ${disabled ? "bg-slate-100 cursor-not-allowed" : ""}
+  `;
+
   return (
     <div className={`space-y-1.5 ${className}`}>
       {label && (
@@ -277,6 +293,7 @@ export default function AppDatePicker({
         options={{
           dateFormat: "Y-m-d", // internal value format
           altInput: true, // shows a friendlier m/d/Y input to the user
+          altInputClass: inputClasses, // <-- the VISIBLE input flatpickr creates
           altFormat: "m-d-Y",
           allowInput: true, // <-- lets the user type or PASTE into the field
           minDate: min || undefined,
@@ -289,21 +306,10 @@ export default function AppDatePicker({
         onChange={(dates: Date[]) => {
           if (dates && dates[0]) onChange(toISO(dates[0]));
         }}
-        className={`
-          w-full
-          rounded-lg
-          border
-          px-4
-          py-2.5
-          text-sm
-          bg-white
-          text-slate-700
-          focus:outline-none
-          focus:ring-2
-          focus:ring-slate-300
-          ${error ? "border-rose-300 focus:ring-rose-300" : "border-slate-200"}
-          ${disabled ? "bg-slate-100 cursor-not-allowed" : ""}
-        `}
+        // This className lands on the original (hidden) input flatpickr
+        // keeps around for form submission — it doesn't need visual styling,
+        // but we still hide it explicitly to avoid any layout gaps.
+        className="hidden"
         placeholder="mm-dd-yyyy"
       />
 
