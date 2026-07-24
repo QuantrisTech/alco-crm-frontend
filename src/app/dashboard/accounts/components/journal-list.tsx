@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
 import ExportButton from "@/app/component/ui/export-button";
+import InputField from "@/app/component/ui/inputField";
+import Select from "@/app/component/ui/select";
+import Textarea from "@/app/component/ui/textarea";
+import AppDatePicker from "@/app/component/ui/app-date-picker";
+import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -55,42 +60,44 @@ function JournalLineRow({
   return (
     <div className="grid grid-cols-12 gap-2 items-center">
       <div className="col-span-4">
-        <select
-          className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-yellow-400"
+        <Select
+          label=""
+          placeholder="Select account"
           value={line.account}
-          onChange={(e) => onChange(index, "account", e.target.value)}
-        >
-          <option value="">Select account</option>
-          {accounts.map((a: any) => (
-            <option key={a._id} value={a._id}>{a.code} — {a.name}</option>
-          ))}
-        </select>
+          onChange={(e: any) => onChange(index, "account", e.target.value)}
+          options={accounts.map((a: any) => ({
+            label: `${a.code} — ${a.name}`,
+            value: a._id,
+          }))}
+        />
       </div>
       <div className="col-span-2">
-        <select
-          className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-yellow-400"
+        <Select
+          label=""
           value={line.type}
-          onChange={(e) => onChange(index, "type", e.target.value)}
-        >
-          <option value="debit">Debit</option>
-          <option value="credit">Credit</option>
-        </select>
+          onChange={(e: any) => onChange(index, "type", e.target.value)}
+          options={[
+            { label: "Debit", value: "debit" },
+            { label: "Credit", value: "credit" },
+          ]}
+        />
       </div>
       <div className="col-span-2">
-        <input
+        <InputField
+          label=""
           type="number"
-          className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-yellow-400"
           placeholder="Amount"
-          value={line.amount || ""}
-          onChange={(e) => onChange(index, "amount", Number(e.target.value))}
+          value={String(line.amount || "")}
+          onChange={(e: any) => onChange(index, "amount", Number(e.target.value))}
         />
       </div>
       <div className="col-span-3">
-        <input
-          className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-yellow-400"
+        <InputField
+          label=""
+          type="text"
           placeholder="Note (optional)"
           value={line.description}
-          onChange={(e) => onChange(index, "description", e.target.value)}
+          onChange={(e: any) => onChange(index, "description", e.target.value)}
         />
       </div>
       <div className="col-span-1 flex justify-center">
@@ -165,23 +172,20 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">Description *</label>
-              <input
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
+              <InputField
+                label="Description *"
+                type="text"
                 placeholder="e.g. Month-end accrual adjustment"
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e: any) => setForm({ ...form, description: e.target.value })}
               />
             </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Date *</label>
-              <input
-                type="date"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-              />
-            </div>
+            <AppDatePicker
+              label="Date"
+              required
+              value={form.date}
+              onChange={(value) => setForm({ ...form, date: value })}
+            />
           </div>
 
           <div>
@@ -234,11 +238,11 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
 
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Notes</label>
-            <textarea
+            <Textarea
+              label="Notes"
               rows={2}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-none"
               value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              onChange={(e: any) => setForm({ ...form, notes: e.target.value })}
             />
           </div>
         </div>
@@ -315,7 +319,7 @@ function EntryDetail({ entry }: { entry: any }) {
 export default function JournalList() {
   const [showCreate, setShowCreate] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [filters, setFilters] = useState({ sourceType: "", from: "", to: "" });
+  const [filters, setFilters] = useState({ sourceType: "", from: "", to: "", page: 1, limit: 10 });
 
   const { data, isLoading } = useQuery({
     queryKey: ["journal-list", filters],
@@ -324,7 +328,8 @@ export default function JournalList() {
         sourceType: filters.sourceType || undefined,
         from: filters.from || undefined,
         to: filters.to || undefined,
-        limit: 50,
+        page: filters.page,
+        limit: filters.limit,
       }).then((r) => r.data),
   });
 
@@ -357,28 +362,35 @@ export default function JournalList() {
               { label: "Manual", value: "manual" },
               { label: "Adjustment", value: "adjustment" },
             ],
-          },
-          { type: "input", name: "from", placeholder: "From (YYYY-MM-DD)" },
-          { type: "input", name: "to", placeholder: "To (YYYY-MM-DD)" },
+          }
+          // { type: "date", name: "from", placeholder: "From" },
+          // { type: "date", name: "to", placeholder: "To" },
         ]}
         exportBtn={
-          <ExportButton
-            filename="journal-entries"
-            label="Export Excel"
-            fetchData={async () => {
-              const res = await getAllJournalEntries({ limit: 10000 });
-              return res.data.data;
-            }}
-            columns={[
-              { header: "Entry #", key: "entryNumber" },
-              { header: "Description", key: "description" },
-              { header: "Source", key: "sourceType" },
-              { header: "Type", key: "entryType" },
-              { header: "Status", key: "status" },
-              { header: "Date", key: "date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-              { header: "Created By", key: "createdBy.name" },
-            ]}
-          />
+          <>
+            <DateRangeFilter
+              from={filters.from}
+              to={filters.to}
+              onChange={(from, to) => setFilters((p) => ({ ...p, from, to, page: 1 }))}
+            />
+            <ExportButton
+              filename="journal-entries"
+              label="Export Excel"
+              fetchData={async () => {
+                const res = await getAllJournalEntries({ limit: 10000 });
+                return res.data.data;
+              }}
+              columns={[
+                { header: "Entry #", key: "entryNumber" },
+                { header: "Description", key: "description" },
+                { header: "Source", key: "sourceType" },
+                { header: "Type", key: "entryType" },
+                { header: "Status", key: "status" },
+                { header: "Date", key: "date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Created By", key: "createdBy.name" },
+              ]}
+            />
+          </>
         }
       />
 
@@ -386,18 +398,16 @@ export default function JournalList() {
           so these two stay as standalone inputs */}
       {/* <div className="flex items-center gap-3 mb-4">
         <span className="text-xs text-gray-400">Date range:</span>
-        <input
-          type="date"
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-400"
+        <AppDatePicker
           value={filters.from}
-          onChange={(e) => setFilters({ ...filters, from: e.target.value })}
+          onChange={(value) => setFilters({ ...filters, from: value })}
+          max={filters.to || undefined}
         />
         <span className="text-xs text-gray-400">to</span>
-        <input
-          type="date"
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-400"
+        <AppDatePicker
           value={filters.to}
-          onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+          onChange={(value) => setFilters({ ...filters, to: value })}
+          min={filters.from || undefined}
         />
         {(filters.from || filters.to) && (
           <button
@@ -478,6 +488,61 @@ export default function JournalList() {
               })}
             </tbody>
           </table>
+        )}
+
+        {/* ── Pagination bar ── */}
+        {!isLoading && entries.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-xs text-gray-500">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select
+                value={filters.limit}
+                onChange={(e) =>
+                  setFilters((p) => ({ ...p, limit: Number(e.target.value), page: 1 }))
+                }
+                className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-yellow-400 bg-white text-gray-700"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span>
+                Page {data?.meta?.page || filters.page} of{" "}
+                {data?.meta?.totalPages || Math.max(1, Math.ceil((data?.meta?.total || 0) / filters.limit))}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                  disabled={filters.page <= 1}
+                  className="px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() =>
+                    setFilters((p) => {
+                      const totalPages =
+                        data?.meta?.totalPages ||
+                        Math.max(1, Math.ceil((data?.meta?.total || 0) / p.limit));
+                      return { ...p, page: Math.min(totalPages, p.page + 1) };
+                    })
+                  }
+                  disabled={
+                    filters.page >=
+                    (data?.meta?.totalPages ||
+                      Math.max(1, Math.ceil((data?.meta?.total || 0) / filters.limit)))
+                  }
+                  className="px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>

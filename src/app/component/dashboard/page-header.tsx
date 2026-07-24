@@ -6,9 +6,10 @@ import Select from "@/app/component/ui/select";
 import { Plus, Trash2, TrendingUp, RotateCcw } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import GuideButton from "@/app/dashboard/guide/component/guide-button";
+import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 export type FilterField = {
-  type: "input" | "select";
+  type: "input" | "select" | "date";
   name: string;
   placeholder?: string;
   options?: { label: string; value: string }[];
@@ -53,37 +54,37 @@ export default function PageHeader({
 
   return (
     <>
-    <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between "}>
-      {/* Left Side */}
-      <div>
-        <div className="flex items-center">
-          <h1 className={`${isUserForResponsive ? "text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2" : "text-2xl font-bold text-gray-800 flex items-center gap-2"}`}>
-            {titleIcon && <span className="flex items-center">{titleIcon}</span>}
-            {title}
-          </h1>
-          {
-            pageKey && <GuideButton pageKey={pageKey} />
-          }
+      <div className={isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between "}>
+        {/* Left Side */}
+        <div>
+          <div className="flex items-center">
+            <h1 className={`${isUserForResponsive ? "text-lg sm:text-2xl font-bold text-gray-800 flex items-center gap-2" : "text-2xl font-bold text-gray-800 flex items-center gap-2"}`}>
+              {titleIcon && <span className="flex items-center">{titleIcon}</span>}
+              {title}
+            </h1>
+            {
+              pageKey && <GuideButton pageKey={pageKey} />
+            }
+          </div>
+          {subtitle && <p className="text-gray-400 text-sm mt-1">{subtitle}</p>}
         </div>
-        {subtitle && <p className="text-gray-400 text-sm mt-1">{subtitle}</p>}
-      </div>
 
-      {/* Right Side */}
-      <div className={isUserForResponsive ? "flex items-center gap-3 mt-2" : "flex items-center gap-3"}>
-        {/* ✅ Custom actions slot */}
-        {actions}
-        {onAdd && (
-          <button
-            onClick={onAdd}
-            className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-            style={{ background: "#EEEDFE" }}
-            title="Add"
-          >
-            <Plus size={16} color="#534AB7" />
-          </button>
-        )}
+        {/* Right Side */}
+        <div className={isUserForResponsive ? "flex items-center gap-3 mt-2" : "flex items-center gap-3"}>
+          {/* ✅ Custom actions slot */}
+          {actions}
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
+              style={{ background: "#EEEDFE" }}
+              title="Add"
+            >
+              <Plus size={16} color="#534AB7" />
+            </button>
+          )}
 
-        {/* {onDeleteAll && (
+          {/* {onDeleteAll && (
           <button
             onClick={onDeleteAll}
             className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
@@ -94,67 +95,80 @@ export default function PageHeader({
           </button>
         )} */}
 
-        {totalCount && (
-          <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
-            Total: <span className="font-bold text-gray-900">{totalCount}</span>
-          </div>
-        )}
+          {totalCount && (
+            <div className="bg-white rounded-lg px-4 py-2 shadow-sm text-sm text-gray-600">
+              Total: <span className="font-bold text-gray-900">{totalCount}</span>
+            </div>
+          )}
 
-        {coveredCount && coveredCount !== undefined && (
-          <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm">
-            <TrendingUp size={15} className="text-yellow-500" />
-            <span className="text-sm font-semibold text-gray-700">{coveredCount}/{coveredLabel}</span>
-            <span className="text-xs text-gray-400">pages covered</span>
-          </div>
-        )}
+          {coveredCount && coveredCount !== undefined && (
+            <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-2.5 shadow-sm">
+              <TrendingUp size={15} className="text-yellow-500" />
+              <span className="text-sm font-semibold text-gray-700">{coveredCount}/{coveredLabel}</span>
+              <span className="text-xs text-gray-400">pages covered</span>
+            </div>
+          )}
 
-        {filterFields && (
-          <div className="flex flex-wrap gap-3 items-end">
-            {filterFields.map((field) => {
-              if (field.type === "input") {
-                return (
-                  <div key={field.name} className="w-52">
-                    <InputField
-                      label=""
-                      placeholder={field.placeholder}
-                      value={String(filters?.[field.name] ?? "")}
-                      onChange={(e) =>
-                        setFilters?.((prev: any) => ({
-                          ...prev,
-                          [field.name]: e.target.value,
-                        }))
-                      }
-                      bg="bg-white"
-                    />
-                  </div>
-                );
-              }
+          {filterFields && (
+            <div className="flex flex-wrap gap-3 items-end">
+              {filterFields.map((field) => {
+                if (field.type === "input") {
+                  return (
+                    <div key={field.name} className="w-52">
+                      <InputField
+                        label=""
+                        placeholder={field.placeholder}
+                        value={String(filters?.[field.name] ?? "")}
+                        onChange={(e) =>
+                          setFilters?.((prev: any) => ({
+                            ...prev,
+                            [field.name]: e.target.value,
+                          }))
+                        }
+                        bg="bg-white"
+                      />
+                    </div>
+                  );
+                }
 
-              if (field.type === "select") {
-                return (
-                  <div key={field.name} className="w-40">
-                    <Select
-                      label=""
-                      options={field.options || []}
-                      value={String(filters?.[field.name] ?? "")}
-                      placeholder={field.placeholder || `All ${field.name}`}
-                      onChange={(e) =>
-                        setFilters?.((prev: any) => ({ ...prev, [field.name]: e.target.value }))
-                      }
-                      bg="bg-white"
-                    />
-                  </div>
-                );
-              }
+                if (field.type === "date") {
+                  return (
+                    <div key={field.name} className="w-40">
+                      <AppDatePicker
+                        value={String(filters?.[field.name] ?? "")}
+                        onChange={(value) =>
+                          setFilters?.((prev: any) => ({ ...prev, [field.name]: value, page: 1 }))
+                        }
+                      />
+                    </div>
+                  );
+                }
 
-              return null;
-            })}
+                if (field.type === "select") {
+                  return (
+                    <div key={field.name} className="w-40">
+                      <Select
+                        label=""
+                        options={field.options || []}
+                        value={String(filters?.[field.name] ?? "")}
+                        placeholder={field.placeholder || `All ${field.name}`}
+                        onChange={(e) =>
+                          setFilters?.((prev: any) => ({ ...prev, [field.name]: e.target.value }))
+                        }
+                        bg="bg-white"
+                      />
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
 
 
-          </div>
-        )}
-        {/* Reset button */}
-        {/* {Object.values(filters || {}).some((v) => v) && (
+            </div>
+          )}
+          {/* Reset button */}
+          {/* {Object.values(filters || {}).some((v) => v) && (
               <button
                 onClick={() => setFilters?.({})}
                 className=" py-2 my-auto text-sm text-red-600/70"
@@ -163,7 +177,7 @@ export default function PageHeader({
                 <RotateCcw size={20}/>
               </button>
             )} */}
-        {/* {Object.values(filters || {}).some((v) => v) && (
+          {/* {Object.values(filters || {}).some((v) => v) && (
           <button
             onClick={() =>
               setFilters?.((prev: any) => ({
@@ -179,12 +193,12 @@ export default function PageHeader({
             <RotateCcw size={20} />
           </button>
         )} */}
+        </div>
+
       </div>
-      
-    </div>
-    <div className={`${exportBtn && "mt-2"} ${ isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}`}>
+      <div className={`${exportBtn && "mt-2"} ${isUserForResponsive ? "flex flex-col sm:flex-row sm:items-center justify-between mb-6" : "flex items-center justify-between mb-6"}`}>
         <div className="flex items-center justify-end ms-auto ">{exportBtn}</div>
-    </div>
+      </div>
     </>
   );
 }

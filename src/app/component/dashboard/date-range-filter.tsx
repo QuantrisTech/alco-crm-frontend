@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Calendar, ChevronDown, X } from "lucide-react";
+import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 // ── Presets ───────────────────────────────────────────────────
 export function getPresetRange(preset: string): { from: string; to: string } {
@@ -19,7 +20,7 @@ export function getPresetRange(preset: string): { from: string; to: string } {
     }
     case "last_month": {
       const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const to   = new Date(now.getFullYear(), now.getMonth(), 0);
+      const to = new Date(now.getFullYear(), now.getMonth(), 0);
       return { from: fmt(from), to: fmt(to) };
     }
     case "this_quarter": {
@@ -42,14 +43,14 @@ export function getPresetRange(preset: string): { from: string; to: string } {
 }
 
 const PRESETS = [
-  { key: "all",          label: "All Time" },
-  { key: "this_week",    label: "This Week" },
-  { key: "this_month",   label: "This Month" },
-  { key: "last_month",   label: "Last Month" },
+  { key: "all", label: "All Time" },
+  { key: "this_week", label: "This Week" },
+  { key: "this_month", label: "This Month" },
+  { key: "last_month", label: "Last Month" },
   { key: "this_quarter", label: "This Quarter" },
-  { key: "this_year",    label: "This Year" },
-  { key: "last_year",    label: "Last Year" },
-  { key: "custom",       label: "Custom Range" },
+  { key: "this_year", label: "This Year" },
+  { key: "last_year", label: "Last Year" },
+  { key: "custom", label: "Custom Range" },
 ];
 
 interface DateRangeFilterProps {
@@ -59,10 +60,10 @@ interface DateRangeFilterProps {
 }
 
 export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
-  const [open, setOpen]           = useState(false);
-  const [preset, setPreset]       = useState("all");
+  const [open, setOpen] = useState(false);
+  const [preset, setPreset] = useState("all");
   const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo]   = useState("");
+  const [customTo, setCustomTo] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -111,11 +112,10 @@ export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterP
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
-          hasFilter
+        className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${hasFilter
             ? "bg-yellow-50 border-yellow-300 text-yellow-700"
             : "bg-white border-gray-200 text-gray-600 hover:border-yellow-400"
-        }`}
+          }`}
       >
         <Calendar size={14} />
         {activeLabel}
@@ -134,11 +134,10 @@ export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterP
               <button
                 key={p.key}
                 onClick={() => applyPreset(p.key)}
-                className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                  preset === p.key
+                className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${preset === p.key
                     ? "bg-yellow-50 text-yellow-700 font-medium"
                     : "text-gray-600 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {p.label}
               </button>
@@ -149,35 +148,28 @@ export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterP
           <div className="border-t border-gray-100 p-3">
             <button
               onClick={() => setPreset("custom")}
-              className={`w-full text-left px-3 py-2 text-sm rounded-lg mb-2 flex items-center gap-2 transition-colors ${
-                preset === "custom"
+              className={`w-full text-left px-3 py-2 text-sm rounded-lg mb-2 flex items-center gap-2 transition-colors ${preset === "custom"
                   ? "bg-yellow-50 text-yellow-700 font-medium"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                }`}
             >
               <Calendar size={13} /> Custom Range
             </button>
 
             {preset === "custom" && (
               <div className="space-y-2 px-1">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">From</label>
-                  <input
-                    type="date"
-                    value={customFrom}
-                    onChange={(e) => setCustomFrom(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">To</label>
-                  <input
-                    type="date"
-                    value={customTo}
-                    onChange={(e) => setCustomTo(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-400 text-gray-900 placeholder:text-gray-400"
-                  />
-                </div>
+                <AppDatePicker
+                  label="From"
+                  value={customFrom}
+                  onChange={(value) => setCustomFrom(value)}
+                  max={customTo || undefined}
+                />
+                <AppDatePicker
+                  label="To"
+                  value={customTo}
+                  onChange={(value) => setCustomTo(value)}
+                  min={customFrom || undefined}
+                />
                 <button
                   onClick={applyCustom}
                   disabled={!customFrom || !customTo}
