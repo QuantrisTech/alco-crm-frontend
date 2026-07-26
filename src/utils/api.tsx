@@ -297,6 +297,21 @@ export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollment
 export const createEnrollmentDirectBundle = (data: any) =>
   API.post("/api/v1/enrollments/direct/bundle", data);
 
+export const previewBulkEnrollment = (formData: FormData) =>
+  API.post("/api/v1/enrollments/bulk-import/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const confirmBulkEnrollment = (
+  enrollments: {
+    user: string;
+    program: string;
+    batch?: string;
+    assigned_to?: string;
+    audioAccess?: boolean;
+  }[]
+) => API.post("/api/v1/enrollments/bulk-import/confirm", { enrollments });
+
 export const getCertificate = (enrollmentId: string) =>
   API.get(`/certificates/enrollment/${enrollmentId}`);
 

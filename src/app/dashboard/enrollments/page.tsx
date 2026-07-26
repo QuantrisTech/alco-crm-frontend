@@ -42,6 +42,7 @@ import CollapsedCell from "./components/collapsed-cell";
 import ExportButton from "@/app/component/ui/export-button";
 import { useRouter } from "next/navigation";
 import BatchPickerModal from "@/app/component/dashboard/batch-model";
+import EnrollmentImportButton from "@/app/component/dashboard/enrollment-import-button";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -229,11 +230,41 @@ function EnrollmentsContent() {
   const router = useRouter();
   // ── Dropdown data ────────────────────────────────────────────────────────
   // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
-  const { data: programs = [] } = useQuery({
+  const fallbackPrograms = [
+    { _id: "69e8c025afaf0d3fb90233d4", name: "NLP Master Trainer Program" },
+    {
+      _id: "69e8bfb7afaf0d3fb90233a8",
+      name: "Hypnosis Trainer's Training Certification and Evaluation Program",
+    },
+    {
+      _id: "69e8bf8cafaf0d3fb90233a0",
+      name: "NLP Trainers' Training And Evaluation Certification Program",
+    },
+    {
+      _id: "69e8bf48afaf0d3fb9023398",
+      name: "Advanced Hypnotherapy & Interventionist Training Program",
+    },
+    {
+      _id: "69d8a8ed06f01d73ae725722",
+      name: "NLP Master Practitioner Program",
+    },
+    {
+      _id: "69d88bcd3b3f401bb2e711bc",
+      name: "NLP Practitioner Program",
+    },
+  ];
+
+  const { data: programs = fallbackPrograms } = useQuery({
     queryKey: ["program-names"],
-    queryFn: getNamesPrograms,
-    // staleTime: 1000 * 60 * 5,
-  });
+    queryFn: async () => {
+      try {
+        return await getNamesPrograms();
+      } catch (error) {
+        console.error("Failed to load programs, using fallback.", error);
+        return fallbackPrograms;
+      }
+    },
+  });;
 
   // getAllUsersForRole returns { data: User[] }
   const { data: usersRes } = useQuery({
@@ -463,6 +494,8 @@ function EnrollmentsContent() {
       },
     });
 
+
+
   const { mutate: addBundleEnrollment, isPending: isAddingBundle } = useMutation({
     mutationFn: createEnrollmentDirectBundle, // naya API function
     onSuccess: () => {
@@ -546,25 +579,28 @@ function EnrollmentsContent() {
         setFilters={setFilters}
         filterFields={filterFields}
         exportBtn={
-          <ExportButton
-            filename="enrollments-all"
-            label="Export Excel"
-            fetchData={async () => {
-              const res = await getAllEnrollments({ limit: 10000 });
-              return res.data.data;
-            }}
-            columns={[
-              { header: "Student", key: "user.name" },
-              { header: "Email", key: "user.email" },
-              { header: "Phone", key: "user.phone" },
-              { header: "Program", key: "program.name" },
-              { header: "Batch", key: "batch.name" },
-              { header: "Batch Start", key: "batch.start_date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-              { header: "Status", key: "status" },
-              { header: "Access Status", key: "accessStatus" },
-              { header: "Enrolled At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
-            ]}
-          />
+          <>
+            <EnrollmentImportButton />
+            <ExportButton
+              filename="enrollments-all"
+              label="Export Excel"
+              fetchData={async () => {
+                const res = await getAllEnrollments({ limit: 10000 });
+                return res.data.data;
+              }}
+              columns={[
+                { header: "Student", key: "user.name" },
+                { header: "Email", key: "user.email" },
+                { header: "Phone", key: "user.phone" },
+                { header: "Program", key: "program.name" },
+                { header: "Batch", key: "batch.name" },
+                { header: "Batch Start", key: "batch.start_date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Status", key: "status" },
+                { header: "Access Status", key: "accessStatus" },
+                { header: "Enrolled At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+              ]}
+            />
+          </>
         }
       />
 
