@@ -660,5 +660,13 @@ export const adminGrantAudioAccess = (id: string, programsGranted: string[]) =>
 export const adminRejectAudioAccess = (id: string, reason: string) =>
   API.patch(`/api/v1/audio-access/${id}/reject`, { reason });
 
+// ─── Webinar Registration Forms ───────────────────────────────
+export const getWebinars = () => API.get("/api/webinars");
+export const getWebinar = (id: string) => API.get(`/api/webinars/${id}`);
+export const createWebinar = (data: any) => API.post("/api/webinars", data);
+export const updateWebinar = (id: string, data: any) => API.put(`/api/webinars/${id}`, data);
+export const deleteWebinar = (id: string) => API.delete(`/api/webinars/${id}`);
+export const getRegistrations = (id: string) => API.get(`/api/webinars/${id}/registrations`);
+
 
 export default API;
