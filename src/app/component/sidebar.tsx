@@ -24,7 +24,8 @@ import {
   Landmark,
   BarChart3,
   BadgeDollarSign,
-  UserPen
+  UserPen,
+  Video
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
@@ -197,6 +198,12 @@ const menuSections: MenuSection[] = [
             ],
           },
         ],
+      },
+      {
+        label: "Webinars",
+        href: "/dashboard/webinars",
+        icon: Video,
+        roles: ["super_admin", "admin", "seo"],
       },
     ],
   },

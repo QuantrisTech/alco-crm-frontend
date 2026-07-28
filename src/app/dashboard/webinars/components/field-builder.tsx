@@ -233,11 +233,11 @@ export default function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-navy-900">Form Fields</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-1 block">Form Fields</h3>
         <button
           type="button"
           onClick={addField}
-          className="flex items-center gap-1 text-sm text-navy-700 hover:underline"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px]  font-medium transition-colors bg-green-100 text-green-700 hover:bg-green-200"
         >
           <Plus size={14} />
           Add Field
@@ -252,7 +252,7 @@ export default function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
         <div key={index} className="border rounded-md p-4 space-y-3 bg-gray-50">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <label className="text-xs text-gray-600">Field Label</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block placeholder:text-gray-400">Field Label</label>
               <input
                 type="text"
                 value={field.label}
@@ -260,7 +260,7 @@ export default function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
                   updateField(index, { label: e.target.value })
                 }
                 placeholder="e.g. Full Name"
-                className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                className="w-full border rounded-md px-3 py-2 text-sm placeholder:text-gray-400 text-gray-600 mt-1"
               />
             </div>
 
@@ -271,7 +271,7 @@ export default function FieldBuilder({ fields, onChange }: FieldBuilderProps) {
                 onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                   updateField(index, { type: e.target.value as FieldType })
                 }
-                className="w-full border rounded-md px-3 py-2 text-sm mt-1"
+                className="w-full border rounded-md px-3 py-2 text-sm placeholder:text-gray-400 text-gray-600 mt-1"
               >
                 {FIELD_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
