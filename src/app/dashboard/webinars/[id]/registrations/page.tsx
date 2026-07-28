@@ -229,6 +229,7 @@ import { getWebinar, getRegistrations } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import { ArrowLeft, Users } from "lucide-react";
+import ExportButton from "@/app/component/ui/export-button";
 
 type FieldType =
   | "text"
@@ -313,6 +314,19 @@ export default function WebinarRegistrationsPage() {
     },
   ];
 
+  // ── Export column config (dynamic fields + Submitted date) ──
+  const exportColumns = [
+    ...fieldColumns.map((col) => ({
+      header: col.label,
+      key: `responses.${col.fieldKey}`,
+    })),
+    {
+      header: "Submitted",
+      key: "createdAt",
+      format: (val: string) => new Date(val).toLocaleString(),
+    },
+  ];
+
   return (
     <>
       <button
@@ -327,9 +341,17 @@ export default function WebinarRegistrationsPage() {
         title={webinar?.title || "Registrations"}
         subtitle={`${registrations.length} registration${registrations.length !== 1 ? "s" : ""}`}
         titleIcon={<Users size={22} className="text-indigo-500" />}
-        filters={filters}
-        setFilters={setFilters}
-        filterFields={filterFields}
+        // filters={filters}
+        // setFilters={setFilters}
+        // filterFields={filterFields}
+        actions={
+          <ExportButton
+            filename={`${webinar?.title || "registrations"}`}
+            title={webinar?.title}
+            fetchData={async () => registrations}
+            columns={exportColumns}
+          />
+        }
       />
 
       <DynamicTable
