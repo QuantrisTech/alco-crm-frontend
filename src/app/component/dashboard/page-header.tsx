@@ -1,4 +1,6 @@
-import React from "react";
+
+
+  import { useCallback } from "react";
 // component
 import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
@@ -51,6 +53,14 @@ export default function PageHeader({
   const { user: authUser } = useAppSelector((state) => state.auth);
   const role = authUser?.role;
   const isUserForResponsive = role === "user";
+
+// PageHeader component ke andar, filterFields.map se bahar:
+const handleDateFilterChange = useCallback(
+  (fieldName: string, value: string) => {
+    setFilters?.((prev: any) => ({ ...prev, [fieldName]: value, page: 1 }));
+  },
+  [setFilters]
+);
 
   return (
     <>
@@ -136,9 +146,7 @@ export default function PageHeader({
                     <div key={field.name} className="w-40">
                       <AppDatePicker
                         value={String(filters?.[field.name] ?? "")}
-                        onChange={(value) =>
-                          setFilters?.((prev: any) => ({ ...prev, [field.name]: value, page: 1 }))
-                        }
+                        onChange={(value) => handleDateFilterChange(field.name, value)}
                       />
                     </div>
                   );

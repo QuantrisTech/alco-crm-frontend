@@ -161,10 +161,19 @@ export const adminDeleteLesson = (id: string) => API.delete(`/api/v1/programs/le
 
 // Batch APIs
 export const adminGetBatches = (params?: any) => API.get("/api/v1/programs/batches", { params });
+export const adminGetBatchById = (id: string) => API.get(`/api/v1/programs/batches/${id}`);
 export const adminCreateBatch = (data: any) => API.post("/api/v1/programs/batches", data);
 export const adminUpdateBatch = (id: string, data: any) => API.put(`/api/v1/programs/batches/${id}`, data);
 export const adminDeleteBatch = (id: string) => API.delete(`/api/v1/programs/batches/${id}`);
 
+export const adminAddStudentToBatch = (batchId: string, data: { studentId: string }) =>
+  API.post(`/api/v1/programs/batches/${batchId}/students`, data);
+
+export const adminRemoveStudentFromBatch = (batchId: string, studentId: string) =>
+  API.delete(`/api/v1/programs/batches/${batchId}/students/${studentId}`);
+
+export const adminSwitchStudentBatch = (batchId: string, studentId: string, data: { targetBatchId: string }) =>
+  API.post(`/api/v1/programs/batches/${batchId}/switch-student`, { studentId, ...data });
 //--------------------------------- website blog ------------------------
 export const getBlogsPublic = () => API.get("/api/v1/blogs/public");
 export const adminGetBlogs = (params?: any) => API.get("/api/v1/blogs", { params });
@@ -247,6 +256,20 @@ export const sendPaymentsReportEmail = (body: {
 //   axios.get("/finance/invoices/sales", { params });
 export const getSalesRoleInvoices = (params?: any) =>
   API.get("/api/v1/finance/invoices/sales", { params });
+
+export const previewBulkInvoice = (formData: FormData) =>
+  API.post("/api/v1/finance/invoices/bulk-import/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+ 
+export const confirmBulkInvoice = (
+  invoices: {
+    user: string;
+    enrollmentId: string;
+    amount: number;
+    dueDate?: string | null;
+  }[]
+) => API.post("/api/v1/finance/invoices/bulk-import/confirm", { invoices });
 
 // ─── Finance — Payments ──────────────────────────────────────
 export const getAllPayments = (params?: any) => API.get("/api/v1/finance/payments", { params });

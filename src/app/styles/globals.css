@@ -41,6 +41,11 @@ select {
   appearance: textfield;
 }
 
+.flatpickr-calendar {
+  z-index: 9999 !important;
+  width: auto !important;
+}
+
 /* ── Main Scrollbar ───────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;

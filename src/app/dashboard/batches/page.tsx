@@ -24,6 +24,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
+import { useRouter } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -141,6 +142,7 @@ const formatDate = (dateStr?: string) => {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function BatchesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
@@ -394,11 +396,7 @@ export default function BatchesPage() {
                 {/* Actions */}
                 <div className="px-5 py-3 flex items-center gap-2">
                   <button
-                    onClick={() =>
-                      toast("Batch detail page — coming soon!", {
-                        icon: "📋",
-                      })
-                    }
+                    onClick={() => router.push(`/dashboard/batches/${batch._id}`)}
                     className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition font-medium"
                   >
                     <GraduationCap size={12} />

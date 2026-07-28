@@ -18,7 +18,7 @@ interface ImportButtonProps {
 }
 
 export default function ImportButton({
-  label = "Import",
+  label = "Import Excel",
   queryKey = "users",
 }: ImportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,7 +76,7 @@ export default function ImportButton({
         className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 hover:border-gray-400 hover:text-gray-600 text-gray-600 text-sm font-medium rounded-lg transition-colors shadow-sm"
         title="Import users from Excel"
       >
-        <Upload size={14} />
+        <Upload size={13} />
         {label}
       </button>
 

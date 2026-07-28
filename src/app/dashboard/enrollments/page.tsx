@@ -42,7 +42,7 @@ import CollapsedCell from "./components/collapsed-cell";
 import ExportButton from "@/app/component/ui/export-button";
 import { useRouter } from "next/navigation";
 import BatchPickerModal from "@/app/component/dashboard/batch-model";
-import EnrollmentImportButton from "@/app/component/dashboard/enrollment-import-button";
+import ImportButton from "@/app/dashboard/enrollments/components/import-button";
 
 // ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
@@ -579,14 +579,28 @@ function EnrollmentsContent() {
         setFilters={setFilters}
         filterFields={filterFields}
         exportBtn={
-          <>
-            <EnrollmentImportButton />
+          <div className="flex gap-2">
+            {isFinanceManager && (
+              <ImportButton />
+            )}
             <ExportButton
               filename="enrollments-all"
               label="Export Excel"
               fetchData={async () => {
                 const res = await getAllEnrollments({ limit: 10000 });
-                return res.data.data;
+                const rows = res.data.data ?? [];
+
+                // grouped rows ko flatten karo -> ek row per enrollment
+                return rows.flatMap((row: any) =>
+                  (row.enrollments || []).map((e: any) => ({
+                    user: row.user,
+                    program: e.program,
+                    batch: e.batch,
+                    status: e.status,
+                    accessStatus: e.accessStatus,
+                    enrolledAt: e.enrolledAt,
+                  }))
+                );
               }}
               columns={[
                 { header: "Student", key: "user.name" },
@@ -597,10 +611,10 @@ function EnrollmentsContent() {
                 { header: "Batch Start", key: "batch.start_date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
                 { header: "Status", key: "status" },
                 { header: "Access Status", key: "accessStatus" },
-                { header: "Enrolled At", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Enrolled At", key: "enrolledAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" }, // ← key fix
               ]}
             />
-          </>
+          </div>
         }
       />
 

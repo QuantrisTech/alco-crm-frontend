@@ -180,7 +180,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/flatpickr.css";
 
@@ -279,6 +279,25 @@ export default function AppDatePicker({
     ${disabled ? "bg-slate-100 cursor-not-allowed" : ""}
   `;
 
+  // ✅ Memoized options — sirf min/max/disabled/error/textFormat change hone par naya object banega
+  const flatpickrOptions = useMemo(
+    () => ({
+      dateFormat: "Y-m-d",
+      altInput: true,
+      altInputClass: inputClasses,
+      altFormat: "m-d-Y",
+      allowInput: true,
+      minDate: min || undefined,
+      maxDate: max || undefined,
+      disableMobile: true,
+      static: true,
+      parseDate: (datestr: string, _format: string) =>
+        parseFlexibleDate(datestr) ?? new Date(NaN),
+      appendTo: typeof document !== "undefined" ? document.body : undefined,
+    }),
+    [min, max]
+  );
+
   return (
     <div className={`space-y-1.5 ${className}`}>
       {label && (
@@ -290,25 +309,11 @@ export default function AppDatePicker({
 
       <Flatpickr
         value={value || undefined}
-        options={{
-          dateFormat: "Y-m-d", // internal value format
-          altInput: true, // shows a friendlier m/d/Y input to the user
-          altInputClass: inputClasses, // <-- the VISIBLE input flatpickr creates
-          altFormat: "m-d-Y",
-          allowInput: true, // <-- lets the user type or PASTE into the field
-          minDate: min || undefined,
-          maxDate: max || undefined,
-          disableMobile: true,
-          parseDate: (datestr: string, _format: string) =>
-            parseFlexibleDate(datestr) ?? new Date(NaN),
-        }}
+        options={flatpickrOptions}
         disabled={disabled}
         onChange={(dates: Date[]) => {
           if (dates && dates[0]) onChange(toISO(dates[0]));
         }}
-        // This className lands on the original (hidden) input flatpickr
-        // keeps around for form submission — it doesn't need visual styling,
-        // but we still hide it explicitly to avoid any layout gaps.
         className="hidden"
         placeholder="mm-dd-yyyy"
       />

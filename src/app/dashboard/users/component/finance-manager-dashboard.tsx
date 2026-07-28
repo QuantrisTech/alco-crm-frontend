@@ -21,7 +21,7 @@ import Popup from "@/app/component/ui/popup/popup";
 import PageHeader from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import ExportButton from "@/app/component/ui/export-button";
-import ImportButton from "@/app/component/dashboard/import-users-button";
+import ImportButton from "@/app/dashboard/users/component/import-button";
 
 // ── Add User Fields ──
 const addUserFields: ModalField[] = [

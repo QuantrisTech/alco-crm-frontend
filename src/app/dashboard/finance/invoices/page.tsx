@@ -27,6 +27,7 @@ import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
 import { deleteInvoice } from "@/utils/api";
 import { Trash2 } from "lucide-react";
 import DeleteInvoiceModal from "../component/delete-invoice-modal";
+import ImportButton from "../component/import-button";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -212,6 +213,9 @@ export default function InvoicesPage() {
                 setFilters((f) => ({ ...f, dateFrom: from, dateTo: to, page: "1" }))
               }
             />
+
+            <ImportButton />
+            
             <ExportButton
               filename="invoices"
               label="Export Excel"

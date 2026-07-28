@@ -201,9 +201,10 @@ export default function UsersPage() {
             label="Export Excel"
             fetchData={async () => {
               const res = await adminGetAllUsers({ limit: 10000 });
-              return res.data.data;
+              return res.data.users;
             }}
             columns={[
+              { header: "User Id", key: "_id" },
               { header: "Name", key: "name" },
               { header: "Email", key: "email" },
               { header: "Phone", key: "phone" },
