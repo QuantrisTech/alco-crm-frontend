@@ -265,9 +265,17 @@ export const previewBulkInvoice = (formData: FormData) =>
 export const confirmBulkInvoice = (
   invoices: {
     user: string;
-    enrollmentId: string;
-    amount: number;
+    invoiceNumber?: string;
     dueDate?: string | null;
+    issueDate?: string | null;
+    advanceAmount?: number;
+    items: {
+      enrollmentId: string;
+      programId: string | null;
+      programName: string;
+      amount: number;
+      discount: number;
+    }[];
   }[]
 ) => API.post("/api/v1/finance/invoices/bulk-import/confirm", { invoices });
 

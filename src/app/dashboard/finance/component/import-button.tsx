@@ -11,36 +11,34 @@ import {
     AlertTriangle,
     HelpCircle,
 } from "lucide-react";
-import Select from "@/app/component/ui/select";
 import { previewBulkInvoice, confirmBulkInvoice } from "@/utils/api";
 import toast from "react-hot-toast";
 
-// ── Types ────────────────────────────────────────────────────────────────
 interface EnrollmentOption {
     enrollmentId: string;
+    programId: string | null;
     programName: string;
+    defaultAmount: number;
     hasInvoice: boolean;
     existingInvoiceNumber?: string | null;
 }
 
-// ── Types (updated) ──────────────────────────────────────────────────────
 interface PreviewRow {
     email: string;
     user: { _id: string; name: string; email: string; phone?: string } | null;
-    status:
-    | "eligible"
-    | "duplicate"
-    | "no_enrollment"
-    | "not_found"
-    | "invalid_amount"
-    | "invalid_invoice_number"; // ✅ naya status
+    status: "eligible" | "duplicate" | "no_enrollment" | "not_found" | "invalid_invoice_number";
     enrollmentOptions?: EnrollmentOption[];
-    selectedEnrollmentId?: string;
-    amount?: number;
+    defaultSelectedIds?: string[];
     dueDate?: string | null;
-    issueDate?: string | null;         // ✅ naya field
-    invoiceNumber?: string | null;      // ✅ naya field (custom number agar Excel mein diya ho)
-    requestedInvoiceNumber?: string;    // ✅ jab clash ho
+    issueDate?: string | null;
+    invoiceNumber?: string | null;
+    advanceAmount?: number;
+}
+
+interface SelectionState {
+    selected: boolean;
+    amount: number;
+    discount: number;
 }
 
 interface PreviewResponse {
@@ -53,6 +51,23 @@ interface PreviewResponse {
     preview: PreviewRow[];
 }
 
+interface ConfirmItem {
+    enrollmentId: string;
+    programId: string | null;
+    programName: string;
+    amount: number;
+    discount: number;
+}
+
+interface ConfirmPayloadRow {
+    user: string;
+    invoiceNumber?: string;
+    dueDate?: string | null;
+    issueDate?: string | null;
+    advanceAmount?: number;
+    items: ConfirmItem[];
+}
+
 // ── Badge helper ─────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: PreviewRow["status"] }) {
     const map = {
@@ -60,7 +75,6 @@ function StatusBadge({ status }: { status: PreviewRow["status"] }) {
         duplicate: { label: "Already Invoiced", cls: "bg-yellow-100 text-yellow-700", icon: <AlertTriangle size={12} /> },
         no_enrollment: { label: "No Enrollment", cls: "bg-orange-100 text-orange-700", icon: <HelpCircle size={12} /> },
         not_found: { label: "User Not Found", cls: "bg-rose-100 text-rose-700", icon: <XCircle size={12} /> },
-        invalid_amount: { label: "Invalid Amount", cls: "bg-rose-100 text-rose-700", icon: <XCircle size={12} /> },
         invalid_invoice_number: { label: "Invoice # Taken", cls: "bg-rose-100 text-rose-700", icon: <XCircle size={12} /> },
     };
     const conf = map[status];
@@ -82,8 +96,8 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
     const [rows, setRows] = useState<PreviewRow[]>([]);
     const [removedEmails, setRemovedEmails] = useState<Set<string>>(new Set());
     const [confirmedEmails, setConfirmedEmails] = useState<Set<string>>(new Set());
-    // ✅ email -> admin ne kaunsi enrollment choose ki (bundle wale users ke liye)
-    const [enrollmentChoiceMap, setEnrollmentChoiceMap] = useState<Record<string, string>>({});
+    // email -> enrollmentId -> { selected, amount, discount }
+    const [selectionMap, setSelectionMap] = useState<Record<string, Record<string, SelectionState>>>({});
 
     const queryClient = useQueryClient();
 
@@ -94,7 +108,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         setRows([]);
         setRemovedEmails(new Set());
         setConfirmedEmails(new Set());
-        setEnrollmentChoiceMap({});
+        setSelectionMap({});
     };
 
     const handleFileSelect = (selected: File | null) => {
@@ -117,6 +131,37 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         if (dropped) handleFileSelect(dropped);
     };
 
+    const toggleSelection = (email: string, enrollmentId: string) => {
+        setSelectionMap((prev) => ({
+            ...prev,
+            [email]: {
+                ...prev[email],
+                [enrollmentId]: {
+                    ...prev[email][enrollmentId],
+                    selected: !prev[email][enrollmentId].selected,
+                },
+            },
+        }));
+    };
+
+    const updateSelectionField = (
+        email: string,
+        enrollmentId: string,
+        field: "amount" | "discount",
+        value: number
+    ) => {
+        setSelectionMap((prev) => ({
+            ...prev,
+            [email]: {
+                ...prev[email],
+                [enrollmentId]: {
+                    ...prev[email][enrollmentId],
+                    [field]: value,
+                },
+            },
+        }));
+    };
+
     // ── Preview mutation ─────────────────────────────────────────────────
     const previewMutation = useMutation({
         mutationFn: async () => {
@@ -127,14 +172,22 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         },
         onSuccess: (data) => {
             setRows(data.preview);
-            // ✅ default enrollment choice — backend ke suggested selectedEnrollmentId se
-            const defaults: Record<string, string> = {};
+            const defaults: Record<string, Record<string, SelectionState>> = {};
             data.preview.forEach((r) => {
-                if (r.status === "eligible" && r.selectedEnrollmentId) {
-                    defaults[r.email] = r.selectedEnrollmentId;
+                if (r.status === "eligible") {
+                    defaults[r.email] = {};
+                    r.enrollmentOptions?.forEach((o) => {
+                        if (!o.hasInvoice) {
+                            defaults[r.email][o.enrollmentId] = {
+                                selected: r.defaultSelectedIds?.includes(o.enrollmentId) ?? true,
+                                amount: o.defaultAmount,
+                                discount: 0,
+                            };
+                        }
+                    });
                 }
             });
-            setEnrollmentChoiceMap(defaults);
+            setSelectionMap(defaults);
             setStep("review");
         },
         onError: (err: any) => {
@@ -144,16 +197,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
 
     // ── Confirm mutation (single row ya bulk, same endpoint) ────────────
     const confirmMutation = useMutation({
-        mutationFn: async (
-            payload: {
-                user: string;
-                enrollmentId: string;
-                amount: number;
-                dueDate?: string | null;
-                issueDate?: string | null;     // ✅
-                invoiceNumber?: string | null; // ✅
-            }[]
-        ) => {
+        mutationFn: async (payload: ConfirmPayloadRow[]) => {
             const res = await confirmBulkInvoice(payload);
             return res.data;
         },
@@ -173,28 +217,34 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         },
     });
 
+    // ✅ FIXED: advanceMap wasn't declared anywhere — ab row.advanceAmount
+    // (jo Excel column G se preview response mein aata hai) directly use karte hain.
+    const buildRowPayload = (row: PreviewRow): ConfirmPayloadRow | null => {
+        const sel = selectionMap[row.email] || {};
+        const items: ConfirmItem[] = Object.entries(sel)
+            .filter(([, s]) => s.selected)
+            .map(([enrollmentId, s]) => {
+                const opt = row.enrollmentOptions?.find((o) => o.enrollmentId === enrollmentId);
+                return {
+                    enrollmentId,
+                    programId: opt?.programId || null,
+                    programName: opt?.programName || "",
+                    amount: s.amount,
+                    discount: s.discount,
+                };
+            });
 
+        if (items.length === 0 || !row.user) return null;
 
-    //   const confirmMutation = useMutation({
-    //     mutationFn: async (payload: { user: string; enrollmentId: string; amount: number; dueDate?: string | null }[]) => {
-    //       const res = await confirmBulkInvoice(payload);
-    //       return res.data;
-    //     },
-    //     onSuccess: (data, variables) => {
-    //       const confirmedNow = new Set(confirmedEmails);
-    //       rows.forEach((r) => {
-    //         if (r.user && variables.some((v) => v.user === r.user!._id)) {
-    //           confirmedNow.add(r.email);
-    //         }
-    //       });
-    //       setConfirmedEmails(confirmedNow);
-    //       toast.success(`${data.createdCount} invoice(s) created, ${data.skippedCount} skipped`);
-    //       queryClient.invalidateQueries({ queryKey: [queryKey] });
-    //     },
-    //     onError: (err: any) => {
-    //       toast.error(err?.response?.data?.message || "Invoice creation failed");
-    //     },
-    //   });
+        return {
+            user: row.user._id,
+            invoiceNumber: row.invoiceNumber || undefined,
+            dueDate: row.dueDate || undefined,
+            issueDate: row.issueDate || undefined,
+            advanceAmount: row.advanceAmount || 0, // ✅ fixed — pehle advanceMap[row.email] tha (undefined variable)
+            items,
+        };
+    };
 
     const visibleRows = rows.filter((r) => !removedEmails.has(r.email));
     const eligibleUnconfirmedRows = visibleRows.filter(
@@ -205,84 +255,19 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         setRemovedEmails((prev) => new Set(prev).add(email));
     };
 
-    // ✅ Row ke liye currently chosen enrollment ka option object nikalo
-    const getChosenOption = (row: PreviewRow): EnrollmentOption | undefined => {
-        const chosenId = enrollmentChoiceMap[row.email];
-        return row.enrollmentOptions?.find((o) => o.enrollmentId === chosenId);
-    };
-
-    //   const confirmSingleRow = (row: PreviewRow) => {
-    //     const chosen = getChosenOption(row);
-    //     if (!row.user || !chosen || chosen.hasInvoice || !row.amount) return;
-    //     confirmMutation.mutate([
-    //       {
-    //         user: row.user._id,
-    //         enrollmentId: chosen.enrollmentId,
-    //         amount: row.amount,
-    //         dueDate: row.dueDate || undefined,
-    //       },
-    //     ]);
-    //   };
-
-
     const confirmSingleRow = (row: PreviewRow) => {
-        const chosen = getChosenOption(row);
-        if (!row.user || !chosen || chosen.hasInvoice || !row.amount) return;
-        confirmMutation.mutate([
-            {
-                user: row.user._id,
-                enrollmentId: chosen.enrollmentId,
-                amount: row.amount,
-                dueDate: row.dueDate || undefined,
-                issueDate: row.issueDate || undefined,       // ✅
-                invoiceNumber: row.invoiceNumber || undefined, // ✅
-            },
-        ]);
+        const payload = buildRowPayload(row);
+        if (!payload) {
+            toast.error("Select at least one program");
+            return;
+        }
+        confirmMutation.mutate([payload]);
     };
-
-    //   const confirmAll = () => {
-    //     const payload = eligibleUnconfirmedRows
-    //       .map((r) => {
-    //         const chosen = getChosenOption(r);
-    //         if (!r.user || !chosen || chosen.hasInvoice || !r.amount) return null;
-    //         return {
-    //           user: r.user._id,
-    //           enrollmentId: chosen.enrollmentId,
-    //           amount: r.amount,
-    //           dueDate: r.dueDate || undefined,
-    //         };
-    //       })
-    //       .filter(Boolean) as { user: string; enrollmentId: string; amount: number; dueDate?: string | null }[];
-
-    //     if (payload.length === 0) {
-    //       toast.error("No eligible rows to confirm");
-    //       return;
-    //     }
-    //     confirmMutation.mutate(payload);
-    //   };
 
     const confirmAll = () => {
         const payload = eligibleUnconfirmedRows
-            .map((r) => {
-                const chosen = getChosenOption(r);
-                if (!r.user || !chosen || chosen.hasInvoice || !r.amount) return null;
-                return {
-                    user: r.user._id,
-                    enrollmentId: chosen.enrollmentId,
-                    amount: r.amount,
-                    dueDate: r.dueDate || undefined,
-                    issueDate: r.issueDate || undefined,        // ✅
-                    invoiceNumber: r.invoiceNumber || undefined,  // ✅
-                };
-            })
-            .filter(Boolean) as {
-                user: string;
-                enrollmentId: string;
-                amount: number;
-                dueDate?: string | null;
-                issueDate?: string | null;
-                invoiceNumber?: string | null;
-            }[];
+            .map((r) => buildRowPayload(r))
+            .filter((p): p is ConfirmPayloadRow => p !== null);
 
         if (payload.length === 0) {
             toast.error("No eligible rows to confirm");
@@ -312,7 +297,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                 <p className="text-xs text-gray-400 mt-0.5">
                                     {step === "upload"
                                         ? "Excel se naye invoices banayein (payments alag se)"
-                                        : "Review karein — agar user ki 2+ programs hain to program choose karein"}
+                                        : "Review karein — bundle wale users ke liye multiple programs select kar sakte hain"}
                                 </p>
                             </div>
                             <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition">
@@ -355,10 +340,10 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                     </div>
 
                                     <p className="text-xs text-gray-500">
-                                        Column order: <strong>A = Name</strong>, <strong>B = Email</strong>, <strong>C = Amount</strong>,{" "}
-                                        <strong>D = Due Date (optional)</strong>, <strong>E = Issue Date (optional, default aaj)</strong>,{" "}
-                                        <strong>F = Invoice Number (optional, blank chhorne par auto-generate hoga)</strong>. Matching sirf{" "}
-                                        <strong>Email</strong> se hoti hai...
+                                        Column order: <strong>A = Name</strong>, <strong>B = Email</strong>, <strong>C = Amount (fallback)</strong>,{" "}
+                                        <strong>D = Due Date</strong>, <strong>E = Issue Date</strong>,{" "}
+                                        <strong>F = Invoice Number (optional)</strong>, <strong>G = Advance Amount (optional)</strong>.
+                                        Bundle wale users ki EK hi invoice banegi jismein saare selected programs shamil hongay.
                                     </p>
                                 </div>
 
@@ -394,7 +379,9 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                         {visibleRows.filter((r) => r.status === "no_enrollment").length} no enrollment
                                     </span>
                                     <span className="text-xs px-2 py-1 rounded-full bg-rose-100 text-rose-700">
-                                        {visibleRows.filter((r) => r.status === "not_found" || r.status === "invalid_amount").length} invalid
+                                        {visibleRows.filter((r) =>
+                                            r.status === "not_found" || r.status === "invalid_invoice_number"
+                                        ).length} invalid
                                     </span>
                                 </div>
 
@@ -402,14 +389,18 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                     {visibleRows.map((row) => {
                                         const isConfirmed = confirmedEmails.has(row.email);
                                         const isEligible = row.status === "eligible";
-                                        const hasMultiplePrograms = (row.enrollmentOptions?.length || 0) > 1;
-                                        const chosen = getChosenOption(row);
-                                        const chosenIsDuplicate = isEligible && chosen?.hasInvoice;
+                                        const rowSelections = selectionMap[row.email] || {};
+
+                                        const selectedEntries = Object.entries(rowSelections).filter(([, s]) => s.selected);
+                                        const totalAmount = selectedEntries.reduce(
+                                            (sum, [, s]) => sum + Math.max(0, (s.amount || 0) - (s.discount || 0)),
+                                            0
+                                        );
 
                                         return (
                                             <div
                                                 key={row.email}
-                                                className={`border rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap ${isConfirmed ? "bg-green-50 border-green-200" : "border-gray-200"
+                                                className={`border rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap ${isConfirmed ? "bg-green-50 border-green-200" : "border-gray-200"
                                                     }`}
                                             >
                                                 <div className="min-w-0 flex-1">
@@ -421,43 +412,68 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                                         {isConfirmed && (
                                                             <span className="text-[10px] text-green-700 font-medium">Confirmed ✓</span>
                                                         )}
-                                                        {isEligible && (
-                                                            <span className="text-xs text-gray-500">
-                                                                Rs {row.amount?.toLocaleString()}
-                                                                {row.issueDate ? ` · issued ${new Date(row.issueDate).toLocaleDateString("en-PK")}` : ""}
-                                                                {row.dueDate ? ` · due ${new Date(row.dueDate).toLocaleDateString("en-PK")}` : ""}
-                                                                {row.invoiceNumber ? ` · #${row.invoiceNumber}` : ""}
-                                                            </span>
-                                                        )}
                                                     </div>
                                                     <p className="text-xs text-gray-400">{row.email}</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                        {row.issueDate ? `issued ${new Date(row.issueDate).toLocaleDateString("en-PK")}` : ""}
+                                                        {row.dueDate ? ` · due ${new Date(row.dueDate).toLocaleDateString("en-PK")}` : ""}
+                                                        {row.invoiceNumber ? ` · Invoice # ${row.invoiceNumber}` : " · Invoice #: auto-generate"}
+                                                        {row.advanceAmount ? ` · Advance: Rs ${row.advanceAmount.toLocaleString()}` : ""}
+                                                    </p>
 
-                                                    {/* ✅ Program picker — sirf jab 1+ enrollments hain aur row eligible/duplicate hai */}
-                                                    {(isEligible || row.status === "duplicate") && (row.enrollmentOptions?.length || 0) > 0 && (
-                                                        <div className="mt-2 max-w-xs">
-                                                            {hasMultiplePrograms ? (
-                                                                <Select
-                                                                    label={undefined}
-                                                                    placeholder="Program choose karein"
-                                                                    value={enrollmentChoiceMap[row.email] || ""}
-                                                                    options={row.enrollmentOptions!.map((o) => ({
-                                                                        label: `${o.programName}${o.hasInvoice ? " (already invoiced)" : ""}`,
-                                                                        value: o.enrollmentId,
-                                                                    }))}
-                                                                    onChange={(e) =>
-                                                                        setEnrollmentChoiceMap((prev) => ({ ...prev, [row.email]: e.target.value }))
-                                                                    }
-                                                                />
-                                                            ) : (
+                                                    {isEligible && (row.enrollmentOptions?.length || 0) > 0 && (
+                                                        <div className="mt-2 space-y-2">
+                                                            {row.enrollmentOptions!
+                                                                .filter((o) => !o.hasInvoice)
+                                                                .map((opt) => {
+                                                                    const sel = rowSelections[opt.enrollmentId];
+                                                                    if (!sel) return null;
+                                                                    const finalAmount = Math.max(0, (sel.amount || 0) - (sel.discount || 0));
+                                                                    return (
+                                                                        <div key={opt.enrollmentId} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={sel.selected}
+                                                                                onChange={() => toggleSelection(row.email, opt.enrollmentId)}
+                                                                            />
+                                                                            <span className="text-xs font-medium text-gray-700 w-32 truncate">
+                                                                                {opt.programName}
+                                                                            </span>
+                                                                            <input
+                                                                                type="number"
+                                                                                value={sel.amount}
+                                                                                onChange={(e) =>
+                                                                                    updateSelectionField(row.email, opt.enrollmentId, "amount", Number(e.target.value))
+                                                                                }
+                                                                                disabled={!sel.selected}
+                                                                                className="w-24 text-xs border rounded px-2 py-1 text-gray-700"
+                                                                                placeholder="Amount"
+                                                                            />
+                                                                            <input
+                                                                                type="number"
+                                                                                value={sel.discount}
+                                                                                onChange={(e) =>
+                                                                                    updateSelectionField(row.email, opt.enrollmentId, "discount", Number(e.target.value))
+                                                                                }
+                                                                                disabled={!sel.selected}
+                                                                                className="w-20 text-xs border rounded px-2 py-1 text-gray-700"
+                                                                                placeholder="Discount"
+                                                                            />
+                                                                            <span className="text-xs text-gray-500 ml-auto">
+                                                                                Rs {finalAmount.toLocaleString()}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+
+                                                            <div className="flex items-center justify-between px-2 pt-1 border-t border-dashed">
                                                                 <span className="text-xs text-gray-500">
-                                                                    Program: <span className="font-medium">{row.enrollmentOptions![0].programName}</span>
+                                                                    {selectedEntries.length} program{selectedEntries.length !== 1 ? "s" : ""} selected
                                                                 </span>
-                                                            )}
-                                                            {chosenIsDuplicate && (
-                                                                <p className="text-[10px] text-yellow-700 mt-1">
-                                                                    Is program ki invoice already exist karti hai — Confirm disabled.
-                                                                </p>
-                                                            )}
+                                                                <span className="text-xs font-semibold text-gray-800">
+                                                                    Total: Rs {totalAmount.toLocaleString()}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -466,10 +482,10 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                                     <div className="flex items-center gap-2 shrink-0">
                                                         <button
                                                             onClick={() => confirmSingleRow(row)}
-                                                            disabled={confirmMutation.isPending || chosenIsDuplicate || !chosen}
-                                                            className="px-2.5 py-1.5 text-xs rounded bg-teal-100 text-teal-700 hover:bg-teal-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            disabled={confirmMutation.isPending || selectedEntries.length === 0}
+                                                            className="px-2.5 py-1.5 text-xs rounded bg-teal-100 text-teal-700 hover:bg-teal-200 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                                                         >
-                                                            Confirm
+                                                            Confirm ({selectedEntries.length}) — Rs {totalAmount.toLocaleString()}
                                                         </button>
                                                         <button
                                                             onClick={() => removeRow(row.email)}

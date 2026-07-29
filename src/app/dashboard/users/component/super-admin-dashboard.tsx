@@ -31,6 +31,7 @@ const addUserFields: ModalField[] = [
     name: "role", label: "Role", type: "select",
     options: [
       { label: "User", value: "user" },
+      { label: "Super Admin", value: "super_admin" },
       { label: "Admin", value: "admin" },
       { label: "Sales Manager", value: "sales_manager" },
       { label: "Sales Rep", value: "sales_rep" },
