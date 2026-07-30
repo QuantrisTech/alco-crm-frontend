@@ -1,3 +1,172 @@
+"use client";
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { getWebinar, getRegistrations } from "@/utils/api";
+import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
+import DynamicTable from "@/app/component/dashboard/dynamic-table";
+import { ArrowLeft, Users } from "lucide-react";
+import ExportButton from "@/app/component/ui/export-button";
+
+type FieldType =
+  | "text"
+  | "email"
+  | "phone"
+  | "number"
+  | "date"
+  | "textarea"
+  | "select"
+  | "checkbox";
+
+interface WebinarField {
+  fieldKey: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+  order: number;
+  options?: string[];
+}
+
+interface Webinar {
+  _id: string;
+  title: string;
+  description?: string;
+  date: string;
+  fields: WebinarField[];
+}
+
+interface Registration {
+  _id: string;
+  webinar: string;
+  responses: Record<string, string | string[]>;
+  webinarTitleSnapshot?: string | null;  // ✅ NEW
+  assignedToSnapshot?: string | null;    // ✅ NEW
+  ip?: string;
+  createdAt: string;
+}
+
+export default function WebinarRegistrationsPage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+
+  const [filters, setFilters] = useState({
+    search: "",
+    page: 1,
+    limit: 10,
+  });
+
+  // ── Fetch webinar + registrations together ──
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["webinar-registrations", id, filters],
+    queryFn: async () => {
+      const [webinarRes, regsRes] = await Promise.all([
+        getWebinar(id),
+        getRegistrations(id),
+      ]);
+      return {
+        webinar: webinarRes.data as Webinar,
+        registrations: regsRes.data as Registration[],
+      };
+    },
+  });
+
+  const webinar = data?.webinar;
+  const registrations = data?.registrations ?? [];
+
+  // columns come from the webinar's field definitions, in the order they were built
+  const fieldColumns = [...(webinar?.fields || [])].sort((a, b) => a.order - b.order);
+
+  const filterFields: FilterField[] = [
+    { type: "input", name: "search", placeholder: "Search registrations..." },
+  ];
+
+  const columns = [
+    {
+      key: "createdAt",
+      label: "Timestamp",
+      render: (reg: Registration) => new Date(reg.createdAt).toLocaleString(),
+    },
+    ...fieldColumns.map((col) => ({
+      key: col.fieldKey,
+      label: col.label,
+      render: (reg: Registration) => String(reg.responses?.[col.fieldKey] ?? "-"),
+    })),
+    {
+      key: "webinarTitleSnapshot",           
+      label: "Webinar Title (at time)",
+      render: (reg: Registration) => reg.webinarTitleSnapshot || "—",
+    },
+    // {
+    //   key: "assignedToSnapshot",             
+    //   label: "Team Member (at time)",
+    //   render: (reg: Registration) => reg.assignedToSnapshot || "—",
+    // },
+  ];
+
+  const exportColumns = [
+    {
+      header: "Submitted",
+      key: "createdAt",
+      format: (val: string) => new Date(val).toLocaleString(),
+    },
+    ...fieldColumns.map((col) => ({
+      header: col.label,
+      key: `responses.${col.fieldKey}`,
+    })),
+    {
+      header: "Webinar Title (at time)",     
+      key: "webinarTitleSnapshot",
+      format: (val: string) => val || "—",
+    },
+    // {
+    //   header: "Team Member (at time)",       
+    //   key: "assignedToSnapshot",
+    //   format: (val: string) => val || "—",
+    // },
+  ];
+
+  return (
+    <>
+      <button
+        onClick={() => router.push("/dashboard/webinars")}
+        className="flex items-center gap-1 text-sm text-gray-600 hover:text-navy-900 mb-4"
+      >
+        <ArrowLeft size={14} />
+        Back to Webinars
+      </button>
+
+      <PageHeader
+        title={webinar?.title || "Registrations"}
+        subtitle={`${registrations.length} registration${registrations.length !== 1 ? "s" : ""}`}
+        titleIcon={<Users size={22} className="text-indigo-500" />}
+        // filters={filters}
+        // setFilters={setFilters}
+        // filterFields={filterFields}
+        actions={
+          <ExportButton
+            filename={`${webinar?.title || "registrations"}`}
+            title={webinar?.title}
+            fetchData={async () => registrations}
+            columns={exportColumns}
+          />
+        }
+      />
+
+      <DynamicTable
+        data={registrations}
+        isLoading={isLoading}
+        isError={isError}
+        columns={columns}
+        currentPage={filters.page}
+        pageSize={filters.limit}
+        totalPages={1}
+        onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
+      />
+    </>
+  );
+}
+
+
 // "use client";
 // import { useEffect, useState } from "react";
 // import { useParams, useRouter } from "next/navigation";
@@ -221,149 +390,171 @@
 //     </div>
 //   );
 // }
-"use client";
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { getWebinar, getRegistrations } from "@/utils/api";
-import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
-import DynamicTable from "@/app/component/dashboard/dynamic-table";
-import { ArrowLeft, Users } from "lucide-react";
-import ExportButton from "@/app/component/ui/export-button";
+// "use client";
+// import { useState } from "react";
+// import { useParams, useRouter } from "next/navigation";
+// import { useQuery } from "@tanstack/react-query";
+// import { getWebinar, getRegistrations } from "@/utils/api";
+// import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
+// import DynamicTable from "@/app/component/dashboard/dynamic-table";
+// import { ArrowLeft, Users } from "lucide-react";
+// import ExportButton from "@/app/component/ui/export-button";
 
-type FieldType =
-  | "text"
-  | "email"
-  | "phone"
-  | "number"
-  | "date"
-  | "textarea"
-  | "select"
-  | "checkbox";
+// type FieldType =
+//   | "text"
+//   | "email"
+//   | "phone"
+//   | "number"
+//   | "date"
+//   | "textarea"
+//   | "select"
+//   | "checkbox";
 
-interface WebinarField {
-  fieldKey: string;
-  label: string;
-  type: FieldType;
-  required?: boolean;
-  order: number;
-  options?: string[];
-}
+// interface WebinarField {
+//   fieldKey: string;
+//   label: string;
+//   type: FieldType;
+//   required?: boolean;
+//   order: number;
+//   options?: string[];
+// }
 
-interface Webinar {
-  _id: string;
-  title: string;
-  description?: string;
-  date: string;
-  fields: WebinarField[];
-}
+// interface Webinar {
+//   _id: string;
+//   title: string;
+//   description?: string;
+//   date: string;
+//   fields: WebinarField[];
+// }
 
-interface Registration {
-  _id: string;
-  webinar: string;
-  responses: Record<string, string | string[]>;
-  ip?: string;
-  createdAt: string;
-}
+// interface Registration {
+//   _id: string;
+//   webinar: string;
+//   responses: Record<string, string | string[]>;
+//   referredBy?: string | null; // ✅ NEW
+//   usedTitle?: string | null;
+//   ip?: string;
+//   createdAt: string;
+// }
 
-export default function WebinarRegistrationsPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+// export default function WebinarRegistrationsPage() {
+//   const { id } = useParams<{ id: string }>();
+//   const router = useRouter();
 
-  const [filters, setFilters] = useState({
-    search: "",
-    page: 1,
-    limit: 10,
-  });
+//   const [filters, setFilters] = useState({
+//     search: "",
+//     page: 1,
+//     limit: 10,
+//   });
 
-  // ── Fetch webinar + registrations together ──
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["webinar-registrations", id, filters],
-    queryFn: async () => {
-      const [webinarRes, regsRes] = await Promise.all([
-        getWebinar(id),
-        getRegistrations(id),
-      ]);
-      return {
-        webinar: webinarRes.data as Webinar,
-        registrations: regsRes.data as Registration[],
-      };
-    },
-  });
+//   // ── Fetch webinar + registrations together ──
+//   const { data, isLoading, isError } = useQuery({
+//     queryKey: ["webinar-registrations", id, filters],
+//     queryFn: async () => {
+//       const [webinarRes, regsRes] = await Promise.all([
+//         getWebinar(id),
+//         getRegistrations(id),
+//       ]);
+//       return {
+//         webinar: webinarRes.data as Webinar,
+//         registrations: regsRes.data as Registration[],
+//       };
+//     },
+//   });
 
-  const webinar = data?.webinar;
-  const registrations = data?.registrations ?? [];
+//   const webinar = data?.webinar;
+//   const registrations = data?.registrations ?? [];
 
-  // columns come from the webinar's field definitions, in the order they were built
-  const fieldColumns = [...(webinar?.fields || [])].sort((a, b) => a.order - b.order);
+//   // columns come from the webinar's field definitions, in the order they were built
+//   const fieldColumns = [...(webinar?.fields || [])].sort((a, b) => a.order - b.order);
 
-  const filterFields: FilterField[] = [
-    { type: "input", name: "search", placeholder: "Search registrations..." },
-  ];
+//   const filterFields: FilterField[] = [
+//     { type: "input", name: "search", placeholder: "Search registrations..." },
+//   ];
 
-  const columns = [
-    ...fieldColumns.map((col) => ({
-      key: col.fieldKey,
-      label: col.label,
-      render: (reg: Registration) => String(reg.responses?.[col.fieldKey] ?? "-"),
-    })),
-    {
-      key: "createdAt",
-      label: "Submitted",
-      render: (reg: Registration) => new Date(reg.createdAt).toLocaleString(),
-    },
-  ];
+//   const columns = [
+//     {
+//       key: "createdAt",
+//       label: "Timestamp",
+//       render: (reg: Registration) => new Date(reg.createdAt).toLocaleString(),
+//     },
+//     ...fieldColumns.map((col) => ({
+//       key: col.fieldKey,
+//       label: col.label,
+//       render: (reg: Registration) => String(reg.responses?.[col.fieldKey] ?? "-"),
+//     })),
+//     {
+//       key: "usedTitle",
+//       label: "Title Shown",
+//       render: (reg: Registration) => reg.usedTitle || "Default",
+//     },
+//     {
+//       key: "referredBy",
+//       label: "The person in contact from Team AL&CO",
+//       render: (reg: Registration) => reg.referredBy || "—",
+//     },
+//   ];
 
-  // ── Export column config (dynamic fields + Submitted date) ──
-  const exportColumns = [
-    ...fieldColumns.map((col) => ({
-      header: col.label,
-      key: `responses.${col.fieldKey}`,
-    })),
-    {
-      header: "Submitted",
-      key: "createdAt",
-      format: (val: string) => new Date(val).toLocaleString(),
-    },
-  ];
+//   // ── Export column config (dynamic fields + Submitted date) ──
+//   const exportColumns = [
+//     {
+//       header: "Timestamp",
+//       key: "createdAt",
+//       format: (val: string) => new Date(val).toLocaleString(),
+//     },
+//     ...fieldColumns.map((col) => ({
+//       header: col.label,
+//       key: `responses.${col.fieldKey}`,
+//     })),
+//     {
+//       header: "Title",
+//       key: "usedTitle",
+//       format: (val: string) => val || "Default",
+//     }, {
+//       header: "The person in contact from Team AL&CO", // ✅ 'label' ki jagah 'header'
+//       key: "referredBy",
+//       format: (val: string) => val || "—", // ✅ 'render' ki jagah 'format'
+//     },
 
-  return (
-    <>
-      <button
-        onClick={() => router.push("/dashboard/webinars")}
-        className="flex items-center gap-1 text-sm text-gray-600 hover:text-navy-900 mb-4"
-      >
-        <ArrowLeft size={14} />
-        Back to Webinars
-      </button>
+//   ];
 
-      <PageHeader
-        title={webinar?.title || "Registrations"}
-        subtitle={`${registrations.length} registration${registrations.length !== 1 ? "s" : ""}`}
-        titleIcon={<Users size={22} className="text-indigo-500" />}
-        // filters={filters}
-        // setFilters={setFilters}
-        // filterFields={filterFields}
-        actions={
-          <ExportButton
-            filename={`${webinar?.title || "registrations"}`}
-            title={webinar?.title}
-            fetchData={async () => registrations}
-            columns={exportColumns}
-          />
-        }
-      />
+//   return (
+//     <>
+//       <button
+//         onClick={() => router.push("/dashboard/webinars")}
+//         className="flex items-center gap-1 text-sm text-gray-600 hover:text-navy-900 mb-4"
+//       >
+//         <ArrowLeft size={14} />
+//         Back to Webinars
+//       </button>
 
-      <DynamicTable
-        data={registrations}
-        isLoading={isLoading}
-        isError={isError}
-        columns={columns}
-        currentPage={filters.page}
-        pageSize={filters.limit}
-        totalPages={1}
-        onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
-      />
-    </>
-  );
-}
+//       <PageHeader
+//         title={webinar?.title || "Registrations"}
+//         subtitle={`${registrations.length} registration${registrations.length !== 1 ? "s" : ""}`}
+//         titleIcon={<Users size={22} className="text-indigo-500" />}
+//         // filters={filters}
+//         // setFilters={setFilters}
+//         // filterFields={filterFields}
+//         actions={
+//           <ExportButton
+//             filename={`${webinar?.title || "registrations"}`}
+//             title={webinar?.title}
+//             fetchData={async () => registrations}
+//             columns={exportColumns}
+//           />
+//         }
+//       />
+
+//       <DynamicTable
+//         data={registrations}
+//         isLoading={isLoading}
+//         isError={isError}
+//         columns={columns}
+//         currentPage={filters.page}
+//         pageSize={filters.limit}
+//         totalPages={1}
+//         onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
+//       />
+//     </>
+//   );
+// }

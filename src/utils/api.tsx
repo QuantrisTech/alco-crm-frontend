@@ -692,12 +692,31 @@ export const adminRejectAudioAccess = (id: string, reason: string) =>
   API.patch(`/api/v1/audio-access/${id}/reject`, { reason });
 
 // ─── Webinar Registration Forms ───────────────────────────────
+export interface AssignRoleUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: "super_admin" | "admin" | "rm" | "sales_manager" | "sales_rep" | "finance_manager" | "user";
+}
+
+export interface AssignRolesResponse {
+  users: AssignRoleUser[];
+  total?: number;
+  page?: number;
+  totalPages?: number;
+}
+
+export interface AssignRolesParams {
+  page?: number;
+  limit?: number;
+}
 export const getWebinars = () => API.get("/api/webinars");
 export const getWebinar = (id: string) => API.get(`/api/webinars/${id}`);
 export const createWebinar = (data: any) => API.post("/api/webinars", data);
 export const updateWebinar = (id: string, data: any) => API.put(`/api/webinars/${id}`, data);
 export const deleteWebinar = (id: string) => API.delete(`/api/webinars/${id}`);
 export const getRegistrations = (id: string) => API.get(`/api/webinars/${id}/registrations`);
+export const duplicateWebinar = (id: string) => API.post(`/api/webinars/${id}/duplicate`);
 
 
 export default API;
