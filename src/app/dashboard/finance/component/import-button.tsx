@@ -23,6 +23,21 @@ interface EnrollmentOption {
     existingInvoiceNumber?: string | null;
 }
 
+interface AdvanceInfo {
+    amount: number;
+    dueDate?: string | null;
+    description?: string;
+    paidDate?: string | null;
+}
+
+interface InstallmentInfo {
+    number: number;
+    amount: number;
+    dueDate?: string | null;
+    description?: string;
+    paidDate?: string | null;
+}
+
 interface PreviewRow {
     email: string;
     user: { _id: string; name: string; email: string; phone?: string } | null;
@@ -32,7 +47,8 @@ interface PreviewRow {
     dueDate?: string | null;
     issueDate?: string | null;
     invoiceNumber?: string | null;
-    advanceAmount?: number;
+    advance?: AdvanceInfo | null;
+    installments?: InstallmentInfo[];
 }
 
 interface SelectionState {
@@ -64,8 +80,9 @@ interface ConfirmPayloadRow {
     invoiceNumber?: string;
     dueDate?: string | null;
     issueDate?: string | null;
-    advanceAmount?: number;
     items: ConfirmItem[];
+    advance?: { amount: number; dueDate?: string | null; description?: string; paidDate?: string | null; paid: boolean } | null;
+    installments?: { amount: number; dueDate?: string | null; description?: string; paidDate?: string | null; paid: boolean }[];
 }
 
 // ── Badge helper ─────────────────────────────────────────────────────────
@@ -86,6 +103,11 @@ function StatusBadge({ status }: { status: PreviewRow["status"] }) {
     );
 }
 
+function fmtDate(d?: string | null) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("en-PK");
+}
+
 export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKey?: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [step, setStep] = useState<"upload" | "review">("upload");
@@ -98,6 +120,10 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
     const [confirmedEmails, setConfirmedEmails] = useState<Set<string>>(new Set());
     // email -> enrollmentId -> { selected, amount, discount }
     const [selectionMap, setSelectionMap] = useState<Record<string, Record<string, SelectionState>>>({});
+    // email -> advance "Paid" checkbox (default true)
+    const [advancePaidMap, setAdvancePaidMap] = useState<Record<string, boolean>>({});
+    // email -> installment number -> "Paid" checkbox (default true)
+    const [installmentPaidMap, setInstallmentPaidMap] = useState<Record<string, Record<number, boolean>>>({});
 
     const queryClient = useQueryClient();
 
@@ -109,6 +135,8 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         setRemovedEmails(new Set());
         setConfirmedEmails(new Set());
         setSelectionMap({});
+        setAdvancePaidMap({});
+        setInstallmentPaidMap({});
     };
 
     const handleFileSelect = (selected: File | null) => {
@@ -172,7 +200,11 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         },
         onSuccess: (data) => {
             setRows(data.preview);
+
             const defaults: Record<string, Record<string, SelectionState>> = {};
+            const advDefaults: Record<string, boolean> = {};
+            const instDefaults: Record<string, Record<number, boolean>> = {};
+
             data.preview.forEach((r) => {
                 if (r.status === "eligible") {
                     defaults[r.email] = {};
@@ -185,9 +217,21 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                             };
                         }
                     });
+
+                    // ✅ Advance/installment "Paid" checkbox — by default CHECKED (true)
+                    if (r.advance) advDefaults[r.email] = true;
+                    if (r.installments?.length) {
+                        instDefaults[r.email] = {};
+                        r.installments.forEach((inst) => {
+                            instDefaults[r.email][inst.number] = true;
+                        });
+                    }
                 }
             });
+
             setSelectionMap(defaults);
+            setAdvancePaidMap(advDefaults);
+            setInstallmentPaidMap(instDefaults);
             setStep("review");
         },
         onError: (err: any) => {
@@ -195,7 +239,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         },
     });
 
-    // ── Confirm mutation (single row ya bulk, same endpoint) ────────────
+    // ── Confirm mutation ─────────────────────────────────────────────────
     const confirmMutation = useMutation({
         mutationFn: async (payload: ConfirmPayloadRow[]) => {
             const res = await confirmBulkInvoice(payload);
@@ -217,8 +261,6 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
         },
     });
 
-    // ✅ FIXED: advanceMap wasn't declared anywhere — ab row.advanceAmount
-    // (jo Excel column G se preview response mein aata hai) directly use karte hain.
     const buildRowPayload = (row: PreviewRow): ConfirmPayloadRow | null => {
         const sel = selectionMap[row.email] || {};
         const items: ConfirmItem[] = Object.entries(sel)
@@ -236,13 +278,32 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
 
         if (items.length === 0 || !row.user) return null;
 
+        const advance = row.advance
+            ? {
+                  amount: row.advance.amount,
+                  dueDate: row.advance.dueDate || undefined,
+                  description: row.advance.description,
+                  paidDate: row.advance.paidDate || undefined,
+                  paid: advancePaidMap[row.email] ?? true,
+              }
+            : null;
+
+        const installments = (row.installments || []).map((inst) => ({
+            amount: inst.amount,
+            dueDate: inst.dueDate || undefined,
+            description: inst.description,
+            paidDate: inst.paidDate || undefined,
+            paid: installmentPaidMap[row.email]?.[inst.number] ?? true,
+        }));
+
         return {
             user: row.user._id,
             invoiceNumber: row.invoiceNumber || undefined,
             dueDate: row.dueDate || undefined,
             issueDate: row.issueDate || undefined,
-            advanceAmount: row.advanceAmount || 0, // ✅ fixed — pehle advanceMap[row.email] tha (undefined variable)
             items,
+            advance,
+            installments,
         };
     };
 
@@ -296,8 +357,8 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                 <h2 className="text-lg font-semibold text-gray-800">Bulk Create Invoices</h2>
                                 <p className="text-xs text-gray-400 mt-0.5">
                                     {step === "upload"
-                                        ? "Excel se naye invoices banayein (payments alag se)"
-                                        : "Review karein — bundle wale users ke liye multiple programs select kar sakte hain"}
+                                        ? "Excel se naye invoices banayein (advance/installments ke sath)"
+                                        : "Review karein — Paid checkbox uncheck karke kisi installment ko unpaid rakh sakte hain"}
                                 </p>
                             </div>
                             <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition">
@@ -339,12 +400,21 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                         )}
                                     </div>
 
-                                    <p className="text-xs text-gray-500">
-                                        Column order: <strong>A = Name</strong>, <strong>B = Email</strong>, <strong>C = Amount (fallback)</strong>,{" "}
-                                        <strong>D = Due Date</strong>, <strong>E = Issue Date</strong>,{" "}
-                                        <strong>F = Invoice Number (optional)</strong>, <strong>G = Advance Amount (optional)</strong>.
-                                        Bundle wale users ki EK hi invoice banegi jismein saare selected programs shamil hongay.
-                                    </p>
+                                    <div className="text-xs text-gray-500 space-y-1">
+                                        <p>
+                                            <strong>Header names</strong> se columns pehchane jaate hain (order matter nahi karta):
+                                        </p>
+                                        <p className="font-mono text-[11px] bg-gray-50 p-2 rounded border border-gray-200 leading-relaxed">
+                                            Name · Email · Amount · Due Date · Issue Date · Invoice Number ·
+                                            Advance Amount · Advance Paid Date · Advance Description ·
+                                            Installment 1 Amount · Installment 1 Due Date · Installment 1 Description · Installment 1 Paid Date ·
+                                            Installment 2 Amount · ... (jitni installments chahiye)
+                                        </p>
+                                        <p>
+                                            Agar kisi installment ki Due Date khali ho lekin Paid Date di ho, to Due Date automatically
+                                            <strong> Paid Date + 7 din</strong> ban jayegi.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="flex gap-3 p-6 border-t shrink-0">
@@ -392,7 +462,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                         const rowSelections = selectionMap[row.email] || {};
 
                                         const selectedEntries = Object.entries(rowSelections).filter(([, s]) => s.selected);
-                                        const totalAmount = selectedEntries.reduce(
+                                        const programTotal = selectedEntries.reduce(
                                             (sum, [, s]) => sum + Math.max(0, (s.amount || 0) - (s.discount || 0)),
                                             0
                                         );
@@ -415,12 +485,12 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                                     </div>
                                                     <p className="text-xs text-gray-400">{row.email}</p>
                                                     <p className="text-xs text-gray-500 mt-0.5">
-                                                        {row.issueDate ? `issued ${new Date(row.issueDate).toLocaleDateString("en-PK")}` : ""}
-                                                        {row.dueDate ? ` · due ${new Date(row.dueDate).toLocaleDateString("en-PK")}` : ""}
+                                                        {row.issueDate ? `issued ${fmtDate(row.issueDate)}` : ""}
+                                                        {row.dueDate ? ` · due ${fmtDate(row.dueDate)}` : ""}
                                                         {row.invoiceNumber ? ` · Invoice # ${row.invoiceNumber}` : " · Invoice #: auto-generate"}
-                                                        {row.advanceAmount ? ` · Advance: Rs ${row.advanceAmount.toLocaleString()}` : ""}
                                                     </p>
 
+                                                    {/* Program checkboxes */}
                                                     {isEligible && (row.enrollmentOptions?.length || 0) > 0 && (
                                                         <div className="mt-2 space-y-2">
                                                             {row.enrollmentOptions!
@@ -471,9 +541,68 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                                                     {selectedEntries.length} program{selectedEntries.length !== 1 ? "s" : ""} selected
                                                                 </span>
                                                                 <span className="text-xs font-semibold text-gray-800">
-                                                                    Total: Rs {totalAmount.toLocaleString()}
+                                                                    Programs Total: Rs {programTotal.toLocaleString()}
                                                                 </span>
                                                             </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ✅ Advance row */}
+                                                    {isEligible && row.advance && (
+                                                        <div className="mt-2 flex items-center gap-2 bg-amber-50 rounded-lg p-2 flex-wrap">
+                                                            <label className="flex items-center gap-1.5 shrink-0">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={advancePaidMap[row.email] ?? true}
+                                                                    onChange={() =>
+                                                                        setAdvancePaidMap((prev) => ({
+                                                                            ...prev,
+                                                                            [row.email]: !(prev[row.email] ?? true),
+                                                                        }))
+                                                                    }
+                                                                />
+                                                                <span className="text-[10px] text-gray-500">Paid</span>
+                                                            </label>
+                                                            <span className="text-xs font-medium text-amber-800">
+                                                                {row.advance.description || "Advance"}
+                                                            </span>
+                                                            <span className="text-xs text-gray-600">Rs {row.advance.amount.toLocaleString()}</span>
+                                                            <span className="text-[11px] text-gray-500">
+                                                                paid {fmtDate(row.advance.paidDate)} · due {fmtDate(row.advance.dueDate)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ✅ Installments rows */}
+                                                    {isEligible && (row.installments?.length || 0) > 0 && (
+                                                        <div className="mt-2 space-y-1.5">
+                                                            {row.installments!.map((inst) => (
+                                                                <div key={inst.number} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 flex-wrap">
+                                                                    <label className="flex items-center gap-1.5 shrink-0">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={installmentPaidMap[row.email]?.[inst.number] ?? true}
+                                                                            onChange={() =>
+                                                                                setInstallmentPaidMap((prev) => ({
+                                                                                    ...prev,
+                                                                                    [row.email]: {
+                                                                                        ...prev[row.email],
+                                                                                        [inst.number]: !(prev[row.email]?.[inst.number] ?? true),
+                                                                                    },
+                                                                                }))
+                                                                            }
+                                                                        />
+                                                                        <span className="text-[10px] text-gray-500">Paid</span>
+                                                                    </label>
+                                                                    <span className="text-xs font-medium text-gray-700">
+                                                                        {inst.description || `Installment ${inst.number}`}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-600">Rs {inst.amount.toLocaleString()}</span>
+                                                                    <span className="text-[11px] text-gray-500">
+                                                                        {inst.paidDate ? `paid ${fmtDate(inst.paidDate)}` : "not yet paid"} · due {fmtDate(inst.dueDate)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     )}
                                                 </div>
@@ -485,7 +614,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                                             disabled={confirmMutation.isPending || selectedEntries.length === 0}
                                                             className="px-2.5 py-1.5 text-xs rounded bg-teal-100 text-teal-700 hover:bg-teal-200 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                                                         >
-                                                            Confirm ({selectedEntries.length}) — Rs {totalAmount.toLocaleString()}
+                                                            Confirm
                                                         </button>
                                                         <button
                                                             onClick={() => removeRow(row.email)}

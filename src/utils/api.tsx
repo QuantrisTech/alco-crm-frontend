@@ -257,24 +257,39 @@ export const sendPaymentsReportEmail = (body: {
 export const getSalesRoleInvoices = (params?: any) =>
   API.get("/api/v1/finance/invoices/sales", { params });
 
+// ✅ utils/api.ts — PURANA confirmBulkInvoice REPLACE karo isse
+
 export const previewBulkInvoice = (formData: FormData) =>
   API.post("/api/v1/finance/invoices/bulk-import/preview", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
- 
+
 export const confirmBulkInvoice = (
   invoices: {
     user: string;
     invoiceNumber?: string;
     dueDate?: string | null;
     issueDate?: string | null;
-    advanceAmount?: number;
     items: {
       enrollmentId: string;
       programId: string | null;
       programName: string;
       amount: number;
       discount: number;
+    }[];
+    advance?: {
+      amount: number;
+      dueDate?: string | null;
+      description?: string;
+      paidDate?: string | null;
+      paid: boolean; // ✅ agar false, invoice mein PENDING rahegi, Payment record nahi banega
+    } | null;
+    installments?: {
+      amount: number;
+      dueDate?: string | null;
+      description?: string;
+      paidDate?: string | null;
+      paid: boolean;
     }[];
   }[]
 ) => API.post("/api/v1/finance/invoices/bulk-import/confirm", { invoices });
