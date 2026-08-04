@@ -290,7 +290,7 @@ export default function AppDatePicker({
       minDate: min || undefined,
       maxDate: max || undefined,
       disableMobile: true,
-      static: true,
+      // static: true,
       parseDate: (datestr: string, _format: string) =>
         parseFlexibleDate(datestr) ?? new Date(NaN),
       appendTo: typeof document !== "undefined" ? document.body : undefined,

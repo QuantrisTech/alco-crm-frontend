@@ -43,7 +43,6 @@ select {
 
 .flatpickr-calendar {
   z-index: 9999 !important;
-  width: auto !important;
 }
 
 /* ── Main Scrollbar ───────────────────────────── */
