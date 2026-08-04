@@ -381,7 +381,7 @@ export default function InvoicesPage() {
                 label: "Pay Installments",
                 onClick: (inv: any) => setInstallmentInvoice(inv),
                 className: "hover:bg-green-50 hover:text-green-600",
-                hidden: (inv: any) => inv.status === "PAID",
+                // hidden: (inv: any) => inv.status === "PAID",
               },
               {
                 icon: <Eye size={14} />,
