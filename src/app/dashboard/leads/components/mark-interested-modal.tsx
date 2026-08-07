@@ -68,7 +68,7 @@ export default function MarkInterestedModal({ lead, onClose, onSubmit, isSubmitt
     invoiceNumber: existingPlan?.invoiceNumber ?? "",
     issueDate: toDateInput(existingPlan?.issueDate) || todayStr(),
     totalAmount: existingPlan?.totalAmount ?? baseAmount,
-    discount: existingPlan?.discount ?? 0,
+    discount: existingPlan?.discountAmount ?? 0,
     advanceAmount: existingPlan?.advanceAmount ?? 0,
     advanceDueDate: toDateInput(existingPlan?.advanceDueDate) ?? "",
     installments: existingPlan?.installments?.length

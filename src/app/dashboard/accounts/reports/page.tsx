@@ -21,6 +21,36 @@ import {
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
 import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
+import API from "@/utils/api";
+
+
+async function openOrDownloadPdf(url: string, mode: "view" | "download", filename: string) {
+  try {
+    const res = await API.get(url, {
+      responseType: "blob", // ⬅️ zaroori — PDF binary data ke liye
+    });
+
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    if (mode === "view") {
+      window.open(blobUrl, "_blank");
+    } else {
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    // thodi der baad memory clean karo
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+  } catch (err) {
+    console.error("PDF fetch failed:", err);
+    alert("PDF load nahi ho saka. Dobara try karein.");
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -158,6 +188,14 @@ function ProfitLossTab() {
 
   const netPositive = (data?.netProfit || 0) >= 0;
 
+  const pdfQueryParams = () => {
+    const params = new URLSearchParams();
+    if (dateRange.from) params.set("from", dateRange.from);
+    if (dateRange.to) params.set("to", dateRange.to);
+    return params.toString();
+  };
+
+
   return (
     <div className="space-y-5">
       {/* Controls */}
@@ -167,11 +205,38 @@ function ProfitLossTab() {
             ? `Period: ${dateRange.from || "…"} — ${dateRange.to || "…"}`
             : "Period: All Time"}
         </p>
-        <DateRangeFilter
-          from={dateRange.from}
-          to={dateRange.to}
-          onChange={(from, to) => setDateRange({ from, to })}
-        />
+        <div className="flex items-center gap-3">
+          <DateRangeFilter
+            from={dateRange.from}
+            to={dateRange.to}
+            onChange={(from, to) => setDateRange({ from, to })}
+          />
+          <button
+            onClick={() =>
+              openOrDownloadPdf(
+                `/api/v1/reports/profit-loss?format=pdf&mode=view${pdfQueryParams() ? `&${pdfQueryParams()}` : ""}`,
+                "view",
+                "profit-loss.pdf"
+              )
+            }
+            className="text-gray-400 hover:text-gray-600 text-sm"
+          >
+            View PDF
+          </button>
+
+          <button
+            onClick={() =>
+              openOrDownloadPdf(
+                `/api/v1/reports/profit-loss?format=pdf&mode=download${pdfQueryParams() ? `&${pdfQueryParams()}` : ""}`,
+                "download",
+                "profit-loss.pdf"
+              )
+            }
+            className="text-gray-400 hover:text-gray-600 text-sm"
+          >
+            Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -255,9 +320,36 @@ function BalanceSheetTab() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">As of: {fmtDate(data?.asOf)}</p>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${data?.isBalanced ? "bg-green-100 text-green-700" : "bg-rose-100 text-rose-700"}`}>
-          {data?.isBalanced ? "✓ Balanced" : "⚠ Unbalanced"}
-        </span>
+        <div>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${data?.isBalanced ? "bg-green-100 text-green-700" : "bg-rose-100 text-rose-700"}`}>
+            {data?.isBalanced ? "✓ Balanced" : "⚠ Unbalanced"}
+          </span>
+          <button
+            onClick={() =>
+              openOrDownloadPdf(
+                "/api/v1/reports/balance-sheet?format=pdf&mode=view",
+                "view",
+                "balance-sheet.pdf"
+              )
+            }
+            className="text-gray-400 hover:text-gray-600"
+          >
+            View PDF
+          </button>
+
+          <button
+            onClick={() =>
+              openOrDownloadPdf(
+                "/api/v1/reports/balance-sheet?format=pdf&mode=download",
+                "download",
+                "balance-sheet.pdf"
+              )
+            }
+            className="text-gray-400 hover:text-gray-600"
+          >
+            Download PDF
+          </button>
+        </div>
       </div>
 
       {/* Summary */}

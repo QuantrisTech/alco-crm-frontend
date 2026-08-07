@@ -67,9 +67,10 @@ function InvoiceCard({ invoice }: { invoice: any }) {
   const cfg = statusConfig[invoice.status] || statusConfig.PENDING;
   const Icon = cfg.icon;
   const paid = invoice.paidAmount || 0;
-  const total = invoice.totalAmount || 0;
-  const remaining = invoice.remainingAmount || 0;
-  const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+  const gross = invoice.totalAmount || 0;
+  const discount = invoice.discountAmount || 0;
+  const net = gross - discount;
+  const pct = net > 0 ? Math.round((paid / net) * 100) : 0;
 
   // ── Overdue sirf UNPAID installments se calculate karo ─────
   const unpaidInstallments = (invoice.installments || []).filter((i: any) => i.status !== "PAID");
@@ -163,7 +164,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
         </div>
 
         {/* ── Action buttons row ── */}
-        {/* <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <button
             onClick={() => DownloadInvoice(invoice, userForInvoice)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
@@ -180,7 +181,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
             {sendingInvoice ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
             Email Me Invoice
           </button>
-        </div> */}
+        </div>
 
         {/* Progress bar */}
         <div className="mb-1">
@@ -193,6 +194,41 @@ function InvoiceCard({ invoice }: { invoice: any }) {
               className={`h-2 rounded-full transition-all duration-700 ${pct >= 100 ? "bg-green-400" : pct > 0 ? "bg-yellow-400" : "bg-gray-200"}`}
               style={{ width: `${pct}%` }}
             />
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-500">Gross Amount</span>
+            <span className="font-medium text-gray-600">{fmt(gross)}</span>
+          </div>
+
+          {discount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-blue-500">Discount</span>
+              <span className="font-medium text-blue-500">
+                - {fmt(discount)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between border-t pt-2">
+            <span className=" text-gray-500">Net Amount</span>
+            <span className="font-semibold text-gray-600">{fmt(net)}</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-green-600">Paid</span>
+            <span className="font-medium text-green-600">
+              {fmt(invoice.paidAmount)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-rose-500">Remaining</span>
+            <span className="font-medium text-rose-500">
+              {fmt(invoice.remainingAmount)}
+            </span>
           </div>
         </div>
 
@@ -387,9 +423,22 @@ function PaymentsContent() {
     refetchOnWindowFocus: true,
   });
 
+  const [filters, setFilters] = useState({ search: "" });
+
   const invoices = data?.data?.data || [];
-  const active = invoices.filter((i: any) => i.status !== "PAID");
-  const paid = invoices.filter((i: any) => i.status === "PAID");
+
+
+  const filteredInvoices = invoices.filter((inv: any) => {
+    const q = (filters.search || "").toLowerCase().trim();
+    if (!q) return true;
+    return (
+      inv.invoiceNumber?.toLowerCase().includes(q) ||
+      inv.enrollment?.program?.name?.toLowerCase().includes(q)
+    );
+  });
+
+  const active = filteredInvoices.filter((i: any) => i.status !== "PAID");
+  const paid = filteredInvoices.filter((i: any) => i.status === "PAID");
 
   return (
     <>
@@ -398,6 +447,15 @@ function PaymentsContent() {
         subtitle="View your invoices and payment history"
         titleIcon={<CreditCard size={24} />}
         totalCount={invoices.length}
+        filters={filters}
+        setFilters={setFilters}
+        filterFields={[
+          {
+            type: "input",
+            name: "search",
+            placeholder: "Search by program or invoice #...",
+          },
+        ]}
         exportBtn={
           invoices.length > 0 ? (
             <ExportButton
@@ -437,9 +495,13 @@ function PaymentsContent() {
             <p className="text-sm text-gray-400 mt-1">Please contact your finance manager</p>
           </div>
         </div>
+      ) : !filteredInvoices.length ? (             // 👈 naya
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <p className="text-sm text-gray-400">No invoices match "{filters.search}"</p>
+        </div>
       ) : (
         <>
-          <SummaryStats invoices={invoices} />
+          <SummaryStats invoices={filteredInvoices} />
 
           {active.length > 0 && (
             <div className="mb-6">

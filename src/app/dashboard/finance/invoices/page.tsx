@@ -15,7 +15,7 @@ import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import Modal from "@/app/component/ui/model/modal";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
-import { FileText, CheckCircle, Pencil, ListOrdered, Eye, Send, View } from "lucide-react";
+import { FileText, CheckCircle, Pencil, ListOrdered, Eye, Send, View, Percent } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import InstallmentPaymentModal from "../component/installment-payment-modal";
 import EditInstallmentsModal from "../component/edit-installments-modal";
@@ -28,6 +28,7 @@ import { deleteInvoice } from "@/utils/api";
 import { Trash2 } from "lucide-react";
 import DeleteInvoiceModal from "../component/delete-invoice-modal";
 import ImportButton from "../component/import-button";
+import BulkDiscountModal from "../component/import-discount-button";
 
 // ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
@@ -97,6 +98,8 @@ export default function InvoicesPage() {
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [installmentInvoice, setInstallmentInvoice] = useState<any>(null);
   const [editInstallmentInvoice, setEditInstallmentInvoice] = useState<any>(null); // ← NEW
+  const [showBulkDiscount, setShowBulkDiscount] = useState(false);
+
 
   const filterFields: FilterField[] = isAdmin
     ? [
@@ -203,7 +206,15 @@ export default function InvoicesPage() {
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
-
+        actions={
+          <button
+            onClick={() => setShowBulkDiscount(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-200 transition-colors"
+          >
+            <Percent size={13} />
+            Bulk Discount
+          </button>
+        }
         exportBtn={
           <div className="flex items-center gap-2">
             <DateRangeFilter
@@ -215,7 +226,7 @@ export default function InvoicesPage() {
             />
 
             <ImportButton />
-            
+
             <ExportButton
               filename="invoices"
               label="Export Excel"
@@ -265,14 +276,14 @@ export default function InvoicesPage() {
                 ),
               },
               {
-              key: "user", label: "Student",
-              render: (inv: any) => (
-                <div>
-                  <p className="font-medium text-sm text-gray-800">{inv.user?.name || "—"}</p>
-                  <p className="text-xs text-gray-400">{inv.user?.email || ""}</p>
-                </div>
-              ),
-            }]
+                key: "user", label: "Student",
+                render: (inv: any) => (
+                  <div>
+                    <p className="font-medium text-sm text-gray-800">{inv.user?.name || "—"}</p>
+                    <p className="text-xs text-gray-400">{inv.user?.email || ""}</p>
+                  </div>
+                ),
+              }]
             : []),
           {
             // ── Program(s) — bundle invoices show every program bundled ──
@@ -461,6 +472,13 @@ export default function InvoicesPage() {
             isLoading={isDeleting}
             onConfirm={(reason) => removeInvoice({ id: deletingInvoice._id, reason })}
           />
+
+          {showBulkDiscount && (
+            <BulkDiscountModal
+              onClose={() => setShowBulkDiscount(false)}
+              onDone={() => queryClient.invalidateQueries({ queryKey: ["invoices"] })}
+            />
+          )}
         </>
       )}
     </>

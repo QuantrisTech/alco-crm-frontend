@@ -281,12 +281,22 @@ function EnrollmentsContent() {
   console.log("Users for dropdown:", users);
 
   // adminGetBatches — only active batches for dropdown
-  const { data: batchesRes } = useQuery({
+  const { data: activeBatchesRes } = useQuery({
     queryKey: ["batches-active"],
     queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
-    // staleTime: 1000 * 60 * 2,
   });
-  const activeBatches = batchesRes?.data ?? [];
+
+  const { data: upcomingBatchesRes } = useQuery({
+    queryKey: ["batches-upcoming"],
+    queryFn: () => adminGetBatches({ status: "upcoming" }).then((r) => r.data),
+  });
+
+  const activeBatches = [
+    ...(activeBatchesRes?.data ?? []),
+    ...(upcomingBatchesRes?.data ?? []),
+  ];
+
+  // const activeBatches = batchesRes?.data ?? [];
 
   // ── Dynamic create fields with dropdowns ─────────────────────────────────
   const createFields: ModalField[] = [
@@ -370,10 +380,17 @@ function EnrollmentsContent() {
       type: "select",
       options: [
         { label: "— None —", value: "" },
-        ...activeBatches.map((b: any) => ({
-          label: b.name,
-          value: b._id,
-        })),
+        ...activeBatches
+          .filter((b: any) => {
+            const batchProgramId = b.program_id?._id || b.program_id;
+            const currentProgramId =
+              editingEnrollment?.program?._id || editingEnrollment?.program;
+            return batchProgramId === currentProgramId;
+          })
+          .map((b: any) => ({
+            label: b.name,
+            value: b._id,
+          })),
       ],
     },
   ];
@@ -1133,7 +1150,10 @@ function EnrollmentsContent() {
       {batchPickerProgram && (
         <BatchPickerModal
           program={batchPickerProgram}
-          batches={activeBatches}
+          batches={activeBatches.filter((b: any) => {
+            const batchProgramId = b.program_id?._id || b.program_id;
+            return batchProgramId === batchPickerProgram.id;
+          })}
           currentBatch={programBatches[batchPickerProgram.id]}
           onConfirm={(batchId) =>
             setProgramBatches((prev) => ({ ...prev, [batchPickerProgram.id]: batchId }))

@@ -90,11 +90,43 @@ export default function FinanceOverview() {
       />
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Revenue" value={fmt(revenue?.summary?.totalRevenue)} icon={TrendingUp} color="bg-teal-500" />
-        <StatCard label="Total Collected" value={fmt(revenue?.summary?.totalCollected)} icon={CheckCircle} color="bg-green-500" />
-        <StatCard label="Pending / Outstanding" value={fmt(pending?.totalOutstanding)} sub={`${pending?.count || 0} invoices`} icon={Clock} color="bg-yellow-500" href="/dashboard/finance/invoices/pending" />
-        <StatCard label="Overdue" value={overdue?.count ?? 0} sub="invoices overdue" icon={AlertCircle} color="bg-rose-500" href="/dashboard/finance/invoices/overdue" />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard
+          label="Gross Revenue"
+          value={fmt(revenue?.summary?.grossRevenue)}
+          icon={TrendingUp}
+          color="bg-indigo-500"
+        />
+
+        <StatCard
+          label="Discount"
+          value={fmt(revenue?.summary?.totalDiscount)}
+          icon={Wallet}
+          color="bg-orange-500"
+        />
+
+        <StatCard
+          label="Net Revenue"
+          value={fmt(revenue?.summary?.netRevenue)}
+          icon={TrendingUp}
+          color="bg-teal-500"
+        />
+
+        <StatCard
+          label="Total Collected"
+          value={fmt(revenue?.summary?.totalCollected)}
+          icon={CheckCircle}
+          color="bg-green-500"
+        />
+
+        <StatCard
+          label="Pending / Outstanding"
+          value={fmt(pending?.totalOutstanding)}
+          sub={`${pending?.count || 0} invoices`}
+          icon={Clock}
+          color="bg-yellow-500"
+          href="/dashboard/finance/invoices/pending"
+        />
       </div>
 
       {/* Charts Row */}

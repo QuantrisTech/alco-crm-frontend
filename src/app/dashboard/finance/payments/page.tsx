@@ -74,7 +74,7 @@ const editPaymentFields: ModalField[] = [
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState({ status: "", method: "", page: "1", limit: "10", dateFrom: "", dateTo: "" });
+  const [filters, setFilters] = useState({ status: "", method: "", search: "", page: "1", limit: "10", dateFrom: "", dateTo: "" });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [approvingPayment, setApprovingPayment] = useState<any>(null);
@@ -82,6 +82,11 @@ export default function PaymentsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]); // 👈 naya state — checkbox selection k liye
 
   const filterFields: FilterField[] = [
+    {
+      type: "input",
+      name: "search",
+      placeholder: "Search by name or email...",
+    },
     {
       type: "select", name: "status",
       options: [
@@ -173,6 +178,7 @@ export default function PaymentsPage() {
                   limit: 10000,
                   status: filters.status,
                   method: filters.method,
+                  search: filters.search,
                   dateFrom: filters.dateFrom,
                   dateTo: filters.dateTo,
                 });
@@ -181,6 +187,7 @@ export default function PaymentsPage() {
               columns={[
                 { header: "Student", key: "user.name" },
                 { header: "Email", key: "user.email" },
+                { header: "Invoice #", key: "invoice.invoiceNumber" },
                 { header: "Amount (Rs)", key: "amount", format: (v) => Number(v || 0).toLocaleString() },
                 { header: "Method", key: "method" },
                 { header: "Reference #", key: "referenceNumber" },
@@ -219,8 +226,27 @@ export default function PaymentsPage() {
         selectedIds={selectedIds}
         onSelectAll={toggleSelectAll}
         onToggleSelect={toggleSelect}
+        showSerial={false}  
         columns={[
-          { key: "user", label: "Student", render: (p) => <span className="font-medium text-gray-800">{p.user?.name || "—"}</span> },
+          {
+            key: "invoiceNumber", label: "Invoice #",
+            render: (p) => (
+              <span className="text-gray-600 text-sm font-mono font-semibold">
+                {p.invoice?.invoiceNumber || "—"}
+              </span>
+            ),
+          },
+          {
+            key: "user", label: "Student",
+            render: (p) => (
+              <div>
+                <p className="font-medium text-gray-800">{p.user?.name || "—"}</p>
+                {p.user?.email && (
+                  <p className="text-xs text-gray-400 mt-0.5">{p.user.email}</p>
+                )}
+              </div>
+            ),
+          },
           { key: "amount", label: "Amount", render: (p) => <span className="font-bold text-gray-800">Rs {(p.amount || 0).toLocaleString()}</span> },
           {
             key: "method", label: "Method",

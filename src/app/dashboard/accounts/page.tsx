@@ -22,19 +22,35 @@ type Tab = "overview" | "accounts" | "expenses" | "journal" | "reports";
 
 // ── KPI Card ──────────────────────────────────────────────────
 function KpiCard({
-  label, value, icon: Icon, color, sub,
+  label,
+  value,
+  icon: Icon,
+  color,
+  sub,
+  children,
 }: {
-  label: string; value: string; icon: any; color: string; sub?: string;
+  label: string;
+  value: string;
+  icon: any;
+  color: string;
+  sub?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm flex items-start gap-4">
-      <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+      <div
+        className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${color}`}
+      >
         <Icon size={20} className="text-white" />
       </div>
+
       <div className="flex-1 min-w-0">
         <p className="text-sm text-gray-500">{label}</p>
         <p className="text-2xl font-bold text-gray-800 mt-0.5">{value}</p>
+
         {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+
+        {children}
       </div>
     </div>
   );
@@ -84,30 +100,63 @@ function OverviewTab() {
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          label="Total Income"
+          label="Income"
           value={fmt(dash?.totalIncome)}
           icon={TrendingUp}
           color="bg-green-500"
+        >
+          <div className="mt-3 space-y-1 text-xs">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span className="font-semibold">Gross</span>
+              <span className="font-semibold text-green-600">
+                {fmt(dash?.grossIncome)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-sm text-gray-500">
+              <span className="font-semibold">Discount</span>
+              <span className="font-semibold text-red-500">
+                - {fmt(dash?.discounts)}
+              </span>
+            </div>
+          </div>
+        </KpiCard>
+
+        <KpiCard
+          label="Discounts"
+          value={fmt(dash?.discounts)}
+          icon={TrendingDown}
+          color="bg-yellow-500"
         />
+
+        {/* <KpiCard
+          label="Net Income"
+          value={fmt(dash?.totalIncome)}
+          icon={DollarSign}
+          color="bg-emerald-500"
+        /> */}
+
         <KpiCard
           label="Total Expenses"
           value={fmt(dash?.totalExpenses)}
-          icon={TrendingDown}
-          color="bg-rose-500"
+          icon={Receipt}
+          color="bg-red-500"
         />
+
         <KpiCard
           label="Net Profit"
           value={fmt(dash?.netProfit)}
-          icon={DollarSign}
+          icon={TrendingUp}
           color={dash?.netProfit >= 0 ? "bg-teal-500" : "bg-orange-500"}
           sub={dash?.netProfit >= 0 ? "Profit" : "Loss"}
         />
-        <KpiCard
+
+        {/* <KpiCard
           label="Total Assets"
           value={fmt(dash?.totalAssets)}
           icon={Landmark}
           color="bg-blue-500"
-        />
+        /> */}
       </div>
 
       {/* Pending expenses alert */}
@@ -187,7 +236,7 @@ export default function AccountsPage() {
     { key: "accounts", label: "Accounts", icon: BookOpen },
     { key: "expenses", label: "Expenses", icon: Receipt },
     { key: "journal", label: "Journal", icon: TrendingUp },
-    { key: "reports", label: "Reports", icon: NotepadText},
+    { key: "reports", label: "Reports", icon: NotepadText },
   ];
 
   return (
@@ -215,8 +264,8 @@ export default function AccountsPage() {
             key={key}
             onClick={() => setActiveTab(key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === key
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+              ? "bg-white text-gray-800 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
               }`}
           >
             <Icon size={14} />
@@ -228,8 +277,8 @@ export default function AccountsPage() {
       {/* Tab Content */}
       {activeTab === "overview" && <OverviewTab />}
       {activeTab === "accounts" && <AccountsList />}
-      {activeTab === "expenses"  && <ExpenseList />}
-      {activeTab === "journal"   && <JournalList />}
+      {activeTab === "expenses" && <ExpenseList />}
+      {activeTab === "journal" && <JournalList />}
       {activeTab === "reports" && <ReportsPage />}
     </>
   );

@@ -26,7 +26,6 @@ import { ModalField } from "@/types/ui";
 import KanbanBoard from "./kanban-board";
 import PaymentPlanModal from "./payment-plan-modal";
 import MarkInterestedModal from "./mark-interested-modal";
-import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
 import Select from "@/app/component/ui/select";
 import ViewContractModal from "./view-contract-modal";
 import ViewPaymentPlanModal from "./view-payment-plan-modal";
@@ -123,9 +122,18 @@ export default function AdminLeads() {
   const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
 
   // Batches fetch
+  const selectedProgram =
+    editingLead?.program_id?._id ||
+    editingLead?.program_id ||
+    "";
+
   const { data: batches } = useQuery({
-    queryKey: ["batches-active"],
-    queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
+    queryKey: ["batches", selectedProgram],
+    queryFn: () =>
+      adminGetBatches({
+        program_id: selectedProgram,
+      }).then((r) => r.data),
+    enabled: !!selectedProgram,
   });
 
   const { data: usersRes } = useQuery({
@@ -141,21 +149,21 @@ export default function AdminLeads() {
     );
 
   // Inject function
-  const injectBatches = (fields: ModalField[]) =>
-    fields.map((f) =>
-      f.name === "batch_id"
-        ? {
+const injectBatches = (fields: ModalField[]) =>
+  fields.map((f) =>
+    f.name === "batch_id"
+      ? {
           ...f,
           options: [
             { label: "— None —", value: "" },
             ...(batches?.data || []).map((b: any) => ({
-              label: b.name,
+              label: `${b.name} (${b.status})`,
               value: b._id,
             })),
           ],
         }
-        : f
-    );
+      : f
+  );
 
   // Apply both injections
   const injectAll = (fields: ModalField[]) => injectBatches(injectPrograms(fields));

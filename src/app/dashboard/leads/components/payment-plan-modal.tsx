@@ -102,7 +102,7 @@ export default function PaymentPlanModal({ lead, onClose, onSubmit, isSubmitting
     invoiceNumber: existingPlan?.invoiceNumber ?? "",
     issueDate: toDateInput(existingPlan?.issueDate) || todayStr(),
     totalAmount: existingPlan?.totalAmount ?? lead?.opportunity_value ?? 0,
-    discount: existingPlan?.discount ?? 0,
+    discount: existingPlan?.discountAmount ?? 0,
     advanceAmount: existingPlan?.advanceAmount ?? 0,
     advanceDueDate: toDateInput(existingPlan?.advanceDueDate) ?? "",
     installments: existingPlan?.installments?.length

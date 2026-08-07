@@ -294,6 +294,15 @@ export const confirmBulkInvoice = (
   }[]
 ) => API.post("/api/v1/finance/invoices/bulk-import/confirm", { invoices });
 
+// Bulk Discount Correction
+export const previewBulkDiscount = (formData: FormData) =>
+  API.post("/api/v1/finance/invoices/bulk-discount/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const confirmBulkDiscount = (rows: any[]) =>
+  API.post("/api/v1/finance/invoices/bulk-discount/confirm", { rows });
+
 // ─── Finance — Payments ──────────────────────────────────────
 export const getAllPayments = (params?: any) => API.get("/api/v1/finance/payments", { params });
 export const getPaymentById = (id: string) => API.get(`/api/v1/finance/payments/${id}`);

@@ -35,6 +35,7 @@ type Props = {
   selectedIds?: string[];
   onSelectAll?: () => void;
   onToggleSelect?: (id: string) => void;
+  showSerial?: boolean;
 };
 
 const TableIcon = () => (
@@ -62,7 +63,10 @@ const Spinner = () => (
 );
 
 // --- Card View ---
-function CardView({ data, columns, actions, currentPage, pageSize, onRowClick }: { data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void }) {
+function CardView({ data, columns, actions, currentPage, pageSize, onRowClick, showSerial = true }: {   // 👈 default true
+  data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void;
+  showSerial?: boolean;   // 👈 naya
+}) {
   if (data.length === 0) {
     return <div className="text-center py-16 text-gray-400 text-sm">No data found</div>;
   }
@@ -76,9 +80,11 @@ function CardView({ data, columns, actions, currentPage, pageSize, onRowClick }:
           className={`bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-4 flex flex-col gap-3 group ${onRowClick ? "cursor-pointer" : ""}`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold bg-yellow-50 text-yellow-600 border border-yellow-200 px-2 py-0.5 rounded-full">
-              #{(currentPage - 1) * pageSize + index + 1}
-            </span>
+            {showSerial ? (
+              <span className="text-xs font-semibold bg-yellow-50 text-yellow-600 border border-yellow-200 px-2 py-0.5 rounded-full">
+                #{(currentPage - 1) * pageSize + index + 1}
+              </span>
+            ) : <span />}
             {actions.length > 0 && (
               <div className="flex items-center gap-1">
                 {actions.map((action, i) => {
@@ -136,11 +142,12 @@ function CardView({ data, columns, actions, currentPage, pageSize, onRowClick }:
 
 // --- Table View ---
 function TableView({ data, columns, actions, currentPage, pageSize, onRowClick,
-  selectedIds, onSelectAll, onToggleSelect }: {
+  selectedIds, onSelectAll, onToggleSelect, showSerial = true }: {
     data: any[]; columns: Column[]; actions: Action[]; currentPage: number; pageSize: number; onRowClick?: (item: any) => void,
     selectedIds?: string[];
     onSelectAll?: () => void;
     onToggleSelect?: (id: string) => void;
+    showSerial?: boolean;   // 👈 naya
   }) {
   const allSelected = selectedIds?.length === data.length && data.length > 0;
 
@@ -159,7 +166,7 @@ function TableView({ data, columns, actions, currentPage, pageSize, onRowClick,
                 />
               </th>
             )}
-            <th className="px-4 py-4 font-medium w-10">#</th>
+            {showSerial && <th className="px-4 py-4 font-medium w-10">#</th>}
             {columns.map((col) => (
               <th key={col.key} className="px-4 py-4 font-medium whitespace-nowrap">{col.label}</th>
             ))}
@@ -181,9 +188,11 @@ function TableView({ data, columns, actions, currentPage, pageSize, onRowClick,
                   />
                 </td>
               )}
-              <td className="px-4 py-4 text-gray-400 text-xs">
-                {(currentPage - 1) * pageSize + index + 1}
-              </td>
+              {showSerial && (   // 👈 conditional
+                <td className="px-4 py-4 text-gray-400 text-xs">
+                  {(currentPage - 1) * pageSize + index + 1}
+                </td>
+              )}
               {columns.map((col) => (
                 <td
                   key={col.key}
@@ -255,6 +264,7 @@ export default function DynamicTable({
   onRowClick,
   onPageChange,
   selectedIds, onSelectAll, onToggleSelect,
+  showSerial = true,
 }: Props) {
   const [view, setView] = useState<"table" | "card">("table");
 
@@ -296,9 +306,11 @@ export default function DynamicTable({
           <TableView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick}
             selectedIds={selectedIds}
             onSelectAll={onSelectAll}
-            onToggleSelect={onToggleSelect} />
+            onToggleSelect={onToggleSelect}
+            showSerial={showSerial}
+          />
         ) : (
-          <CardView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick} />
+          <CardView data={data} columns={columns} actions={actions} currentPage={currentPage} pageSize={pageSize} onRowClick={onRowClick} showSerial={showSerial} />
         )}
       </div>
 

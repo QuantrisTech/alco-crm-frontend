@@ -4,9 +4,15 @@ import { Calendar, ChevronDown, X } from "lucide-react";
 import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 // ── Presets ───────────────────────────────────────────────────
+const fmt = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 export function getPresetRange(preset: string): { from: string; to: string } {
   const now = new Date();
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
 
   switch (preset) {
     case "this_week": {
@@ -24,7 +30,7 @@ export function getPresetRange(preset: string): { from: string; to: string } {
       return { from: fmt(from), to: fmt(to) };
     }
     case "this_quarter": {
-      const q    = Math.floor(now.getMonth() / 3);
+      const q = Math.floor(now.getMonth() / 3);
       const from = new Date(now.getFullYear(), q * 3, 1);
       return { from: fmt(from), to: fmt(now) };
     }
@@ -34,7 +40,7 @@ export function getPresetRange(preset: string): { from: string; to: string } {
     case "last_year": {
       return {
         from: fmt(new Date(now.getFullYear() - 1, 0, 1)),
-        to:   fmt(new Date(now.getFullYear() - 1, 11, 31)),
+        to: fmt(new Date(now.getFullYear() - 1, 11, 31)),
       };
     }
     default:
@@ -113,8 +119,8 @@ export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterP
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${hasFilter
-            ? "bg-yellow-50 border-yellow-300 text-yellow-700"
-            : "bg-white border-gray-200 text-gray-600 hover:border-yellow-400"
+          ? "bg-yellow-50 border-yellow-300 text-yellow-700"
+          : "bg-white border-gray-200 text-gray-600 hover:border-yellow-400"
           }`}
       >
         <Calendar size={14} />
@@ -135,8 +141,8 @@ export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterP
                 key={p.key}
                 onClick={() => applyPreset(p.key)}
                 className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${preset === p.key
-                    ? "bg-yellow-50 text-yellow-700 font-medium"
-                    : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-yellow-50 text-yellow-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-50"
                   }`}
               >
                 {p.label}
@@ -149,8 +155,8 @@ export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterP
             <button
               onClick={() => setPreset("custom")}
               className={`w-full text-left px-3 py-2 text-sm rounded-lg mb-2 flex items-center gap-2 transition-colors ${preset === "custom"
-                  ? "bg-yellow-50 text-yellow-700 font-medium"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-yellow-50 text-yellow-700 font-medium"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               <Calendar size={13} /> Custom Range

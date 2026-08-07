@@ -31,9 +31,18 @@ function BatchSelectModal({ lead, onConfirm, onClose }: {
   const [selectedBatch, setSelectedBatch] = useState("");
   const [error, setError] = useState("");
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["admin-batches", { status: "active" }],
-    queryFn: () => adminGetBatches({ status: "active" }).then((res) => res.data),
+  const programId =
+    typeof lead.program_id === "object"
+      ? lead.program_id?._id
+      : lead.program_id;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-batches", programId],
+    queryFn: () =>
+      adminGetBatches({
+        program_id: programId,
+      }).then((res) => res.data),
+    enabled: !!programId,
   });
 
   console.log("Batch query error:", data)
@@ -74,9 +83,13 @@ function BatchSelectModal({ lead, onConfirm, onClose }: {
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-300 bg-gray-50"
           >
             <option value="">— Select Batch —</option>
+
             {data?.data?.map((batch: any) => (
               <option key={batch._id} value={batch._id}>
-                {batch.name} {batch.start_date ? `(${new Date(batch.start_date).toLocaleDateString()})` : ""}
+                {batch.name} ({batch.status})
+                {batch.start_date
+                  ? ` - ${new Date(batch.start_date).toLocaleDateString()}`
+                  : ""}
               </option>
             ))}
           </select>
