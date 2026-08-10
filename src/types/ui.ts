@@ -73,7 +73,7 @@ export type ModalProps = {
   subtitle?: string;
   title: string;
   fields: ModalField[];
-  initialValues?: Record<string, string | boolean | undefined>;
+  initialValues?: Record<string, string | boolean>;
   onSubmit: (data: Record<string, string | boolean>) => void;
   isLoading?: boolean;
   mode?: "add" | "edit";
