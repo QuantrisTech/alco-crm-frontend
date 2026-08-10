@@ -47,6 +47,7 @@ interface PreviewRow {
     dueDate?: string | null;
     issueDate?: string | null;
     invoiceNumber?: string | null;
+    discountAmount?: number;
     advance?: AdvanceInfo | null;
     installments?: InstallmentInfo[];
 }
@@ -208,14 +209,25 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
             data.preview.forEach((r) => {
                 if (r.status === "eligible") {
                     defaults[r.email] = {};
-                    r.enrollmentOptions?.forEach((o) => {
-                        if (!o.hasInvoice) {
-                            defaults[r.email][o.enrollmentId] = {
-                                selected: r.defaultSelectedIds?.includes(o.enrollmentId) ?? true,
-                                amount: o.defaultAmount,
-                                discount: 0,
-                            };
-                        }
+
+                    // ✅ Excel se aaya discount — jitne programs select honge unme split ho jayega
+                    const availableOpts = (r.enrollmentOptions || []).filter((o) => !o.hasInvoice);
+                    const selectedOpts = availableOpts.filter((o) =>
+                        r.defaultSelectedIds?.includes(o.enrollmentId) ?? true
+                    );
+                    const rowDiscount = r.discountAmount || 0;
+                    const perItemDiscount = selectedOpts.length > 0 ? rowDiscount / selectedOpts.length : 0;
+
+                    // ✅ FIXED — sirf ye ek loop rakha hai. Pehle iske baad ek doosra
+                    // r.enrollmentOptions?.forEach(...) loop tha jo discount ko hamesha
+                    // 0 se overwrite kar deta tha (duplicate/leftover code — bug ki wajah).
+                    availableOpts.forEach((o) => {
+                        const isSelected = r.defaultSelectedIds?.includes(o.enrollmentId) ?? true;
+                        defaults[r.email][o.enrollmentId] = {
+                            selected: isSelected,
+                            amount: o.defaultAmount,
+                            discount: isSelected ? Math.round(perItemDiscount) : 0,
+                        };
                     });
 
                     // ✅ Advance/installment "Paid" checkbox — by default CHECKED (true)
@@ -280,12 +292,12 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
 
         const advance = row.advance
             ? {
-                  amount: row.advance.amount,
-                  dueDate: row.advance.dueDate || undefined,
-                  description: row.advance.description,
-                  paidDate: row.advance.paidDate || undefined,
-                  paid: advancePaidMap[row.email] ?? true,
-              }
+                amount: row.advance.amount,
+                dueDate: row.advance.dueDate || undefined,
+                description: row.advance.description,
+                paidDate: row.advance.paidDate || undefined,
+                paid: advancePaidMap[row.email] ?? true,
+            }
             : null;
 
         const installments = (row.installments || []).map((inst) => ({
@@ -405,10 +417,13 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                             <strong>Header names</strong> se columns pehchane jaate hain (order matter nahi karta):
                                         </p>
                                         <p className="font-mono text-[11px] bg-gray-50 p-2 rounded border border-gray-200 leading-relaxed">
-                                            Name · Email · Amount · Due Date · Issue Date · Invoice Number ·
+                                            Name · Email · Amount · Discount · Due Date · Issue Date · Invoice Number ·
                                             Advance Amount · Advance Paid Date · Advance Description ·
                                             Installment 1 Amount · Installment 1 Due Date · Installment 1 Description · Installment 1 Paid Date ·
                                             Installment 2 Amount · ... (jitni installments chahiye)
+                                        </p>
+                                        <p>
+                                            "Discount" column optional hai — agar diya, to automatically program fee se subtract hoga (review step mein edit bhi kar sakte hain).
                                         </p>
                                         <p>
                                             Agar kisi installment ki Due Date khali ho lekin Paid Date di ho, to Due Date automatically
@@ -488,6 +503,7 @@ export default function InvoiceImportButton({ queryKey = "invoices" }: { queryKe
                                                         {row.issueDate ? `issued ${fmtDate(row.issueDate)}` : ""}
                                                         {row.dueDate ? ` · due ${fmtDate(row.dueDate)}` : ""}
                                                         {row.invoiceNumber ? ` · Invoice # ${row.invoiceNumber}` : " · Invoice #: auto-generate"}
+                                                        {row.discountAmount ? ` · Discount from file: Rs ${row.discountAmount.toLocaleString()}` : ""}
                                                     </p>
 
                                                     {/* Program checkboxes */}

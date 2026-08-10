@@ -319,12 +319,20 @@ function EntryDetail({ entry }: { entry: any }) {
 export default function JournalList() {
   const [showCreate, setShowCreate] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [filters, setFilters] = useState({ sourceType: "", from: "", to: "", page: 1, limit: 10 });
+  const [filters, setFilters] = useState({
+    search: "",
+    sourceType: "",
+    from: "",
+    to: "",
+    page: 1,
+    limit: 10,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["journal-list", filters],
     queryFn: () =>
       getAllJournalEntries({
+        search: filters.search || undefined,
         sourceType: filters.sourceType || undefined,
         from: filters.from || undefined,
         to: filters.to || undefined,
@@ -352,6 +360,11 @@ export default function JournalList() {
         setFilters={setFilters}
         filterFields={[
           {
+            type: "input",
+            name: "search",
+            placeholder: "Search description...",
+          },
+          {
             type: "select",
             name: "sourceType",
             placeholder: "All Sources",
@@ -362,9 +375,7 @@ export default function JournalList() {
               { label: "Manual", value: "manual" },
               { label: "Adjustment", value: "adjustment" },
             ],
-          }
-          // { type: "date", name: "from", placeholder: "From" },
-          // { type: "date", name: "to", placeholder: "To" },
+          },
         ]}
         exportBtn={
           <>

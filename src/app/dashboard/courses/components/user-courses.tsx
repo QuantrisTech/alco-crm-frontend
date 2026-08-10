@@ -185,13 +185,14 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
                   : "fill-gray-900"
             } />
             {isSuspended ? "Suspended"
-              : isRestricted ? "Access Restricted"
+              // : isRestricted ? "Access Restricted"
                 : !hasContent ? "Coming Soon"
                   : audioLocked ? "Audio Locked"
                     : pct === 0 ? "Start Learning"
                       : "Continue Learning"}
           </button>
-          {(!isRestricted && !isSuspended && !audioLocked && hasContent) && (
+          {/* {(!isRestricted && !isSuspended && !audioLocked && hasContent) && ( */}
+          {(!isSuspended && !audioLocked && hasContent) && (
             <button
               onClick={() => setOpen(!open)}
               className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
@@ -205,7 +206,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
         </div>
 
         {/* ── Restricted Overlay Banner ── */}
-        {isRestricted && (
+        {/* {isRestricted && (
           <div className="mt-3 flex items-start gap-3 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3">
             <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center shrink-0 mt-0.5">
               <Lock size={13} className="text-rose-500" />
@@ -217,7 +218,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
               </p>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* ── Suspended Overlay Banner ── */}
         {isSuspended && (

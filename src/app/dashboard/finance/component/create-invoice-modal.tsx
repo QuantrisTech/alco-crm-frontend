@@ -480,10 +480,12 @@
 //   );
 // }
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { X, Search, CreditCard, Plus, Trash2, ChevronLeft, User, BookOpen, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import API from "@/utils/api";
 import { searchEnrollments, createInvoice, addInstallment } from "@/utils/api";
+import { debounce } from "lodash";
 import toast from "react-hot-toast";
 import InputField from "@/app/component/ui/inputField";
 import AppDatePicker from "@/app/component/ui/app-date-picker";
@@ -551,6 +553,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   // ── Fresh invoice form (single enrollment, no existing invoice) ──
   const [freshForm, setFreshForm] = useState({
     totalAmount: 0,
+    discount: 0,
     advanceAmount: 0,
     advanceDueDate: "",
     installments: [] as NewInstallment[],
@@ -575,6 +578,38 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const [appendInstallments, setAppendInstallments] = useState<NewInstallment[]>([
     { label: "Installment 1", amount: 0, dueDate: "" },
   ]);
+
+  // ── Invoice number: auto-generate + duplicate check (fresh & bundle dono) ──
+  const [invoiceNumberChecking, setInvoiceNumberChecking] = useState(false);
+  const [invoiceNumberError, setInvoiceNumberError] = useState<string | null>(null);
+  const [invoiceNumberGenerating, setInvoiceNumberGenerating] = useState(false);
+
+  const checkInvoiceNumberAvailability = async (value: string) => {
+    if (!value.trim()) { setInvoiceNumberError(null); return; }
+    setInvoiceNumberChecking(true);
+    try {
+      const res = await API.get(`/api/v1/finance/invoices/check-number?invoiceNumber=${encodeURIComponent(value.trim())}`);
+      setInvoiceNumberError(res.data.available ? null : "Invoice number already exists");
+    } catch {
+      setInvoiceNumberError(null);
+    } finally {
+      setInvoiceNumberChecking(false);
+    }
+  };
+  const debouncedInvoiceCheck = useMemo(() => debounce(checkInvoiceNumberAvailability, 500), []);
+
+  const generateInvoiceNumberFor = async (setForm: React.Dispatch<React.SetStateAction<any>>) => {
+    setInvoiceNumberGenerating(true);
+    try {
+      const res = await API.get(`/api/v1/finance/invoices/generate-number`);
+      setForm((p: any) => ({ ...p, invoiceNumber: res.data.invoiceNumber }));
+      setInvoiceNumberError(null);
+    } catch {
+      toast.error("Invoice number generate nahi ho saka");
+    } finally {
+      setInvoiceNumberGenerating(false);
+    }
+  };
 
   // ── Debounced search ──────────────────────────────────────────
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -625,13 +660,14 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         setMode("fresh");
         setFreshForm({
           totalAmount: 0,
+          discount: 0,
           advanceAmount: 0,
           advanceDueDate: "",
           installments: [],
           notes: "",
           invoiceNumber: "",
           issueDate: todayStr(),
-        });
+        })
       }
     } else {
       setMode("bundle");
@@ -676,8 +712,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     }));
 
   // ── Fresh form derived values ────────────────────────────────
+  const freshCertAmount = freshCertFee.include ? freshCertFee.amount : 0;
+  const freshManuAmount = freshManuFee.include ? freshManuFee.amount : 0;
+  const freshGrossTotal = freshForm.totalAmount + freshCertAmount + freshManuAmount;
+  const freshNetTotal = Math.max(0, freshGrossTotal - freshForm.discount);
+
   const freshRemaining =
-    freshForm.totalAmount - freshForm.advanceAmount - freshForm.installments.reduce((s, i) => s + Number(i.amount), 0);
+    freshNetTotal - freshForm.advanceAmount - freshForm.installments.reduce((s, i) => s + Number(i.amount), 0);
 
   const addFreshInstallment = () =>
     setFreshForm((p) => ({
@@ -732,20 +773,19 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
   const { mutate: submitFresh, isPending: isFreshPending } = useMutation({
     mutationFn: () => {
       const enrollment = selectedEnrollments[0];
-      const certAmount = freshCertFee.include ? freshCertFee.amount : 0;
-      const manuAmount = freshManuFee.include ? freshManuFee.amount : 0;
 
       const allInstallments = [
         { label: "Advance Payment", amount: freshForm.advanceAmount, dueDate: freshForm.advanceDueDate, isAdvance: true, status: "PENDING", paidAmount: 0 },
         ...freshForm.installments.map((inst) => ({ label: inst.label, amount: inst.amount, dueDate: inst.dueDate, isAdvance: false, status: "PENDING", paidAmount: 0 })),
-        ...(certAmount > 0 ? [{ label: "Certificate Fee", amount: certAmount, dueDate: null, isAdvance: false, status: "PENDING", paidAmount: 0, feeType: "certificate" }] : []),
-        ...(manuAmount > 0 ? [{ label: "Manual Fee", amount: manuAmount, dueDate: null, isAdvance: false, status: "PENDING", paidAmount: 0, feeType: "manual" }] : []),
+        ...(freshCertAmount > 0 ? [{ label: "Certificate Fee", amount: freshCertAmount, dueDate: null, isAdvance: false, status: "PENDING", paidAmount: 0, feeType: "certificate" }] : []),
+        ...(freshManuAmount > 0 ? [{ label: "Manual Fee", amount: freshManuAmount, dueDate: null, isAdvance: false, status: "PENDING", paidAmount: 0, feeType: "manual" }] : []),
       ];
 
       return createInvoice({
         user: enrollment.user._id,
         enrollment: enrollment._id,
-        totalAmount: freshForm.totalAmount + certAmount + manuAmount,
+        totalAmount: freshGrossTotal,        // 👈 gross
+        discountAmount: freshForm.discount,  // 👈 naya
         dueDate: freshForm.advanceDueDate,
         installments: allInstallments,
         notes: freshForm.notes,
@@ -837,11 +877,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
         })),
       ];
 
+      // NAYA
       return createInvoice({
         user: selectedEnrollments[0].user._id,
         enrollments: selectedEnrollments.map((e) => e._id),
         items: allItems,
-        totalAmount: bundleTotal,
+        totalAmount: itemsSubtotal + certFeeSubtotal + manuFeeSubtotal, // 👈 gross
+        discountAmount: bundleForm.discount,                             // 👈 naya
         dueDate: bundleForm.advanceDueDate,
         installments: allInstallments,
         notes: bundleForm.notes,
@@ -882,6 +924,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
   const handleFreshSubmit = () => {
     if (freshForm.totalAmount <= 0) return toast.error("Please enter total program fee");
+    if (freshForm.discount >= freshGrossTotal) return toast.error("Discount cannot exceed total amount");
+    if (invoiceNumberError) return toast.error(invoiceNumberError);
     if (freshForm.advanceAmount <= 0) return toast.error("Please enter advance amount");
     if (!freshForm.advanceDueDate) return toast.error("Please select advance due date");
     if (freshRemaining < 0) return toast.error(`Over-allocated by Rs ${fmt(Math.abs(freshRemaining))}`);
@@ -890,6 +934,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
   const handleBundleSubmit = () => {
     if (bundleTotal <= 0) return toast.error("Please check program amounts");
+    if (invoiceNumberError) return toast.error(invoiceNumberError);
     if (bundleForm.advanceAmount <= 0) return toast.error("Please enter advance amount");
     if (!bundleForm.advanceDueDate) return toast.error("Please select advance due date");
     if (bundleRemaining < 0) return toast.error(`Over-allocated by Rs ${fmt(Math.abs(bundleRemaining))}`);
@@ -912,7 +957,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
     setMode("fresh");
     setFreshCertFee({ include: false, amount: 0 });
     setFreshManuFee({ include: false, amount: 0 });
-    setFreshForm({ totalAmount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "", issueDate: todayStr() });
+    setFreshForm({ totalAmount: 0, discount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "", invoiceNumber: "", issueDate: todayStr() });
+    setInvoiceNumberError(null);
     setBundleForm({ invoiceNumber: "", issueDate: todayStr(), items: [], discount: 0, advanceAmount: 0, advanceDueDate: "", installments: [], notes: "" });
     setAppendInstallments([{ label: "Installment 1", amount: 0, dueDate: "" }]);
     onClose();
@@ -1185,30 +1231,68 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              // NAYA
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <InputField
+                    label="Invoice Number"
+                    type="text"
+                    value={freshForm.invoiceNumber}
+                    onChange={(e: any) => {
+                      const val = e.target.value;
+                      setFreshForm((p) => ({ ...p, invoiceNumber: val }));
+                      debouncedInvoiceCheck(val);
+                    }}
+                    placeholder="e.g. INV-2026-0045"
+                    error={invoiceNumberError || undefined}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => generateInvoiceNumberFor(setFreshForm)}
+                        disabled={invoiceNumberGenerating}
+                        className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 px-2 py-1 rounded-md hover:bg-orange-50 disabled:opacity-50"
+                      >
+                        {invoiceNumberGenerating ? "..." : "Auto"}
+                      </button>
+                    }
+                  />
+                  {invoiceNumberChecking && <p className="text-[10px] text-gray-400 mt-1">Checking...</p>}
+                </div>
+                <AppDatePicker label="Issue Date" value={freshForm.issueDate} onChange={(value) => setFreshForm((p) => ({ ...p, issueDate: value }))} required />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <InputField
-                  label="Invoice Number"
-                  type="text"
-                  value={freshForm.invoiceNumber}
-                  onChange={(e: any) => setFreshForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                  placeholder="e.g. INV-2026-0045"
-                />
-                <AppDatePicker
-                  label="Issue Date"
-                  value={freshForm.issueDate}
-                  onChange={(value) => setFreshForm((p) => ({ ...p, issueDate: value }))}
+                  label="Total Program Fee (Rs)"
+                  type="number"
+                  value={String(freshForm.totalAmount || "")}
+                  onChange={(e: any) => setFreshForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))}
+                  placeholder="e.g. 200000"
                   required
+                />
+                <InputField
+                  label="Discount (Rs) — optional"
+                  type="number"
+                  value={String(freshForm.discount || "")}
+                  onChange={(e: any) => setFreshForm((p) => ({ ...p, discount: Math.max(0, Number(e.target.value)) }))}
+                  placeholder="0"
                 />
               </div>
 
-              <InputField
+              {freshForm.discount > 0 && (
+                <div className="text-xs font-semibold text-teal-600 px-3 py-2 bg-teal-50 rounded-lg">
+                  Net total after discount: Rs {fmt(freshNetTotal)}
+                </div>
+              )}
+
+              {/* <InputField
                 label="Total Program Fee (Rs)"
                 type="number"
                 value={String(freshForm.totalAmount || "")}
                 onChange={(e: any) => setFreshForm((p) => ({ ...p, totalAmount: Number(e.target.value) }))}
                 placeholder="e.g. 200000"
                 required
-              />
+              /> */}
 
               <div className="grid grid-cols-2 gap-3">
                 <InputField
@@ -1395,13 +1479,31 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <InputField
-                  label="Invoice Number"
-                  type="text"
-                  value={bundleForm.invoiceNumber}
-                  onChange={(e: any) => setBundleForm((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                  placeholder="e.g. INV-2026-0045"
-                />
+                <div>
+                  <InputField
+                    label="Invoice Number"
+                    type="text"
+                    value={bundleForm.invoiceNumber}
+                    onChange={(e: any) => {
+                      const val = e.target.value;
+                      setBundleForm((p) => ({ ...p, invoiceNumber: val }));
+                      debouncedInvoiceCheck(val);
+                    }}
+                    placeholder="e.g. INV-2026-0045"
+                    error={invoiceNumberError || undefined}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => generateInvoiceNumberFor(setBundleForm)}
+                        disabled={invoiceNumberGenerating}
+                        className="text-[10px] font-semibold text-orange-500 hover:text-orange-600 px-2 py-1 rounded-md hover:bg-orange-50 disabled:opacity-50"
+                      >
+                        {invoiceNumberGenerating ? "..." : "Auto"}
+                      </button>
+                    }
+                  />
+                  {invoiceNumberChecking && <p className="text-[10px] text-gray-400 mt-1">Checking...</p>}
+                </div>
                 <AppDatePicker
                   label="Issue Date"
                   value={bundleForm.issueDate}
@@ -1597,7 +1699,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: Props) {
                           bg="bg-white"
                         />
                         <AppDatePicker
-                        className="mt-1"
+                          className="mt-1"
                           value={inst.dueDate}
                           onChange={(value) => updateBundleInstallment(idx, "dueDate", value)}
                           required

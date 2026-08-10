@@ -182,6 +182,7 @@ function EnrollmentsContent() {
 
   const [filters, setFilters] = useState<Record<string, string>>({
     status: "",
+    accessStatus: "",
     search: "",
     page: "1",
     limit: "10",
@@ -405,8 +406,17 @@ function EnrollmentsContent() {
         { label: "Active", value: "active" },
         { label: "Completed", value: "completed" },
         { label: "Suspended", value: "suspended" },
-        // { label: "Cancelled", value: "cancelled" },
-        // { label: "Blocked", value: "blocked" },
+      ],
+    },
+    {
+      type: "select",
+      name: "accessStatus",
+      options: [
+        { label: "Active", value: "ACTIVE" },
+        { label: "Grace", value: "GRACE" },
+        { label: "Extended", value: "EXTENDED" },
+        { label: "Restricted", value: "RESTRICTED" },
+        { label: "Blocked", value: "BLOCKED" },
       ],
     },
   ];

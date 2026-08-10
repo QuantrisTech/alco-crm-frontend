@@ -527,6 +527,7 @@ export const getAccountLedger = (
 
 // ─── Journal Entries ─────────────────────────────────────────
 export const getAllJournalEntries = (params?: {
+  search?: string;
   sourceType?: string;
   status?: string;
   from?: string;

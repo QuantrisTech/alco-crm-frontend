@@ -26,7 +26,12 @@ export default function BulkDiscountModal({ onClose, onDone }: { onClose: () => 
     mutationFn: () => {
       const rows = (preview || [])
         .filter((p) => p.status === "eligible")
-        .map((p) => ({ invoiceId: p.invoiceId, discountAmount: p.discountAmount, reason: p.reason }));
+        .map((p) => ({
+          invoiceId: p.invoiceId,
+          discountAmount: p.discountAmount,
+          reason: p.reason,
+        }));
+
       return confirmBulkDiscount(rows);
     },
     onSuccess: (res) => {
