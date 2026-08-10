@@ -320,7 +320,7 @@ export default function AdminPage() {
           initialValues={{
             name: editingUser.name,
             email: editingUser.email,
-            phone: editingUser.phone,  
+            phone: editingUser.phone || "",  
             role: editingUser.role,
             newPassword: "",
           }}

@@ -306,7 +306,7 @@ export default function SalesManagerDashboard() {
           initialValues={{
             name: editingUser.name,
             email: editingUser.email,
-            phone: editingUser.phone,  
+            phone: editingUser.phone || "",  
             role: editingUser.role,
             newPassword: "",
           }}
