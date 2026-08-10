@@ -334,6 +334,8 @@ export default function UsersPage() {
       {/* Edit Modal — 3 tabs */}
       {editingUser && (
         <Modal
+
+          key={editingUser._id}
           isOpen={!!editingUser}
           onClose={() => setEditingUser(null)}
           title="Edit User"
@@ -345,7 +347,7 @@ export default function UsersPage() {
           initialValues={{
             name: editingUser.name,
             email: editingUser.email,
-            phone: editingUser.phone || "",  
+            phone: editingUser.phone || "",
             role: editingUser.role,
             newPassword: "",
           }}

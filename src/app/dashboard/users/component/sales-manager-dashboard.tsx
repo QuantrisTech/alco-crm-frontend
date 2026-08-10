@@ -295,6 +295,7 @@ export default function SalesManagerDashboard() {
       {/* Edit Modal — 3 tabs */}
       {editingUser && (
         <Modal
+          key={editingUser._id}
           isOpen={!!editingUser}
           onClose={() => setEditingUser(null)}
           title="Edit User"
@@ -306,7 +307,7 @@ export default function SalesManagerDashboard() {
           initialValues={{
             name: editingUser.name,
             email: editingUser.email,
-            phone: editingUser.phone || "",  
+            phone: editingUser.phone || "",
             role: editingUser.role,
             newPassword: "",
           }}
