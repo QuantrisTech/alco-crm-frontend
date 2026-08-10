@@ -306,6 +306,7 @@ export default function SalesManagerDashboard() {
           initialValues={{
             name: editingUser.name,
             email: editingUser.email,
+            phone: editingUser.phone,  
             role: editingUser.role,
             newPassword: "",
           }}
@@ -316,8 +317,9 @@ export default function SalesManagerDashboard() {
               fields: [
                 { name: "name", label: "Name", type: "input", inputType: "text" },
                 { name: "email", label: "Email", type: "input", inputType: "email" },
+                { name: "phone", label: "Phone", type: "input", inputType: "text", placeholder: "Enter phone" },
               ],
-              onSubmit: (data) => updateUser({ id: editingUser._id, data: { name: data.name as string } }),
+              onSubmit: (data) => updateUser({ id: editingUser._id, data: { name: data.name as string, email: data.email as string, phone: data.phone as string } }),
             },
             {
               key: "role",
