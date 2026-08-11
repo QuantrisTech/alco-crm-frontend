@@ -560,6 +560,50 @@ function BatchDetailContent() {
             </div>
           </div>
 
+          {/* ── Revenue ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-700 mb-4">
+              Batch Revenue
+            </h2>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Gross Amount</span>
+                <span className="text-sm font-semibold text-gray-700">
+                  PKR {Number(batch.revenue?.grossAmount ?? 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Discount</span>
+                <span className="text-sm font-semibold text-rose-500">
+                  - PKR {Number(batch.revenue?.discountAmount ?? 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Net Amount</span>
+                <span className="text-sm font-bold text-indigo-600">
+                  PKR {Number(batch.revenue?.netAmount ?? 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs text-gray-400">Paid</span>
+                <span className="text-sm font-semibold text-emerald-600">
+                  PKR {Number(batch.revenue?.paidAmount ?? 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Remaining</span>
+                <span className="text-sm font-semibold text-amber-600">
+                  PKR {Number(batch.revenue?.remainingAmount ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Quick Stats */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Quick Stats</h2>
