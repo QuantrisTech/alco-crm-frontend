@@ -514,6 +514,14 @@ export default function JournalList() {
                 { header: "Status", key: "status" },
                 { header: "Date", key: "date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
                 { header: "Created By", key: "createdBy.name" },
+                { header: "Notes", key: "notes" },
+                { header: "Lines", key: "lines", format: (lines) => lines.map((l: any) => `${l.account?.code || ""} (${l.type}): ${l.amount}`).join("; ") },
+                {
+                  header: "Total Debit", key: "lines", format: (lines) => lines.filter((l: any) => l.type === "debit").reduce((s: number, l: any) => s + l.amount, 0)
+                },
+                {
+                  header: "Total Credit", key: "lines", format: (lines) => lines.filter((l: any) => l.type === "credit").reduce((s: number, l: any) => s + l.amount, 0)
+                }
               ]}
             />
           </>
