@@ -126,6 +126,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
     description: "",
     date: new Date().toISOString().split("T")[0],
     notes: "",
+    sourceType: "",
   });
 
   const [lines, setLines] = useState([emptyLine(), emptyLine()]);
@@ -170,7 +171,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div className="col-span-2">
               <InputField
                 label="Description *"
@@ -180,12 +181,31 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
                 onChange={(e: any) => setForm({ ...form, description: e.target.value })}
               />
             </div>
+
+            <Select
+              label="Source Type"
+              placeholder="source type"
+              value={form.sourceType}
+              onChange={(e: any) =>
+                setForm({ ...form, sourceType: e.target.value })
+              }
+              options={[
+                { label: "Payment", value: "payment" },
+                { label: "Invoice", value: "invoice" },
+                { label: "Expense", value: "expense" },
+                { label: "Manual", value: "manual" },
+                { label: "Refund", value: "refund" },
+                { label: "Adjustment", value: "adjustment" },
+              ]}
+            />
+
             <AppDatePicker
               label="Date"
               required
               value={form.date}
               onChange={(value) => setForm({ ...form, date: value })}
             />
+
           </div>
 
           <div>
@@ -485,9 +505,17 @@ export default function JournalList() {
                         {fmtDate(entry.date)}
                       </td>
                       <td className="px-3 py-3 hidden md:table-cell">
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_BADGE[entry.sourceType] || "bg-gray-100 text-gray-500"}`}>
-                          {entry.sourceType}
-                        </span>
+                        {entry.sourceType ? (
+                          <span
+                            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_BADGE[entry.sourceType] ||
+                              "bg-gray-100 text-gray-500"
+                              }`}
+                          >
+                            {entry.sourceType}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3 text-right font-semibold text-gray-800">
                         {fmt(totalDebit)}
