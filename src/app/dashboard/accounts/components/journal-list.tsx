@@ -5,6 +5,9 @@ import {
   getAllJournalEntries,
   createJournalEntry,
   getAllAccounts,
+  getAllInvoices,
+  getAllExpenses,
+  getAllPayments,
 } from "@/utils/api";
 
 import {
@@ -127,6 +130,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
     date: new Date().toISOString().split("T")[0],
     notes: "",
     sourceType: "",
+    sourceRef: "",
   });
 
   const [lines, setLines] = useState([emptyLine(), emptyLine()]);
@@ -134,6 +138,24 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
   const { data: accountsData } = useQuery({
     queryKey: ["accounts-all-for-journal"],
     queryFn: () => getAllAccounts().then((r) => r.data.data),
+  });
+
+  const { data: invoicesData } = useQuery({
+    queryKey: ["journal-invoices"],
+    queryFn: () => getAllInvoices({ limit: 1000 }).then((r) => r.data),
+    enabled: form.sourceType === "invoice",
+  });
+
+  const { data: expensesData } = useQuery({
+    queryKey: ["journal-expenses"],
+    queryFn: () => getAllExpenses({ limit: 1000 }).then((r) => r.data),
+    enabled: form.sourceType === "expense",
+  });
+
+  const { data: paymentsData } = useQuery({
+    queryKey: ["journal-payments"],
+    queryFn: () => getAllPayments({ limit: 1000 }).then((r) => r.data),
+    enabled: form.sourceType === "payment",
   });
 
   const totalDebit = lines.filter(l => l.type === "debit").reduce((s, l) => s + (l.amount || 0), 0);
@@ -171,7 +193,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
               <InputField
                 label="Description *"
@@ -181,24 +203,6 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
                 onChange={(e: any) => setForm({ ...form, description: e.target.value })}
               />
             </div>
-
-            <Select
-              label="Source Type"
-              placeholder="source type"
-              value={form.sourceType}
-              onChange={(e: any) =>
-                setForm({ ...form, sourceType: e.target.value })
-              }
-              options={[
-                { label: "Payment", value: "payment" },
-                { label: "Invoice", value: "invoice" },
-                { label: "Expense", value: "expense" },
-                { label: "Manual", value: "manual" },
-                { label: "Refund", value: "refund" },
-                { label: "Adjustment", value: "adjustment" },
-              ]}
-            />
-
             <AppDatePicker
               label="Date"
               required
@@ -207,6 +211,78 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
             />
 
           </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Select
+                label="Source Type"
+                placeholder="Select source type"
+                value={form.sourceType}
+                onChange={(e: any) =>
+                  setForm({
+                    ...form,
+                    sourceType: e.target.value,
+                    sourceRef: "",
+                  })
+                }
+                options={[
+                  { label: "Payment", value: "payment" },
+                  { label: "Invoice", value: "invoice" },
+                  { label: "Expense", value: "expense" },
+                  { label: "Manual", value: "manual" },
+                  { label: "Refund", value: "refund" },
+                  { label: "Adjustment", value: "adjustment" },
+                ]}
+              />
+
+
+            </div>
+            {form.sourceType === "invoice" && (
+              <Select
+                label="Invoice"
+                placeholder="Select invoice"
+                value={form.sourceRef}
+                onChange={(e: any) =>
+                  setForm({ ...form, sourceRef: e.target.value })
+                }
+                options={(invoicesData?.data || []).map((invoice: any) => ({
+                  label: `${invoice.invoiceNumber} — ${invoice.description || invoice.customer?.name || ""}`,
+                  value: invoice._id,
+                }))}
+              />
+            )}
+
+            {form.sourceType === "expense" && (
+              <Select
+                label="Expense"
+                placeholder="Select expense"
+                value={form.sourceRef}
+                onChange={(e: any) =>
+                  setForm({ ...form, sourceRef: e.target.value })
+                }
+                options={(expensesData?.data || []).map((expense: any) => ({
+                  label: `${expense.expenseNumber || expense._id} — ${expense.title || expense.description || ""}`,
+                  value: expense._id,
+                }))}
+              />
+            )}
+
+            {form.sourceType === "payment" && (
+              <Select
+                label="Payment"
+                placeholder="Select payment"
+                value={form.sourceRef}
+                onChange={(e: any) =>
+                  setForm({ ...form, sourceRef: e.target.value })
+                }
+                options={(paymentsData?.data || []).map((payment: any) => ({
+                  label: `${payment.paymentNumber || payment.referenceNumber || payment._id}`,
+                  value: payment._id,
+                }))}
+              />
+            )}
+          </div>
+
+
 
           <div>
             <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 font-medium mb-2 px-1">
