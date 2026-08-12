@@ -16,6 +16,7 @@ interface SearchableSelectProps {
   disabled?: boolean;
   error?: string;
   defaultValue?: string;
+  dropdownWidth?: number;
 }
 
 export default function SearchableSelect({
@@ -27,6 +28,7 @@ export default function SearchableSelect({
   disabled = false,
   error,
   defaultValue,
+  dropdownWidth,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -113,8 +115,14 @@ export default function SearchableSelect({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
-          style={{ position: "fixed", width: containerRef.current?.offsetWidth, left: containerRef.current?.getBoundingClientRect().left, top: (containerRef.current?.getBoundingClientRect().bottom ?? 0) + 4 }}
+        <div
+          className="fixed z-[9999] mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+          style={{
+            width: dropdownWidth ?? containerRef.current?.offsetWidth,
+            left: containerRef.current?.getBoundingClientRect().left,
+            top:
+              (containerRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
+          }}
         >
           {/* Search Box */}
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100 bg-gray-50">

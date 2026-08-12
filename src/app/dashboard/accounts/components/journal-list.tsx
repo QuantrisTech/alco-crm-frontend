@@ -26,6 +26,7 @@ import Select from "@/app/component/ui/select";
 import Textarea from "@/app/component/ui/textarea";
 import AppDatePicker from "@/app/component/ui/app-date-picker";
 import DateRangeFilter from "@/app/component/dashboard/date-range-filter";
+import SearchableSelect from "@/app/component/ui/searchable-select";
 
 // ── Helpers ───────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -236,50 +237,68 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
 
 
             </div>
-            {form.sourceType === "invoice" && (
-              <Select
-                label="Invoice"
-                placeholder="Select invoice"
-                value={form.sourceRef}
-                onChange={(e: any) =>
-                  setForm({ ...form, sourceRef: e.target.value })
-                }
-                options={(invoicesData?.data || []).map((invoice: any) => ({
-                  label: `${invoice.invoiceNumber} — ${invoice.description || invoice.customer?.name || ""}`,
-                  value: invoice._id,
-                }))}
-              />
-            )}
+            <div className="col-span-1 relative">
+              {form.sourceType === "invoice" && (
+                <SearchableSelect
+                  label="Invoice"
+                  placeholder="Search invoice..."
+                  value={form.sourceRef}
+                  dropdownWidth={320}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      sourceRef: e.target.value,
+                    })
+                  }
+                  options={(invoicesData?.data || []).map((invoice: any) => ({
+                    label: `${invoice.invoiceNumber} — ${invoice.user?.name || invoice.description || "Invoice"
+                      }`,
+                    value: invoice._id,
+                  }))}
+                />
+              )}
 
-            {form.sourceType === "expense" && (
-              <Select
-                label="Expense"
-                placeholder="Select expense"
-                value={form.sourceRef}
-                onChange={(e: any) =>
-                  setForm({ ...form, sourceRef: e.target.value })
-                }
-                options={(expensesData?.data || []).map((expense: any) => ({
-                  label: `${expense.expenseNumber || expense._id} — ${expense.title || expense.description || ""}`,
-                  value: expense._id,
-                }))}
-              />
-            )}
+              {form.sourceType === "expense" && (
+                <SearchableSelect
+                  label="Expense"
+                  placeholder="Search expense..."
+                  value={form.sourceRef}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      sourceRef: e.target.value,
+                    })
+                  }
+                  options={(expensesData?.data || []).map((expense: any) => ({
+                    label: `${expense.expenseNumber || ""} — ${expense.title || expense.description || ""
+                      }`,
+                    value: expense._id,
+                  }))}
+                />
+              )}
 
-            {form.sourceType === "payment" && (
-              <Select
-                label="Payment"
-                placeholder="Select payment"
-                value={form.sourceRef}
-                onChange={(e: any) =>
-                  setForm({ ...form, sourceRef: e.target.value })
-                }
-                options={(paymentsData?.data || []).map((payment: any) => ({
-                  label: `${payment.paymentNumber || payment.referenceNumber || payment._id}`,
-                  value: payment._id,
-                }))}
-              />
-            )}
+              {form.sourceType === "payment" && (
+                <SearchableSelect
+                  label="Payment"
+                  placeholder="Search payment..."
+                  value={form.sourceRef}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      sourceRef: e.target.value,
+                    })
+                  }
+                  options={(paymentsData?.data || []).map((payment: any) => ({
+                    label: `${payment.paymentNumber ||
+                      payment.referenceNumber ||
+                      payment._id
+                      } — ${payment.amount || ""}`,
+                    value: payment._id,
+                  }))}
+                />
+              )}
+
+            </div>
           </div>
 
 
