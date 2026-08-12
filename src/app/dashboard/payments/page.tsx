@@ -52,6 +52,8 @@ function InvoiceCard({ invoice }: { invoice: any }) {
   const [open, setOpen] = useState(false);
   const [sendingInstallment, setSendingInstallment] = useState<string | null>(null);
 
+  console.log(invoice, "invoice ================>");
+
   const user = invoice.user || {};
   const contractDetails = invoice.enrollment?.leadSnapshot?.contractDetails || {};
 
@@ -205,8 +207,8 @@ function InvoiceCard({ invoice }: { invoice: any }) {
 
           {discount > 0 && (
             <div className="flex justify-between">
-              <span className="text-blue-500">Discount</span>
-              <span className="font-medium text-blue-500">
+              <span className="text-sky-500">Discount</span>
+              <span className="font-medium text-sky-500">
                 - {fmt(discount)}
               </span>
             </div>
@@ -341,7 +343,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
                     <div>
-                      <p className="text-gray-700 font-medium capitalize">{p.method}</p>
+                      <p className="text-gray-700 font-medium capitalize">{p.label}</p>
                       <p className="text-xs text-gray-400">
                         {paymentDate
                           ? new Date(paymentDate).toLocaleDateString("en-PK", {

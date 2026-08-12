@@ -1,300 +1,309 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+// ── shared colors ─────────────────────────────────────────────
+const NAVY: [number, number, number] = [22, 33, 62];      // #16213e
+const GOLD: [number, number, number] = [200, 168, 75];    // #c8a84b
+const TEXT_DARK: [number, number, number] = [15, 17, 23]; // #0f1117
+const TEXT_GRAY: [number, number, number] = [74, 80, 96]; // #4a5060
+const TEXT_MUTED: [number, number, number] = [138, 146, 166]; // #8a92a6
+const LINE: [number, number, number] = [221, 226, 236];   // #dde2ec
+const PANEL: [number, number, number] = [244, 246, 251];  // #f4f6fb
+const GREEN: [number, number, number] = [22, 163, 74];
+const GREEN_BG: [number, number, number] = [220, 252, 231];
+const RED: [number, number, number] = [220, 38, 38];
+const RED_BG: [number, number, number] = [254, 226, 226];
+const SLATE: [number, number, number] = [100, 116, 139];
+const SLATE_BG: [number, number, number] = [241, 245, 249];
+
+const PAGE_W = 210;
+const MARGIN = 14;
+const CONTENT_W = PAGE_W - MARGIN * 2;
+
 export default function DownloadInvoice(invoice: any, user: any) {
-  // ── Installment rows ──────────────────────────────────────
-  const installmentRows = (invoice.installments || []).map((inst: any, idx: number) => {
-    const isPaid = inst.status === "PAID";
-    const isOverdue = inst.status === "OVERDUE";
-    const statusBg = isPaid ? "#dcfce7" : isOverdue ? "#fee2e2" : "#f1f5f9";
-    const statusClr = isPaid ? "#16a34a" : isOverdue ? "#dc2626" : "#64748b";
-    const statusTxt = isPaid ? "✓ Paid" : isOverdue ? "Overdue" : "Pending";
-    const rowBg = idx % 2 === 0 ? "#ffffff" : "#f9fafb";
-
-    return `
-    <tr style="background:${rowBg};">
-      <td style="padding:12px 16px;font-size:13px;color:#4a5060;border-bottom:1px solid #dde2ec;">${idx + 1}</td>
-      <td style="padding:12px 16px;font-size:13px;font-weight:600;color:#0f1117;border-bottom:1px solid #dde2ec;">${inst.label || `Installment ${idx + 1}`}</td>
-      <td style="padding:12px 16px;font-size:13px;color:#4a5060;font-family:'Courier New',monospace;border-bottom:1px solid #dde2ec;">
-        ${inst.dueDate ? new Date(inst.dueDate).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" }) : "—"}
-      </td>
-      <td style="padding:12px 16px;border-bottom:1px solid #dde2ec;">
-        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${statusBg};color:${statusClr};">
-          ${statusTxt}
-        </span>
-      </td>
-      <td style="padding:12px 16px;text-align:right;font-size:13px;font-weight:700;font-family:'Courier New',monospace;color:#0f1117;border-bottom:1px solid #dde2ec;">
-        Rs ${inst.amount?.toLocaleString()}
-      </td>
-    </tr>`;
-  }).join("");
-
-  // ── Helpers ───────────────────────────────────────────────
   const fmtDate = (d: string) =>
     d ? new Date(d).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" }) : "—";
+
+  const fmtAmt = (n: number) => `Rs ${(n || 0).toLocaleString()}`;
 
   const statusMap: Record<string, string> = {
     PAID: "Paid", PARTIAL: "Partial", PENDING: "Pending",
     OVERDUE: "Overdue", EXTENDED: "Extended", BLOCKED: "Blocked",
   };
 
-  // ── Advance installment ───────────────────────────────────
   const advanceInst = invoice.installments?.find((i: any) => i.isAdvance);
-
-  // ── Derived values ────────────────────────────────────────
   const totalInstallments = invoice.installments?.length ?? 0;
   const program = invoice.enrollment?.program;
   const batch = invoice.enrollment?.batch;
+  const invoiceNo = invoice.invoiceNumber || invoice._id?.slice(-6).toUpperCase();
 
-  // ── Build HTML ────────────────────────────────────────────
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Invoice — ${invoice.invoiceNumber || invoice._id?.slice(-6).toUpperCase()}</title>
-</head>
-<body style="margin:0;padding:0;background:#f4f6fb;font-family:Arial, Helvetica, sans-serif;">
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-<div style="width:100%;max-width:860px;margin:0 auto;background:#ffffff;">
+  // ── HEADER ────────────────────────────────────────────────
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, PAGE_W, 34, "F");
 
-  <!-- HEADER -->
-  <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);padding:36px 44px 30px;">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td style="vertical-align:top;">
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="vertical-align:middle;padding-left:12px;">
-                <img src="https://res.cloudinary.com/dmbpjv9e8/image/upload/h_110,q_100,f_auto/v1777543091/logo-white_xg7uyj.webp" alt="Arslan Larik & Company" style="height:40px;width:auto;display:block;" />
-              </td>
-            </tr>
-          </table>
-           <div style="font-size:11.5px;color:#94a3b8;line-height:1.7;margin-top:14px;">
-            D86/1, block 7, Gulshan-e-iqbal, karachi, Sindh PK<br/>
-            connect@arslanlarik.com &nbsp;|&nbsp; 1+8886814808<br/>
-            https://arslanlarik.com/ &nbsp;|&nbsp; NTN: 2826497-5
-          </div>
-        </td>
-        <td style="vertical-align:top;text-align:right;">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#94a3b8;margin-bottom:6px;">Invoice Number</div>
-          <div style="font-family:'Courier New',monospace;font-size:26px;font-weight:600;color:#ffffff;">${invoice.invoiceNumber || invoice._id?.slice(-6).toUpperCase()}</div>
-          <div style="display:inline-block;margin-top:10px;padding:5px 14px;border-radius:50px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#fff8e8;color:#b07800;">
-            ${statusMap[invoice.status] || invoice.status}
-          </div>
-        </td>
-      </tr>
-    </table>
-  </div>
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text("ARSLAN LARIK & COMPANY", MARGIN, 13);
 
-  <!-- GOLD LINE -->
-  <div style="height:3px;background:linear-gradient(90deg,#c8a84b,#e8c96a,#c8a84b);"></div>
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(180, 190, 205);
+  doc.text("D86/1, Block 7, Gulshan-e-Iqbal, Karachi, Sindh PK", MARGIN, 19);
+  doc.text("connect@arslanlarik.com  |  1+8886814808", MARGIN, 23.5);
+  doc.text("https://arslanlarik.com/  |  NTN: 2826497-5", MARGIN, 28);
 
-  <!-- META ROW -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #dde2ec;">
-    <tr>
-      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:25%;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Issue Date</div>
-        <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f1117;">${fmtDate(invoice.createdAt)}</div>
-      </td>
-      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:25%;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Advance Due Date</div>
-        <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f1117;">${fmtDate(advanceInst?.dueDate || invoice.dueDate)}</div>
-      </td>
-      <td style="padding:22px 28px;border-right:1px solid #dde2ec;width:25%;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Batch Start Date</div>
-        <div style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f1117;">${fmtDate(batch?.start_date)}</div>
-      </td>
-      <td style="padding:22px 28px;width:25%;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:5px;">Enrollment ID</div>
-        <div style="font-family:'Courier New',monospace;font-size:11px;color:#4a5060;">${invoice.enrollment?._id || "—"}</div>
-      </td>
-    </tr>
-  </table>
+  doc.setFontSize(8);
+  doc.setTextColor(180, 190, 205);
+  doc.text("INVOICE NUMBER", PAGE_W - MARGIN, 11, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text(String(invoiceNo), PAGE_W - MARGIN, 18, { align: "right" });
 
-  <!-- BODY -->
-  <div style="padding:32px 44px;">
+  const statusLabel = (statusMap[invoice.status] || invoice.status || "").toUpperCase();
+  doc.setFontSize(8);
+  const badgeW = doc.getTextWidth(statusLabel) + 8;
+  doc.setFillColor(255, 248, 232);
+  doc.roundedRect(PAGE_W - MARGIN - badgeW, 21, badgeW, 6, 2, 2, "F");
+  doc.setTextColor(176, 120, 0);
+  doc.setFont("helvetica", "bold");
+  doc.text(statusLabel, PAGE_W - MARGIN - badgeW / 2, 25, { align: "center" });
 
-    <!-- PARTIES -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-      <tr>
-        <td style="width:48%;vertical-align:top;padding-right:12px;">
-          <div style="background:#f4f6fb;border-radius:14px;padding:20px 22px;border:1px solid #dde2ec;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.13em;color:#8a92a6;margin-bottom:12px;">
-              <span style="display:inline-block;width:16px;height:2px;background:#c8a84b;border-radius:2px;vertical-align:middle;margin-right:7px;"></span>
-              Billed To
-            </div>
-            <div style="font-size:15px;font-weight:800;color:#0f1117;margin-bottom:5px;text-transform:capitalize;">
-              ${user?.name || invoice.user?.name || "—"}
-            </div>
-            <div style="font-size:12px;color:#4a5060;line-height:1.8;">
-              ${user?.email || invoice.user?.email || "—"}<br/>
-              <span style="font-weight:600;color:#0f1117;">${user?.phone || invoice.user?.phone || "—"}</span><br/>
-              ${(user?.cnic || invoice.user?.cnic) ? `<span style="font-weight:600;color:#0f1117;font-family:'Courier New',monospace;">${user?.cnic || invoice.user?.cnic}</span><br/>` : ""}
-              ${(user?.address || invoice.user?.address) ? `<span style="font-size:11.5px;color:#4a5060;">${user?.address || invoice.user?.address}</span>` : ""}
-            </div>
-          </div>
-        </td>
-        <td style="width:4%;"></td>
-        <td style="width:48%;vertical-align:top;padding-left:12px;">
-          <div style="background:#f4f6fb;border-radius:14px;padding:20px 22px;border:1px solid #dde2ec;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.13em;color:#8a92a6;margin-bottom:12px;">
-              <span style="display:inline-block;width:16px;height:2px;background:#c8a84b;border-radius:2px;vertical-align:middle;margin-right:7px;"></span>
-              Issued By
-            </div>
-            <div style="font-size:15px;font-weight:800;color:#0f1117;margin-bottom:5px;">ALCO — Finance Dept.</div>
-            <div style="font-size:12px;color:#4a5060;line-height:1.8;">
-              finance@alco.com
-            </div>
-          </div>
-        </td>
-      </tr>
-    </table>
+  // gold line
+  doc.setFillColor(...GOLD);
+  doc.rect(0, 34, PAGE_W, 1, "F");
 
-    <!-- PROGRAM BAND -->
-    <div style="background:#e8f0f8;border:1px solid #c5d8ee;border-radius:12px;padding:14px 20px;margin-bottom:28px;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="width:36px;vertical-align:middle;">
-            <div style="width:36px;height:36px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);border-radius:9px;text-align:center;line-height:36px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
-            </div>
-          </td>
-          <td style="vertical-align:middle;padding-left:14px;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1a3a5c;margin-bottom:2px;">Enrolled Program</div>
-            <div style="font-size:14px;font-weight:800;color:#1a3a5c;">${program?.name || invoice.enrollment?.program?.name || "—"}</div>
-            ${(program?.short_description || program?.shortDescription)
-      ? `<div style="font-size:11.5px;color:#3a5a7c;margin-top:3px;font-style:italic;">${program?.short_description || program?.shortDescription}</div>`
-      : ""}
-          </td>
-          <td style="text-align:right;vertical-align:middle;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1a3a5c;margin-bottom:2px;">Installments</div>
-            <div style="font-size:22px;font-weight:800;color:#1a3a5c;font-family:'Courier New',monospace;">${totalInstallments}</div>
-          </td>
-        </tr>
-      </table>
-    </div>
+  // ── META ROW ──────────────────────────────────────────────
+  let y = 42;
+  const metaCols = [
+    { label: "ISSUE DATE", value: fmtDate(invoice.createdAt) },
+    { label: "ADVANCE DUE DATE", value: fmtDate(advanceInst?.dueDate || invoice.dueDate) },
+    { label: "BATCH START DATE", value: fmtDate(batch?.start_date) },
+    { label: "ENROLLMENT ID", value: invoice.enrollment?._id || "—" },
+  ];
+  const colW = CONTENT_W / 4;
+  metaCols.forEach((c, i) => {
+    const x = MARGIN + i * colW;
+    doc.setFontSize(7);
+    doc.setTextColor(...TEXT_MUTED);
+    doc.setFont("helvetica", "bold");
+    doc.text(c.label, x, y);
+    doc.setFontSize(9);
+    doc.setTextColor(...TEXT_DARK);
+    doc.text(String(c.value), x, y + 5);
+    if (i < 3) {
+      doc.setDrawColor(...LINE);
+      doc.line(x + colW - 3, y - 4, x + colW - 3, y + 7);
+    }
+  });
+  y += 12;
+  doc.setDrawColor(...LINE);
+  doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+  y += 8;
 
-    <!-- PAYMENT SCHEDULE TABLE -->
-    <div style="margin-bottom:28px;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:12px;">
-        Payment Schedule &nbsp;<span style="font-weight:400;color:#aab0be;">(${totalInstallments} installment${totalInstallments !== 1 ? "s" : ""})</span>
-      </div>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dde2ec;border-radius:12px;overflow:hidden;border-collapse:collapse;">
-        <thead>
-          <tr style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);">
-            <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#94a3b8;width:40px;">#</th>
-            <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#94a3b8;">Description</th>
-            <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#94a3b8;">Due Date</th>
-            <th style="padding:12px 16px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#94a3b8;">Status</th>
-            <th style="padding:12px 16px;text-align:right;font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#94a3b8;">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${installmentRows}
-        </tbody>
-      </table>
-    </div>
+  // ── PARTIES (Billed To / Issued By) ─────────────────────────
+  const boxW = (CONTENT_W - 4) / 2;
+  const boxH = 26;
+  const drawBox = (x: number, title: string, lines: string[]) => {
+    doc.setFillColor(...PANEL);
+    doc.setDrawColor(...LINE);
+    doc.roundedRect(x, y, boxW, boxH, 2, 2, "FD");
+    doc.setFillColor(...GOLD);
+    doc.rect(x + 5, y + 6, 4, 0.6, "F");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text(title.toUpperCase(), x + 10, y + 7);
+    let ly = y + 13;
+    doc.setFontSize(9);
+    lines.forEach((line, idx) => {
+      doc.setFont("helvetica", idx === 0 ? "bold" : "normal");
+      doc.setTextColor(...(idx === 0 ? TEXT_DARK : TEXT_GRAY));
+      doc.text(line, x + 5, ly);
+      ly += 4.5;
+    });
+  };
 
-    <!-- TOTALS -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-      <tr>
-        <td></td>
-        <td style="width:320px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dde2ec;border-radius:14px;overflow:hidden;border-collapse:collapse;">
-            <tr style="border-bottom:1px solid #dde2ec;">
-              <td style="padding:11px 18px;font-size:13px;color:#4a5060;font-weight:500;">Qty (Installments)</td>
-              <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:600;color:#0f1117;font-size:13px;">${totalInstallments}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #dde2ec;">
-              <td style="padding:11px 18px;font-size:13px;color:#4a5060;font-weight:500;">Subtotal</td>
-              <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:600;color:#0f1117;font-size:13px;">Rs ${invoice.totalAmount?.toLocaleString()}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #dde2ec;">
-              <td style="padding:11px 18px;font-size:13px;color:#4a5060;font-weight:500;">Amount Paid</td>
-              <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:600;color:#1a8a57;font-size:13px;">Rs ${invoice.paidAmount?.toLocaleString()}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #dde2ec;">
-              <td style="padding:11px 18px;font-size:13px;color:#4a5060;font-weight:500;">Outstanding Balance</td>
-              <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:600;color:#c94040;font-size:13px;">Rs ${invoice.remainingAmount?.toLocaleString()}</td>
-            </tr>
-            <tr style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);">
-              <td style="padding:11px 18px;font-size:14px;color:#94a3b8;font-weight:600;">Total Invoice Amount</td>
-              <td style="padding:11px 18px;text-align:right;font-family:'Courier New',monospace;font-weight:700;color:#ffffff;font-size:15px;">Rs ${invoice.totalAmount?.toLocaleString()}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+  drawBox(MARGIN, "Billed To", [
+    user?.name || invoice.user?.name || "—",
+    user?.email || invoice.user?.email || "—",
+    user?.phone || invoice.user?.phone || "—",
+    user?.cnic || invoice.user?.cnic || "",
+  ].filter(Boolean));
 
-    <!-- NOTES -->
-   <div style="background:#f4f6fb;border:1px solid #dde2ec;border-radius:12px;padding:16px 20px;margin-bottom:32px;">
-        <div
-          style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8a92a6;margin-bottom:10px;">
-          Terms &amp; Notes
-        </div>
+  drawBox(MARGIN + boxW + 4, "Issued By", [
+    "ALCO — Finance Dept.",
+    "finance@alco.com",
+  ]);
 
-        <ul style="margin:0;padding-left:18px;font-size:13px;color:#4a5060;line-height:1.8;">
-          <li>This is an auto-generated invoice and therefore requires no signature.</li>
+  y += boxH + 8;
 
-          <li>All payments remitted, including initial down payments, are deemed final and non-refundable upon receipt.
-          </li>
+  // ── PROGRAM BAND ─────────────────────────────────────────
+  doc.setFillColor(232, 240, 248);
+  doc.setDrawColor(197, 216, 238);
+  doc.roundedRect(MARGIN, y, CONTENT_W, 16, 2, 2, "FD");
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(26, 58, 92);
+  doc.text("ENROLLED PROGRAM", MARGIN + 6, y + 6);
+  doc.setFontSize(10);
+  doc.text(String(program?.name || "—"), MARGIN + 6, y + 12);
 
-          <li>Certificates will be awarded after successful test evaluation and full payment completion.</li>
+  doc.setFontSize(7);
+  doc.text("INSTALLMENTS", PAGE_W - MARGIN - 6, y + 6, { align: "right" });
+  doc.setFontSize(13);
+  doc.text(String(totalInstallments), PAGE_W - MARGIN - 6, y + 13, { align: "right" });
 
-          <li>Company NTN Number: <strong style="color:#0f1117;">2826497-5</strong></li>
+  y += 16 + 8;
 
-          <li>Cheques should be crossed and made payable to <strong style="color:#0f1117;">Arslan Larik &amp;
-              Company</strong>.</li>
+  // ── PAYMENT SCHEDULE TABLE ────────────────────────────────
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text(`PAYMENT SCHEDULE  (${totalInstallments} installment${totalInstallments !== 1 ? "s" : ""})`, MARGIN, y);
+  y += 4;
 
-          <li>Bank details will be provided upon request.</li>
-        </ul>
-      </div>
+  const rows = (invoice.installments || []).map((inst: any, idx: number) => {
+    const isPaid = inst.status === "PAID";
+    const isOverdue = inst.status === "OVERDUE";
+    const statusTxt = isPaid ? "Paid" : isOverdue ? "Overdue" : "Pending";
+    return [
+      String(idx + 1),
+      inst.label || `Installment ${idx + 1}`,
+      fmtDate(inst.dueDate),
+      isPaid ? fmtDate(inst.paidAt) : "—",
+      statusTxt,
+      fmtAmt(inst.amount),
+    ];
+  });
 
-  </div>
+  autoTable(doc, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN },
+    head: [["#", "Description", "Due Date", "Paid Date", "Status", "Amount"]],
+    body: rows,
+    theme: "grid",
+    styles: { fontSize: 8.5, cellPadding: 2.5, textColor: TEXT_DARK, lineColor: LINE, lineWidth: 0.1 },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold", fontSize: 7.5 },
+    columnStyles: {
+      0: { cellWidth: 8 },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 26 },
+      3: { cellWidth: 26 },
+      4: { cellWidth: 20 },
+      5: { cellWidth: 26, halign: "right", fontStyle: "bold" },
+    },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 4) {
+        const val = String(data.cell.raw);
+        if (val === "Paid") { data.cell.styles.textColor = GREEN; data.cell.styles.fillColor = GREEN_BG; data.cell.styles.fontStyle = "bold"; }
+        else if (val === "Overdue") { data.cell.styles.textColor = RED; data.cell.styles.fillColor = RED_BG; data.cell.styles.fontStyle = "bold"; }
+        else { data.cell.styles.textColor = SLATE; data.cell.styles.fillColor = SLATE_BG; }
+      }
+    },
+  });
 
-  </div>
+  // @ts-ignore - lastAutoTable is attached by jspdf-autotable
+  y = (doc as any).lastAutoTable.finalY + 8;
 
-  <!-- FOOTER -->
-   <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #dde2ec;background:#f4f6fb;">
-      <tr>
-        <td style="padding:22px 44px;vertical-align:top;">
-          <div style="font-size:12px;font-weight:700;color:#4a5060;margin-bottom:8px;">
-            Payment Methods Accepted
-          </div>
+  // ── TOTALS ────────────────────────────────────────────────
+  const totalsW = 80;
+  const totalsX = PAGE_W - MARGIN - totalsW;
+  autoTable(doc, {
+    startY: y,
+    margin: { left: totalsX },
+    tableWidth: totalsW,
+    theme: "grid",
+    styles: { fontSize: 8.5, cellPadding: 2.5, lineColor: LINE, lineWidth: 0.1 },
+    body: [
+      ["Qty (Installments)", String(totalInstallments)],
+      ["Subtotal", fmtAmt(invoice.totalAmount)],
+      ["Amount Paid", fmtAmt(invoice.paidAmount)],
+      ["Outstanding Balance", fmtAmt(invoice.remainingAmount)],
+      ["Total Invoice Amount", fmtAmt(invoice.totalAmount)],
+    ],
+    columnStyles: { 0: { cellWidth: 46, textColor: TEXT_GRAY }, 1: { cellWidth: 34, halign: "right", fontStyle: "bold", textColor: TEXT_DARK } },
+    didParseCell: (data) => {
+      if (data.row.index === 2 && data.column.index === 1) data.cell.styles.textColor = GREEN;
+      if (data.row.index === 3 && data.column.index === 1) data.cell.styles.textColor = RED;
+      if (data.row.index === 4) {
+        data.cell.styles.fillColor = NAVY;
+        data.cell.styles.textColor = 255;
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+  });
 
-          <div style="font-size:11px;color:#8a92a6;line-height:1.8;">
-            Cash &nbsp;|&nbsp; Bank Transfer &nbsp;|&nbsp; Cheque<br /><br />
+  // @ts-ignore
+  y = (doc as any).lastAutoTable.finalY + 8;
 
-            <strong style="color:#0f1117;">HBL Bank</strong><br />
-            <strong>Account Title:</strong> ARSLAN LARIK &amp; Company<br />
-            <strong>Account Number:</strong> 19107901888203<br />
-            <strong>IBAN:</strong> PK94HABB0019107901888203<br />
-            <strong>Branch:</strong> Korangi Road, DHA Phase II
-          </div>
-        </td>
+  // ── NOTES ─────────────────────────────────────────────────
+  const notes = [
+    "This is an auto-generated invoice and therefore requires no signature.",
+    "All payments remitted, including initial down payments, are deemed final and non-refundable upon receipt.",
+    "Certificates will be awarded after successful test evaluation and full payment completion.",
+    "Company NTN Number: 2826497-5",
+    "Cheques should be crossed and made payable to Arslan Larik & Company.",
+    "Bank details will be provided upon request.",
+  ];
+  const notesLineH = 4.2;
+  const notesH = 10 + notes.length * notesLineH;
+  if (y + notesH > 280) { doc.addPage(); y = 16; }
 
-        <td style="padding:22px 44px;text-align:right;vertical-align:top;">
-          <div style="font-size:13px;font-weight:800;color:#1a3a5c;letter-spacing:-0.02em;">
-            ALCO
-          </div>
-          <div style="font-size:11px;color:#8a92a6;margin-top:4px;">
-            This is a system-generated invoice.<br />
-            No signature required.
-          </div>
-        </td>
-      </tr>
-    </table>
+  doc.setFillColor(...PANEL);
+  doc.setDrawColor(...LINE);
+  doc.roundedRect(MARGIN, y, CONTENT_W, notesH, 2, 2, "FD");
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("TERMS & NOTES", MARGIN + 5, y + 6);
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT_GRAY);
+  let ny = y + 11;
+  notes.forEach((n) => {
+    const wrapped = doc.splitTextToSize(`•  ${n}`, CONTENT_W - 12);
+    doc.text(wrapped, MARGIN + 7, ny);
+    ny += wrapped.length * notesLineH;
+  });
+  y = ny + 6;
 
+  // ── FOOTER ────────────────────────────────────────────────
+  if (y + 40 > 290) { doc.addPage(); y = 16; }
+  doc.setDrawColor(...LINE);
+  doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+  y += 6;
 
-</div>
-</body>
-</html>`;
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...TEXT_GRAY);
+  doc.text("Payment Methods Accepted", MARGIN, y);
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...TEXT_MUTED);
+  const bankLines = [
+    "Cash | Bank Transfer | Cheque",
+    "HBL Bank",
+    "Account Title: ARSLAN LARIK & Company",
+    "Account Number: 19107901888203",
+    "IBAN: PK94HABB0019107901888203",
+    "Branch: Korangi Road, DHA Phase II",
+  ];
+  bankLines.forEach((l) => { doc.text(l, MARGIN, y); y += 4; });
 
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Invoice-${invoice.invoiceNumber || invoice._id?.slice(-6)}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
+  // doc.setFontSize(9);
+  // doc.setFont("helvetica", "bold");
+  // doc.setTextColor(26, 58, 92);
+  // doc.text("ALCO", PAGE_W - MARGIN, 245, { align: "right" });
+  // doc.setFontSize(7.5);
+  // doc.setFont("helvetica", "normal");
+  // doc.setTextColor(...TEXT_MUTED);
+  // doc.text("This is a system-generated invoice.", PAGE_W - MARGIN, 250, { align: "right" });
+  // doc.text("No signature required.", PAGE_W - MARGIN, 254, { align: "right" });
+
+  doc.save(`Invoice-${invoiceNo}.pdf`);
 }

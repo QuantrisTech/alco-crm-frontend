@@ -325,10 +325,31 @@ export default function InvoicesPage() {
           //   },
           // },
           {
+            // ── Total column — now shows Gross, Discount, and Net all together ──
             key: "totalAmount", label: "Total",
-            render: (inv: any) => (
-              <span className="font-semibold text-sm text-gray-800">Rs {(inv.totalAmount || 0).toLocaleString()}</span>
-            ),
+            render: (inv: any) => {
+              const gross = inv.totalAmount || 0;
+              const discount = inv.discountAmount || 0;
+              const net = gross - discount;
+              return (
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-400 w-14 shrink-0">Gross</span>
+                    <span className="font-semibold text-sm text-gray-800">Rs {gross.toLocaleString()}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sky-400 w-14 shrink-0">Discount</span>
+                      <span className="font-medium text-sky-500">- Rs {discount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 border-t border-gray-100 pt-0.5">
+                    <span className="text-gray-400 w-14 shrink-0">Net</span>
+                    <span className="font-semibold text-gray-700">Rs {net.toLocaleString()}</span>
+                  </div>
+                </div>
+              );
+            },
           },
           {
             key: "paidAmount", label: "Paid",
