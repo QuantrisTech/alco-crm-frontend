@@ -11,6 +11,7 @@ interface Installment {
   label: string;
   amount: number;
   dueDate: string | null;
+  paidAt?: any;
   status: "PAID" | "PENDING";
   isAdvance: boolean;
   feeType?: "program" | "certificate" | "manual";
@@ -228,8 +229,9 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                           {inst.status}
                         </span>
                       </div>
+                      
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Due: {fmtDate(inst.dueDate)}
+                        Due: {fmtDate(inst.dueDate)}  |  Paid at: {fmtDate(inst.paidAt) ? fmtDate(inst.paidAt) : "—"}
                       </p>
                       {inst.notes && (
                         <p className="text-xs text-gray-500 mt-1 italic truncate">

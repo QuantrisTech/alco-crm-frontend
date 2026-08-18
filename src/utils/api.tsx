@@ -543,6 +543,12 @@ export const createJournalEntry = (data: {
   notes?: string;
 }) => API.post("/api/v1/accounts/journal", data);
 
+export const updateJournalEntry = (id: string, data: any) =>
+  API.patch(`/api/v1/accounts/journal/${id}`, data);
+
+export const deleteJournalEntry = (id: string) =>
+  API.delete(`/api/v1/accounts/journal/${id}`);
+
 // ─── Expenses ────────────────────────────────────────────────
 export const getAllExpenseTitles = () => API.get("/api/v1/accounts/expense-titles");
 export const createExpenseTitle = (data: { title: string }) => API.post("/api/v1/accounts/expense-titles", data);

@@ -8,6 +8,8 @@ import {
   getAllInvoices,
   getAllExpenses,
   getAllPayments,
+  updateJournalEntry,
+  deleteJournalEntry,
 } from "@/utils/api";
 
 import {
@@ -18,6 +20,8 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import PageHeader from "@/app/component/dashboard/page-header";
 import ExportButton from "@/app/component/ui/export-button";
@@ -113,6 +117,262 @@ function JournalLineRow({
             <X size={14} />
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function JournalModal({
+  onClose,
+  editEntry,
+}: {
+  onClose: () => void;
+  editEntry?: any;
+}) {
+  const queryClient = useQueryClient();
+  const isEditMode = !!editEntry;
+
+  const emptyLine = () => ({
+    account: "", type: "debit" as "debit" | "credit", amount: 0, description: "",
+  });
+
+  const [form, setForm] = useState({
+    description: editEntry?.description || "",
+    date: editEntry ? new Date(editEntry.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+    notes: editEntry?.notes || "",
+    sourceType: editEntry?.sourceType || "",
+    sourceRef: editEntry?.sourceRef || "",
+  });
+
+  const [lines, setLines] = useState(
+    editEntry
+      ? editEntry.lines.map((l: any) => ({
+        account: l.account?._id || l.account,
+        type: l.type,
+        amount: l.amount,
+        description: l.description || "",
+      }))
+      : [emptyLine(), emptyLine()]
+  );
+
+  const { data: accountsData } = useQuery({
+    queryKey: ["accounts-all-for-journal"],
+    queryFn: () => getAllAccounts().then((r) => r.data.data),
+  });
+
+  const { data: invoicesData } = useQuery({
+    queryKey: ["journal-invoices"],
+    queryFn: () => getAllInvoices({ limit: 1000 }).then((r) => r.data),
+    enabled: form.sourceType === "invoice",
+  });
+
+  const { data: expensesData } = useQuery({
+    queryKey: ["journal-expenses"],
+    queryFn: () => getAllExpenses({ limit: 1000 }).then((r) => r.data),
+    enabled: form.sourceType === "expense",
+  });
+
+  const { data: paymentsData } = useQuery({
+    queryKey: ["journal-payments"],
+    queryFn: () => getAllPayments({ limit: 1000 }).then((r) => r.data),
+    enabled: form.sourceType === "payment",
+  });
+
+  const totalDebit = lines.filter((l: any) => l.type === "debit").reduce((s: number, l: any) => s + (l.amount || 0), 0);
+  const totalCredit = lines.filter((l: any) => l.type === "credit").reduce((s: number, l: any) => s + (l.amount || 0), 0);
+  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
+
+  const handleLineChange = (index: number, field: string, value: any) => {
+    setLines((prev: any) => prev.map((l: any, i: number) => (i === index ? { ...l, [field]: value } : l)));
+  };
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: isEditMode
+      ? (data: any) => updateJournalEntry(editEntry._id, data)
+      : createJournalEntry,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-list"] });
+      onClose();
+    },
+    onError: (err: any) =>
+      alert(err?.response?.data?.message || "Error — check that debits equal credits"),
+  });
+
+  const handleSubmit = () => {
+    if (!form.description) { alert("Description is required"); return; }
+    if (!isBalanced) { alert("Debits must equal credits"); return; }
+    const validLines = lines.filter((l: any) => l.account && l.amount > 0);
+    if (validLines.length < 2) { alert("At least 2 valid lines required"); return; }
+    mutate({ ...form, lines: validLines });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white">
+          <h2 className="font-semibold text-gray-800">
+            {isEditMode ? `Edit Entry — ${editEntry.entryNumber}` : "New Journal Entry"}
+          </h2>
+          <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <InputField
+                label="Description *"
+                type="text"
+                placeholder="e.g. Month-end accrual adjustment"
+                value={form.description}
+                onChange={(e: any) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+            <AppDatePicker
+              label="Date"
+              required
+              value={form.date}
+              onChange={(value) => setForm({ ...form, date: value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Select
+                label="Source Type"
+                placeholder="Select source type"
+                value={form.sourceType}
+                onChange={(e: any) =>
+                  setForm({ ...form, sourceType: e.target.value, sourceRef: "" })
+                }
+                options={[
+                  { label: "Payment", value: "payment" },
+                  { label: "Invoice", value: "invoice" },
+                  { label: "Expense", value: "expense" },
+                  { label: "Manual", value: "manual" },
+                  { label: "Refund", value: "refund" },
+                  { label: "Adjustment", value: "adjustment" },
+                ]}
+              />
+            </div>
+            <div className="col-span-1 relative">
+              {form.sourceType === "invoice" && (
+                <SearchableSelect
+                  label="Invoice"
+                  placeholder="Search invoice..."
+                  value={form.sourceRef}
+                  dropdownWidth={320}
+                  onChange={(e) => setForm({ ...form, sourceRef: e.target.value })}
+                  options={(invoicesData?.data || []).map((invoice: any) => ({
+                    label: `${invoice.invoiceNumber} — ${fmt(invoice.total)} — ${invoice.user?.name || invoice.description || "Invoice"}`,
+                    value: invoice._id,
+                  }))}
+                />
+              )}
+              {form.sourceType === "expense" && (
+                <SearchableSelect
+                  label="Expense"
+                  placeholder="Search expense..."
+                  value={form.sourceRef}
+                  onChange={(e) => setForm({ ...form, sourceRef: e.target.value })}
+                  options={(expensesData?.data || []).map((expense: any) => ({
+                    label: `${expense.expenseNumber || ""} — ${expense.title || expense.description || ""}`,
+                    value: expense._id,
+                  }))}
+                />
+              )}
+              {form.sourceType === "payment" && (
+                <SearchableSelect
+                  label="Payment"
+                  placeholder="Search payment..."
+                  value={form.sourceRef}
+                  dropdownWidth={320}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      sourceRef: e.target.value,
+                    })
+                  }
+                  options={(paymentsData?.data || []).map((payment: any) => ({
+                    label: `${payment.invoice?.invoiceNumber || payment.invoiceNumber || "—"} — ${fmt(payment.amount)} - ${payment?.paidAt? fmtDate(payment?.paidAt) : ""}`,
+                    value: payment._id,
+                  }))}
+                />
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 font-medium mb-2 px-1">
+              <div className="col-span-4">Account</div>
+              <div className="col-span-2">Type</div>
+              <div className="col-span-2">Amount</div>
+              <div className="col-span-3">Note</div>
+              <div className="col-span-1"></div>
+            </div>
+            <div className="space-y-2">
+              {lines.map((line: any, i: number) => (
+                <JournalLineRow
+                  key={i}
+                  line={line}
+                  index={i}
+                  accounts={accountsData || []}
+                  onChange={handleLineChange}
+                  onRemove={(idx) => setLines((prev: any) => prev.filter((_: any, i: number) => i !== idx))}
+                  canRemove={lines.length > 2}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setLines((prev: any) => [...prev, emptyLine()])}
+              className="mt-3 text-xs text-yellow-600 hover:text-yellow-700 font-medium flex items-center gap-1"
+            >
+              <Plus size={12} /> Add Line
+            </button>
+          </div>
+
+          <div className={`flex items-center justify-between rounded-xl p-3 text-sm ${isBalanced ? "bg-green-50" : totalDebit > 0 || totalCredit > 0 ? "bg-rose-50" : "bg-gray-50"}`}>
+            <div className="flex items-center gap-4">
+              <span className="text-gray-600">
+                Debit: <span className="font-semibold text-gray-800">{fmt(totalDebit)}</span>
+              </span>
+              <span className="text-gray-600">
+                Credit: <span className="font-semibold text-gray-800">{fmt(totalCredit)}</span>
+              </span>
+            </div>
+            {!isBalanced && (totalDebit > 0 || totalCredit > 0) ? (
+              <div className="flex items-center gap-1 text-rose-600 text-xs font-semibold">
+                <AlertCircle size={12} />
+                Unbalanced ({fmt(Math.abs(totalDebit - totalCredit))} diff)
+              </div>
+            ) : isBalanced ? (
+              <span className="text-green-600 text-xs font-semibold">✓ Balanced</span>
+            ) : null}
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+            <Textarea
+              label="Notes"
+              rows={2}
+              value={form.notes}
+              onChange={(e: any) => setForm({ ...form, notes: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="p-5 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isPending || !isBalanced}
+            className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-semibold rounded-lg disabled:opacity-60 flex items-center gap-2"
+          >
+            {isPending && <Loader2 size={14} className="animate-spin" />}
+            {isEditMode ? "Save Changes" : "Post Entry"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -251,7 +511,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
                     })
                   }
                   options={(invoicesData?.data || []).map((invoice: any) => ({
-                    label: `${invoice.invoiceNumber} — ${invoice.user?.name || invoice.description || "Invoice"
+                    label: `${invoice.invoiceNumber} — ${fmt(invoice.total)} — ${invoice.user?.name || invoice.description || "Invoice"
                       }`,
                     value: invoice._id,
                   }))}
@@ -282,6 +542,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
                   label="Payment"
                   placeholder="Search payment..."
                   value={form.sourceRef}
+                  dropdownWidth={320}
                   onChange={(e) =>
                     setForm({
                       ...form,
@@ -289,10 +550,7 @@ function CreateJournalModal({ onClose }: { onClose: () => void }) {
                     })
                   }
                   options={(paymentsData?.data || []).map((payment: any) => ({
-                    label: `${payment.paymentNumber ||
-                      payment.referenceNumber ||
-                      payment._id
-                      } — ${payment.amount || ""}`,
+                    label: `${payment.invoice?.invoiceNumber || payment.invoiceNumber || "—"} — ${fmt(payment.amount)} - ${payment?.paidAt? fmtDate(payment?.paidAt) : ""}`,
                     value: payment._id,
                   }))}
                 />
@@ -433,6 +691,7 @@ function EntryDetail({ entry }: { entry: any }) {
 // ── Main Component ────────────────────────────────────────────
 export default function JournalList() {
   const [showCreate, setShowCreate] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState({
     search: "",
@@ -443,6 +702,27 @@ export default function JournalList() {
     limit: 10,
   });
 
+
+  const queryClient = useQueryClient();
+
+  const { mutate: removeEntry, isPending: isDeleting } = useMutation({
+    mutationFn: deleteJournalEntry,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-list"] });
+    },
+    onError: (err: any) =>
+      alert(err?.response?.data?.message || "Could not delete entry"),
+  });
+
+  const handleDelete = (entry: any) => {
+    if (
+      window.confirm(
+        `Delete entry "${entry.entryNumber}"? This will reverse its effect on account balances. This cannot be undone.`
+      )
+    ) {
+      removeEntry(entry._id);
+    }
+  };
   const { data, isLoading } = useQuery({
     queryKey: ["journal-list", filters],
     queryFn: () =>
@@ -503,25 +783,53 @@ export default function JournalList() {
               filename="journal-entries"
               label="Export Excel"
               fetchData={async () => {
-                const res = await getAllJournalEntries({ limit: 10000 });
-                return res.data.data;
+                const [entriesRes, invoicesRes, expensesRes, paymentsRes] = await Promise.all([
+                  getAllJournalEntries({ limit: 10000 }),
+                  getAllInvoices({ limit: 10000 }),
+                  getAllExpenses({ limit: 10000 }),
+                  getAllPayments({ limit: 10000 }),
+                ]);
+
+                const invoiceMap = Object.fromEntries(
+                  (invoicesRes.data.data || []).map((i: any) => [i._id, i.invoiceNumber])
+                );
+                const expenseMap = Object.fromEntries(
+                  (expensesRes.data.data || []).map((e: any) => [e._id, e.expenseNumber])
+                );
+
+                // payment._id -> invoice number (payment ke andar linked invoice se resolve)
+                const paymentToInvoiceMap = Object.fromEntries(
+                  (paymentsRes.data.data || []).map((p: any) => {
+                    const invId = p.invoice?._id || p.invoice || p.invoiceId; // 👈 apna actual field name yahan confirm kr lena
+                    const invoiceNumber = invoiceMap[invId] || p.invoice?.invoiceNumber || "";
+                    return [p._id, invoiceNumber];
+                  })
+                );
+
+                console.log("Exporting journal entries:", entriesRes.data.data.length, "entries");
+                return (entriesRes.data.data || []).map((entry: any) => {
+                  const refId = entry.sourceRef?._id || entry.sourceRef;
+                  let sourceRefNumber = "";
+                  if (entry.sourceType === "invoice") sourceRefNumber = invoiceMap[refId] || refId || "";
+                  else if (entry.sourceType === "expense") sourceRefNumber = expenseMap[refId] || refId || "";
+                  else if (entry.sourceType === "payment") sourceRefNumber = paymentToInvoiceMap[refId] || refId || "";
+
+                  return { ...entry, sourceRefNumber };
+                });
               }}
               columns={[
                 { header: "Entry #", key: "entryNumber" },
                 { header: "Description", key: "description" },
                 { header: "Source", key: "sourceType" },
+                { header: "Source Ref", key: "sourceRefNumber" },
                 { header: "Type", key: "entryType" },
                 { header: "Status", key: "status" },
                 { header: "Date", key: "date", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
                 { header: "Created By", key: "createdBy.name" },
                 { header: "Notes", key: "notes" },
                 { header: "Lines", key: "lines", format: (lines) => lines.map((l: any) => `${l.account?.code || ""} (${l.type}): ${l.amount}`).join("; ") },
-                {
-                  header: "Total Debit", key: "lines", format: (lines) => lines.filter((l: any) => l.type === "debit").reduce((s: number, l: any) => s + l.amount, 0)
-                },
-                {
-                  header: "Total Credit", key: "lines", format: (lines) => lines.filter((l: any) => l.type === "credit").reduce((s: number, l: any) => s + l.amount, 0)
-                }
+                { header: "Total Debit", key: "lines", format: (lines) => lines.filter((l: any) => l.type === "debit").reduce((s: number, l: any) => s + l.amount, 0) },
+                { header: "Total Credit", key: "lines", format: (lines) => lines.filter((l: any) => l.type === "credit").reduce((s: number, l: any) => s + l.amount, 0) },
               ]}
             />
           </>
@@ -574,7 +882,8 @@ export default function JournalList() {
                 <th className="text-left px-3 py-3">Description</th>
                 <th className="text-left px-3 py-3 hidden md:table-cell">Date</th>
                 <th className="text-left px-3 py-3 hidden md:table-cell">Source</th>
-                <th className="text-right px-5 py-3">Amount</th>
+                <th className="text-center px-3 py-3 w-10">Amount</th>
+                <th className="text-center px-3 py-3 w-10">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -622,6 +931,27 @@ export default function JournalList() {
                       </td>
                       <td className="px-5 py-3 text-right font-semibold text-gray-800">
                         {fmt(totalDebit)}
+                      </td>
+                      <td className="px-3 py-3 text-center">
+                        {/* {entry.entryType === "manual" && ( */}
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingEntry(entry); }}
+                            className="p-1 text-gray-400 hover:text-yellow-600 transition-colors"
+                            title="Edit entry"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(entry); }}
+                            disabled={isDeleting}
+                            className="p-1 text-gray-400 hover:text-rose-500 transition-colors disabled:opacity-40"
+                            title="Delete entry"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        {/* )} */}
                       </td>
                     </tr>
                     {expanded[entry._id] && <EntryDetail entry={entry} />}
@@ -685,6 +1015,13 @@ export default function JournalList() {
               </div>
             </div>
           </div>
+        )}
+
+        {(showCreate || editingEntry) && (
+          <JournalModal
+            onClose={() => { setShowCreate(false); setEditingEntry(null); }}
+            editEntry={editingEntry}
+          />
         )}
       </div>
     </>
