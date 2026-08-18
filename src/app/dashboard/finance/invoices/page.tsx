@@ -8,7 +8,8 @@ import {
   updateInvoice,
   sendReceivingInvoiceEmail,
   sendInvoiceEmail,
-  getSalesRoleInvoices
+  getSalesRoleInvoices,
+  adminGetPrograms
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
@@ -93,7 +94,16 @@ export default function InvoicesPage() {
   const canDelete = ["admin", "super_admin"].includes(authUser?.role || "");
   const [deletingInvoice, setDeletingInvoice] = useState<any>(null);
 
-  const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10", dateFrom: "", dateTo: "" });
+  const { data: programsData } = useQuery({
+    queryKey: ["programs-for-filter"],
+    queryFn: () => adminGetPrograms().then((r) => r.data.data),
+  });
+
+  const [filters, setFilters] = useState({
+    status: "", search: "", page: "1", limit: "10", dateFrom: "", dateTo: "",
+    programIds: [] as string[],
+    hasDiscount: false,
+  });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [installmentInvoice, setInstallmentInvoice] = useState<any>(null);
@@ -115,18 +125,32 @@ export default function InvoicesPage() {
           { label: "Blocked", value: "BLOCKED" },
         ],
       },
+      {
+        type: "multi-select",
+        name: "programIds",
+        placeholder: "All Programs",
+        options: (programsData || []).map((p: any) => ({
+          label: p.name,
+          value: p._id,
+        })),
+      },
+      {
+        type: "checkbox",
+        name: "hasDiscount",
+        label: "Discount Applied",
+      },
     ]
     : [
-      {
-        type: "select", name: "status",
-        options: [
-          { label: "Pending", value: "PENDING" },
-          { label: "Partial", value: "PARTIAL" },
-          { label: "Paid", value: "PAID" },
-          { label: "Overdue", value: "OVERDUE" },
-        ],
-      },
-    ];
+    {
+      type: "select", name: "status",
+      options: [
+        { label: "Pending", value: "PENDING" },
+        { label: "Partial", value: "PARTIAL" },
+        { label: "Paid", value: "PAID" },
+        { label: "Overdue", value: "OVERDUE" },
+      ],
+    },
+  ];
 
   const { data, isLoading, isError } = useQuery({
     queryKey: isStudent
@@ -138,7 +162,10 @@ export default function InvoicesPage() {
       ? () => getMyInvoices().then((r) => r.data)
       : (isSalesManager || isSalesRep)
         ? () => getSalesRoleInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data)
-        : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
+        : () => getAllInvoices({
+          ...filters,
+          programIds: filters.programIds.join(",") , page: Number(filters.page), limit: Number(filters.limit)
+        }).then((r) => r.data),
   });
 
   const [viewInvoice, setViewInvoice] = useState<any>(null);

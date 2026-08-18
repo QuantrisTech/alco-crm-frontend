@@ -1,6 +1,6 @@
 
 
-  import { useCallback } from "react";
+import { useCallback } from "react";
 // component
 import InputField from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
@@ -11,12 +11,12 @@ import GuideButton from "@/app/dashboard/guide/component/guide-button";
 import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 export type FilterField = {
-  type: "input" | "select" | "date";
+  type: "input" | "select" | "date" | "multi-select" | "checkbox";
   name: string;
   placeholder?: string;
+  label?: string;
   options?: { label: string; value: string }[];
 };
-
 type HeaderProps = {
   title?: string;
   subtitle?: string;
@@ -27,7 +27,7 @@ type HeaderProps = {
   coveredLabel?: string;
   onAdd?: () => void;
   onDeleteAll?: () => void;
-  filters?: Record<string, string | number>;
+  filters?: Record<string, any>;
   setFilters?: React.Dispatch<React.SetStateAction<any>>;
   filterFields?: FilterField[];
   actions?: React.ReactNode;
@@ -54,13 +54,13 @@ export default function PageHeader({
   const role = authUser?.role;
   const isUserForResponsive = role === "user";
 
-// PageHeader component ke andar, filterFields.map se bahar:
-const handleDateFilterChange = useCallback(
-  (fieldName: string, value: string) => {
-    setFilters?.((prev: any) => ({ ...prev, [fieldName]: value, page: 1 }));
-  },
-  [setFilters]
-);
+  // PageHeader component ke andar, filterFields.map se bahar:
+  const handleDateFilterChange = useCallback(
+    (fieldName: string, value: string) => {
+      setFilters?.((prev: any) => ({ ...prev, [fieldName]: value, page: 1 }));
+    },
+    [setFilters]
+  );
 
   return (
     <>
@@ -166,6 +166,74 @@ const handleDateFilterChange = useCallback(
                         bg="bg-white"
                       />
                     </div>
+                  );
+                }
+
+                if (field.type === "multi-select") {
+                  const selected: string[] = Array.isArray(filters?.[field.name]) ? filters[field.name] : [];
+
+                  const toggleValue = (val: string) => {
+                    setFilters?.((prev: any) => {
+                      const current: string[] = Array.isArray(prev[field.name]) ? prev[field.name] : [];
+                      const next = current.includes(val)
+                        ? current.filter((v) => v !== val)
+                        : [...current, val];
+                      return { ...prev, [field.name]: next, page: 1 };
+                    });
+                  };
+
+                  return (
+                    <div key={field.name} className="relative w-48">
+                      <details className="group">
+                        <summary className="list-none cursor-pointer bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 flex items-center justify-between">
+                          <span className="truncate">
+                            {selected.length > 0
+                              ? `${selected.length} selected`
+                              : field.placeholder || "All"}
+                          </span>
+                          <span className="text-gray-400 text-xs ml-2">▾</span>
+                        </summary>
+                        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg p-2">
+                          {(field.options || []).map((opt) => (
+                            <label
+                              key={opt.value}
+                              className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected.includes(opt.value)}
+                                onChange={() => toggleValue(opt.value)}
+                                className="accent-yellow-500"
+                              />
+                              {opt.label}
+                            </label>
+                          ))}
+                          {(!field.options || field.options.length === 0) && (
+                            <p className="text-xs text-gray-400 px-2 py-1">No options</p>
+                          )}
+                        </div>
+                      </details>
+                    </div>
+                  );
+                }
+
+                if (field.type === "checkbox") {
+                  const checked = !!filters?.[field.name];
+                  return (
+                    <label
+                      key={field.name}
+                      className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 cursor-pointer h-[38px]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) =>
+                          setFilters?.((prev: any) => ({ ...prev, [field.name]: e.target.checked, page: 1 }))
+                        }
+                        className="accent-yellow-500"
+                      />
+                      {field.label || field.name}
+                    </label>
                   );
                 }
 
