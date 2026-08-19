@@ -32,6 +32,7 @@ import ViewPaymentPlanModal from "./view-payment-plan-modal";
 import SelectProgramModal from "./select-program-modal";
 import { useAppSelector } from "@/store/hooks";
 import ExportButton from "@/app/component/ui/export-button";
+import LeadImportButton from "./lead-import-button";
 
 
 // ── Main Component ────────────────────────────────────────────
@@ -310,6 +311,7 @@ const injectBatches = (fields: ModalField[]) =>
 
         {isAdmin && (
           <div className="flex items-center gap-1">
+            <LeadImportButton />
             <ExportButton
               filename="leads"
               label="Export Excel"

@@ -129,6 +129,25 @@ export const submitLeadContract = (id: string, data: any) => API.patch(`/api/v1/
 export const getMyLeadContract = () => API.get(`/api/v1/leads/my-contract`);
 export const sendPaymentPlanInvoice = (invoiceId: string) =>
   API.post(`/api/v1/leads/invoices/${invoiceId}/send-payment-plan-email`);
+export const previewBulkLeads = (formData: FormData) =>
+  API.post("/api/v1/leads/bulk-import/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+ 
+export const confirmBulkLeads = (
+  leads: {
+    firstName: string;
+    lastName?: string;
+    email: string;
+    phone?: string | null;
+    programId?: string | null;
+    nationality?: string;
+    profession?: string;
+    source?: string;
+    quality?: string;
+    assignedTo?: string;
+  }[]
+) => API.post("/api/v1/leads/bulk-import/confirm", { leads });
 // Program APIs
 export const adminGetPrograms = (params?: any) => API.get("/api/v1/programs", { params });
 export const adminCreateProgram = (data: any) => API.post("/api/v1/programs", data);
