@@ -194,7 +194,7 @@ export default function PaymentsPage() {
                 { header: "Description", key: "notes" },
                 { header: "Status", key: "status" },
                 { header: "Approved By", key: "approvedBy.name" },
-                { header: "Date", key: "createdAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
+                { header: "Date", key: "paidAt", format: (v) => v ? new Date(v).toLocaleDateString("en-PK") : "—" },
               ]}
             />
             {/* 👇 Naya: Email report to admins — same dropdown jo invoices mein hai */}
