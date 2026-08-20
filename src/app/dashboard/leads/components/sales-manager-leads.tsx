@@ -10,7 +10,7 @@ import {
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
-import { Users, Pencil, UserCheck, XCircle, Activity, UserPlus, LayoutGrid, List } from "lucide-react";
+import { Users, Pencil, UserCheck, XCircle, Activity, UserPlus, LayoutGrid, List, Clock } from "lucide-react";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
@@ -29,6 +29,7 @@ import ViewPaymentPlanModal from "./view-payment-plan-modal";
 import SelectProgramModal from "./select-program-modal";
 import Select from "@/app/component/ui/select";
 import ExportButton from "@/app/component/ui/export-button";
+import { markNotNowLead } from "@/utils/api";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
@@ -39,6 +40,7 @@ export default function SalesManagerLeads() {
   const [editingLead, setEditingLead] = useState<any>(null);
   const [activityLead, setActivityLead] = useState<any>(null);
   const [lostLead, setLostLead] = useState<any>(null);
+  const [notNowLead, setNotNowLead] = useState<any>(null);
   const [assigningLead, setAssigningLead] = useState<any>(null);
   const [viewActivities, setViewActivities] = useState<any>(null);
   const [interestedLead, setInterestedLead] = useState<any>(null);
@@ -199,6 +201,12 @@ export default function SalesManagerLeads() {
     onError: () => toast.error("Failed!"),
   });
 
+  const { mutate: markNotNow, isPending: isMarkingNotNow } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => markNotNowLead(id, data),
+    onSuccess: () => { toast.success("Marked as Not Now!"); setNotNowLead(null); invalidateLeads(); },
+    onError: () => toast.error("Failed!"),
+  });
+
   const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
     onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); invalidateLeads(); },
@@ -228,6 +236,7 @@ export default function SalesManagerLeads() {
     onViewActivities: setViewActivities,
     onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
     onMarkLost: setLostLead,
+    onMarkNotNow: setNotNowLead,
     onPaymentPlan: setPaymentPlanLead,
     onInterested: setInterestedLead,
     onQualified: (lead: any) => updateLeadApi({ id: lead._id, data: { status: "qualified" } }),
@@ -354,6 +363,7 @@ export default function SalesManagerLeads() {
               // { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
               // { icon: <UserCheck size={14} />, label: "Convert", onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
               // { icon: <XCircle size={14} />, label: "Mark Lost", onClick: setLostLead, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              { icon: <Clock size={14} />, label: "Not Now", onClick: setNotNowLead, className: "hover:bg-gray-100 hover:text-gray-600", hidden: (lead) => ["converted", "lost", "not_now"].includes(lead.status) },
             ]}
           />
           <div className="grid grid-cols-3 gap-4 mt-6">
@@ -402,6 +412,9 @@ export default function SalesManagerLeads() {
 
         lostLead={lostLead} onLostClose={() => setLostLead(null)}
         onLostSubmit={(data) => markLost({ id: lostLead._id, data })} isMarkingLost={isMarkingLost}
+
+        notNowLead={notNowLead} onNotNowClose={() => setNotNowLead(null)}
+        onNotNowSubmit={(data) => markNotNow({ id: notNowLead._id, data })} isMarkingNotNow={isMarkingNotNow}
 
         assigningLead={assigningLead} onAssignClose={() => setAssigningLead(null)}
         onAssign={(userId) => assignLeadApi({ id: assigningLead._id, data: { assigned_to: userId } })}

@@ -15,6 +15,7 @@ import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
 import {
   Users, Pencil, Trash2, LayoutGrid, List,
+  Clock,
 } from "lucide-react";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
@@ -33,7 +34,7 @@ import SelectProgramModal from "./select-program-modal";
 import { useAppSelector } from "@/store/hooks";
 import ExportButton from "@/app/component/ui/export-button";
 import LeadImportButton from "./lead-import-button";
-
+import { markNotNowLead } from "@/utils/api";
 
 // ── Main Component ────────────────────────────────────────────
 export default function AdminLeads() {
@@ -45,6 +46,7 @@ export default function AdminLeads() {
   const [editingLead, setEditingLead] = useState<any>(null);
   const [activityLead, setActivityLead] = useState<any>(null);
   const [lostLead, setLostLead] = useState<any>(null);
+  const [notNowLead, setNotNowLead] = useState<any>(null);
   const [assigningLead, setAssigningLead] = useState<any>(null);
   const [deletingLead, setDeletingLead] = useState<any>(null);
   const [viewActivities, setViewActivities] = useState<any>(null);
@@ -150,10 +152,10 @@ export default function AdminLeads() {
     );
 
   // Inject function
-const injectBatches = (fields: ModalField[]) =>
-  fields.map((f) =>
-    f.name === "batch_id"
-      ? {
+  const injectBatches = (fields: ModalField[]) =>
+    fields.map((f) =>
+      f.name === "batch_id"
+        ? {
           ...f,
           options: [
             { label: "— None —", value: "" },
@@ -163,8 +165,8 @@ const injectBatches = (fields: ModalField[]) =>
             })),
           ],
         }
-      : f
-  );
+        : f
+    );
 
   // Apply both injections
   const injectAll = (fields: ModalField[]) => injectBatches(injectPrograms(fields));
@@ -222,6 +224,12 @@ const injectBatches = (fields: ModalField[]) =>
     onError: () => toast.error("Failed!"),
   });
 
+  const { mutate: markNotNow, isPending: isMarkingNotNow } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => markNotNowLead(id, data),
+    onSuccess: () => { toast.success("Marked as Not Now!"); setNotNowLead(null); invalidateLeads(); },
+    onError: () => toast.error("Failed!"),
+  });
+
   const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
     onSuccess: () => { toast.success("Activity added! ✅"); setActivityLead(null); invalidateLeads(); },
@@ -256,6 +264,7 @@ const injectBatches = (fields: ModalField[]) =>
       convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
 
     onMarkLost: setLostLead,
+    onMarkNotNow: setNotNowLead,
     onDelete: setDeletingLead,
     onPaymentPlan: setPaymentPlanLead,
     onInterested: setInterestedLead,
@@ -404,6 +413,7 @@ const injectBatches = (fields: ModalField[]) =>
               // { icon: <UserCheck size={14} />, label: "Convert", onClick: actions.onConvert, className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
               // { icon: <XCircle size={14} />, label: "Mark Lost", onClick: actions.onMarkLost, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
               { icon: <Trash2 size={14} />, label: "Delete", onClick: actions.onDelete, className: "hover:bg-red-50 hover:text-red-500" },
+              { icon: <Clock size={14} />, label: "Not Now", onClick: setNotNowLead, className: "hover:bg-gray-100 hover:text-gray-600", hidden: (lead) => ["converted", "lost", "not_now"].includes(lead.status) },
             ]}
           />
           <div className="grid grid-cols-3 gap-4 mt-6">
@@ -453,6 +463,9 @@ const injectBatches = (fields: ModalField[]) =>
         // Lost
         lostLead={lostLead} onLostClose={() => setLostLead(null)}
         onLostSubmit={(data) => markLost({ id: lostLead._id, data })} isMarkingLost={isMarkingLost}
+        // Not Now
+        notNowLead={notNowLead} onNotNowClose={() => setNotNowLead(null)}
+        onNotNowSubmit={(data) => markNotNow({ id: notNowLead._id, data })} isMarkingNotNow={isMarkingNotNow}
         // Delete
         deletingLead={deletingLead} onDeleteClose={() => setDeletingLead(null)}
         onDeleteConfirm={() => deleteLeadApi(deletingLead._id)} isDeleting={isDeleting}

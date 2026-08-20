@@ -2,7 +2,7 @@
 import Modal from "@/app/component/ui/model/modal";
 import AddActivityModal from "../components/add-activity-modal";
 import Popup from "@/app/component/ui/popup/popup";
-import { activityFields, lostFields } from "./fields";
+import { activityFields, lostFields, notNowFields } from "./fields";
 import { ModalField } from "@/types/ui";
 import ViewActivityModal from "../components/view-activity-modal";
 import AssignLeadModal from "../components/assign-lead-modal";
@@ -53,6 +53,12 @@ interface LeadsModalsProps {
   onAssign?: (userId: string) => void;
   isAssigning?: boolean;
   currentUserRole?: "super_admin" | "admin" | "sales_manager" | "sales_rep";
+
+  // Not Now Modal (optional)
+  notNowLead?: any;
+  onNotNowClose?: () => void;
+  onNotNowSubmit?: (data: any) => void;
+  isMarkingNotNow?: boolean;
 }
 
 export default function LeadsModals({
@@ -70,6 +76,8 @@ export default function LeadsModals({
   deletingLead, onDeleteClose, onDeleteConfirm, isDeleting,
   // Assign
   assigningLead, onAssignClose, onAssign, isAssigning, currentUserRole,
+  // Not Now
+  notNowLead, onNotNowClose, onNotNowSubmit, isMarkingNotNow,
 }: LeadsModalsProps) {
   return (
     <>
@@ -174,6 +182,20 @@ export default function LeadsModals({
           onAssign={onAssign}
           isLoading={isAssigning || false}
           currentUserRole={currentUserRole || "admin"}
+        />
+      )}
+
+      {/* ── Mark Not Now Modal (optional) ── */}
+      {notNowLead && onNotNowClose && onNotNowSubmit && (
+        <Modal
+          isOpen={!!notNowLead}
+          onClose={onNotNowClose}
+          title="Mark as Not Now"
+          subtitle={`${notNowLead.first_name} ${notNowLead.last_name}`}
+          fields={notNowFields}
+          onSubmit={onNotNowSubmit}
+          isLoading={isMarkingNotNow}
+          mode="add"
         />
       )}
     </>

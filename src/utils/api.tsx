@@ -120,6 +120,8 @@ export const deleteLead = (id: string) => API.delete(`/api/v1/leads/${id}`);
 export const assignLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/assign`, data);
 export const convertLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/convert`, data);
 export const markLostLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/mark-lost`, data);
+export const markNotNowLead = (id: string, data: any) =>
+  API.patch(`/api/v1/leads/${id}/not-now`, data);
 export const getActivitiesLead = (id: string) => API.get(`/api/v1/leads/${id}/activities`);
 export const addActivityLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/activities`, data);
 export const getLeadsStats = (userId?: string) => API.get("/api/v1/leads/stats", { params: userId ? { userId } : {}, });
@@ -247,6 +249,11 @@ export const updateInstallment = (invoiceId: string, installmentId: string, data
 
 export const addInstallment = (invoiceId: string, data: any) =>
   API.post(`/api/v1/finance/invoices/${invoiceId}/installments`, data);
+
+export const deleteInstallment = (invoiceId: string, installmentId: string, reason?: string) =>
+  API.delete(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}`, {
+    data: { reason },
+  });
 
 
 export const getMyInvoices = () => API.get("/api/v1/finance/invoices/my");

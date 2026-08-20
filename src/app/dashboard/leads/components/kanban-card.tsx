@@ -283,7 +283,7 @@ function InvoiceWarningModal({ onConfirm, onClose }: {
 export default function KanbanCard({
   lead, programMap,
   onEdit, onViewContract, onActivity, onContacted, onQualified,
-  onPaymentPlan, onInterested, onConvert, onMarkLost, onDelete,
+  onPaymentPlan, onInterested, onConvert, onMarkLost, onMarkNotNow, onDelete,
   onAssign, onViewActivities, viewPaymentPlan, onEnroll,
   // ── naye props ──
   loadingLeadId,       // currently loading lead ka _id
@@ -414,9 +414,9 @@ export default function KanbanCard({
             {lead.first_name} {lead.last_name}
           </p>
           <div className="flex gap-1">
-            {lead.status === "converted" && (
+            {(lead.status === "converted" || lead.status === "not_now") && (
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${qualityColor(lead.status)}`}>
-                {lead.status}
+                {lead.status === "not_now" ? "not now" : lead.status}
               </span>
             )}
             {lead.quality && (
@@ -430,6 +430,10 @@ export default function KanbanCard({
         {/* Lost reason */}
         {lead.status === "lost" && lead.lost_reason && (
           <p className="text-[10px] text-rose-400 mb-2 italic">{lead.lost_reason}</p>
+        )}
+
+        {lead.status === "not_now" && lead.not_now_reason && (
+          <p className="text-[10px] text-gray-400 mb-2 italic">{lead.not_now_reason}</p>
         )}
 
         {/* Source */}
@@ -578,7 +582,7 @@ export default function KanbanCard({
                 </button>
               )}
 
-              {onMarkLost && !["converted", "lost"].includes(lead.status) && (
+              {onMarkLost && !["converted", "lost", "not_now"].includes(lead.status) && (
                 <button
                   onClick={() => runAction("lost", () => onMarkLost(lead))}
                   disabled={!!pendingAction}
@@ -588,6 +592,19 @@ export default function KanbanCard({
                   {isLoading("lost")
                     ? <div className="w-2.5 h-2.5 border border-rose-400 border-t-transparent rounded-full animate-spin" />
                     : <XCircle size={11} />}
+                </button>
+              )}
+
+              {onMarkNotNow && !["converted", "lost", "not_now"].includes(lead.status) && (
+                <button
+                  onClick={() => runAction("not_now", () => onMarkNotNow(lead))}
+                  disabled={!!pendingAction}
+                  title="Not Now"
+                  className="p-1 rounded hover:bg-gray-100 hover:text-gray-600 text-gray-400 disabled:opacity-40"
+                >
+                  {isLoading("not_now")
+                    ? <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    : <Clock size={11} />}
                 </button>
               )}
             </>

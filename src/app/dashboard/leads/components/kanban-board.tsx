@@ -22,7 +22,7 @@ export default function KanbanBoard({
   PIPELINE_STAGES.forEach((s) => { grouped[s.key] = []; });
 
   (leads || []).forEach((lead: any) => {
-    if (lead.status === "lost") {
+    if (lead.status === "lost" || lead.status === "not_now") {
       const prevStage = lead.previous_status || "new";
       if (grouped[prevStage]) grouped[prevStage].push(lead);
       return;

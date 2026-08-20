@@ -156,6 +156,8 @@ const menuSections: MenuSection[] = [
         icon: GraduationCap,
         roles: ["super_admin", "admin", "seo"],
       },
+      { label: "Leads", href: "/dashboard/leads", icon: Users, roles: ["seo"] },
+
       {
         label: "SEO",
         icon: SearchCheck,

@@ -8,6 +8,7 @@ import AdminLeads from './components/admin-leads';
 import SalesManagerLeads from './components/sales-manager-leads';
 import SalesRepLeads from './components/sales-rep-leads';
 import FinanceLeads from './components/finance-lead';
+import SEOLeads from './components/seo-leads';
 
 // Role based components — alag alag views
 
@@ -26,6 +27,8 @@ export default function Leads() {
         return <SalesRepLeads />;
       case "finance_manager":
         return <FinanceLeads />;
+      case "seo":
+        return <SEOLeads />;
       default:
         return null;
     }

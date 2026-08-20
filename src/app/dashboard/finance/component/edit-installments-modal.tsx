@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateInstallment, addInstallment } from "@/utils/api";
+import { updateInstallment, addInstallment, deleteInstallment } from "@/utils/api";
 import toast from "react-hot-toast";
-import { X, Pencil, Plus, Save, Check, GraduationCap } from "lucide-react";
+import { X, Pencil, Plus, Save, Check, GraduationCap, Trash2 } from "lucide-react";
 import AppDatePicker from "@/app/component/ui/app-date-picker";
 
 interface Installment {
@@ -74,6 +74,18 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
     },
     onError: (e: any) =>
       toast.error(e?.response?.data?.message || "Add failed!"),
+  });
+
+  const { mutate: removeInstallment, isPending: isDeleting } = useMutation({
+    mutationFn: ({ instId }: { instId: string }) =>
+      deleteInstallment(invoice?._id, instId),
+    onSuccess: () => {
+      toast.success("Installment deleted!");
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["my-invoices"] });
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.message || "Delete failed!"),
   });
 
   // ── EARLY RETURN — hooks ke baad ─────────────────────────────
@@ -229,7 +241,7 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                           {inst.status}
                         </span>
                       </div>
-                      
+
                       <p className="text-xs text-gray-400 mt-0.5">
                         Due: {fmtDate(inst.dueDate)}  |  Paid at: {fmtDate(inst.paidAt) ? fmtDate(inst.paidAt) : "—"}
                       </p>
@@ -246,13 +258,28 @@ export default function EditInstallmentsModal({ invoice, onClose }: Props) {
                       {fmt(inst.amount)}
                     </span>
                     {inst.status !== "PAID" ? (
-                      <button
-                        onClick={() => openEdit(inst)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-yellow-100 hover:text-yellow-600 transition"
-                        title="Edit installment"
-                      >
-                        <Pencil size={13} />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => openEdit(inst)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-yellow-100 hover:text-yellow-600 transition"
+                          title="Edit installment"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        {(!inst.feeType || inst.feeType === "program") && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete "${inst.label}"?`)) {
+                                removeInstallment({ instId: inst._id });
+                              }
+                            }}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-rose-100 hover:text-rose-600 transition"
+                            title="Delete installment"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <button

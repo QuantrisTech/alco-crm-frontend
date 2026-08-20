@@ -43,7 +43,7 @@ export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   error?: string | { message?: string };
 };
 
-export type FieldType = "input" | "select" | "searchable-select" | "textarea" | "checkbox" | "uploadInput" | "custom" | "multi-select";
+export type FieldType = "input" | "select" | "searchable-select" | "textarea" | "checkbox" | "uploadInput" | "custom" | "multi-select" ;
 
 export type ModalField = {
   name: string;

@@ -83,15 +83,19 @@ export const editLeadFields: ModalField[] = [
     options: [],
   },
   {
-    name: "status", label: "status", type: "select",
+    name: "status",
+    label: "Status",
+    type: "select",
     options: [
-      { label: "new", value: "new" },
-      { label: "contacted", value: "Contacted" },
-      { label: "qualified", value: "Qualified" },
-      { label: "interested", value: "Interested" },
-      { label: "converted", value: "Converted" },
-      { label: "lost", value: "Lost", }
-    ]
+      { label: "New", value: "new" },
+      { label: "Contacted", value: "contacted" },
+      { label: "Qualified", value: "qualified" },
+      { label: "Call Booked", value: "call_booked" },
+      { label: "Interested", value: "interested" },
+      { label: "Converted", value: "converted" },
+      { label: "Not Now", value: "not_now" },
+      { label: "Lost", value: "lost" },
+    ],
   },
   {
     name: "source", label: "Source", type: "select",
@@ -108,7 +112,9 @@ export const editLeadFields: ModalField[] = [
     ],
   },
   {
-    name: "quality", label: "Quality", type: "select",
+    name: "quality",
+    label: "Quality",
+    type: "select",
     options: [
       { label: "Hot", value: "hot" },
       { label: "Warm", value: "warm" },
@@ -137,7 +143,7 @@ export const editLeadFieldsReadonly: ModalField[] = [
       { label: "Cold", value: "cold" },
     ],
   },
- {
+  {
     name: "status", label: "status*", type: "select", required: true,
     options: [
       { label: "new", value: "new" },
@@ -185,4 +191,9 @@ export const activityFields: ModalField[] = [
 export const lostFields: ModalField[] = [
   { name: "lost_reason", label: "Lost Reason", type: "input", inputType: "text", placeholder: "Too expensive" },
   { name: "lost_notes", label: "Notes", type: "textarea", placeholder: "Additional notes..." },
+];
+
+export const notNowFields: ModalField[] = [
+  { name: "not_now_reason", label: "Reason", type: "input", required: true },
+  { name: "not_now_notes", label: "Notes", type: "textarea" },
 ];

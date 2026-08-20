@@ -271,7 +271,7 @@ function InvoiceCard({ invoice }: { invoice: any }) {
                   >
                     <div>
                       <p className="text-sm font-medium text-gray-800">
-                        Installment {idx + 1}
+                        {/* Installment {idx + 1} */} {inst.label || `Installment ${idx + 1}`}
                       </p>
                       <p className="text-xs text-gray-400">
                         {inst.dueDate
